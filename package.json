@@ -2,7 +2,9 @@
   "name": "skiller",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
+    "predev": "node scripts/brand.js",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "start": "turbo run start",
