@@ -1,0 +1,151 @@
+{
+  "dashboard": {
+    "menu": "メニュー",
+    "librarySubtitle": "抽出された知識スキルを探索して管理します。",
+    "mySkills": "マイスキル",
+    "connector": "コネクタ",
+    "connectorsSubtitle": "MCPサーバーと自動インストーラーの統合を管理します。",
+    "localMcpTitle": "ローカルMCPサーバー",
+    "localMcpDesc": "Skiller MCPサーバーをローカルで実行し、IDE（Cursor、Antigravity、Claude Desktop）がマシンに直接スキルを要求・インストールできるようにします。",
+    "comingSoon": "近日公開",
+    "ideTitle": "IDE直接統合",
+    "ideDesc": "接続プロファイルをダウンロードして、MCP経由でサポートされているAIアシスタントとSkillerアカウントを自動的にリンクします。",
+    "downloadProfile": "プロファイルをダウンロード",
+    "logout": "ログアウト",
+    "generateTitle": "新しいスキルを生成",
+    "generateSubtitle": "知識を抽出するには、YouTubeプレイリストのURLを貼り付けてください。",
+    "inputPlaceholder": "https://www.youtube.com/playlist?list=...",
+    "btnGenerate": "スキルを生成",
+    "btnStarting": "開始しています...",
+    "errorInvalidUrl": "有効なYouTubeプレイリストのURLを入力してください。",
+    "errorFailed": "スキルの生成に失敗しました",
+    "libraryTitle": "ライブラリ",
+    "searchSkills": "スキルを検索...",
+    "formatGemini": "Gemini (Antigravity / Jules)",
+    "formatClaude": "Claude (Cursor)",
+    "formatCopilot": "GitHub Copilot",
+    "formatMcp": "MCPサーバー (Model Context Protocol)",
+    "formatGeneric": "汎用 (AGENTS.md)",
+    "loading": "スキルを読み込んでいます...",
+    "fetchError": "スキルの読み込みに失敗しました。",
+    "emptyTitle": "まだスキルが生成されていません",
+    "emptyDesc": "上記のプレイリストリンクを貼り付けて開始してください。",
+    "processingSkill": "スキルを処理中...",
+    "extractingData": "データを抽出中..."
+  },
+  "skill": {
+    "generationFailed": "スキルの生成に失敗しました",
+    "errorMsg": "プレイリストの処理中にエラーが発生しました。もう一度お試しください。",
+    "processingPlaylist": "プレイリストを処理中...",
+    "by": "作成者:",
+    "downloadBtn": "SKILL.mdをダウンロード",
+    "generationInProgress": "生成中",
+    "extracting": "コンセプトを抽出して合成中...",
+    "videosProcessed": "処理された動画",
+    "errorLoading": "スキルの読み込み中にエラーが発生しました。"
+  },
+  "landing": {
+    "badge": "ENGINE ONLINE V2.4",
+    "title1": "YouTubeを",
+    "title2": "インテリジェンスに変える。",
+    "subtitle": "プレイリストを貼り付ける。マスタークラスを抽出する。SKILLERは超インテリジェントな処理を利用して、何時間もの動画を実行可能で構造化された知識に合成します。",
+    "ctaStart": "抽出する",
+    "ctaGithub": "ソースを見る",
+    "socialProof": "",
+    "featuresTitle": "合成パイプライン",
+    "featuresSubtitle": "生のピクセルから構造化された構文への外科的な精度。",
+    "feature1Title": "01. 取り込み",
+    "feature1Desc": "生データ\nソースプレイリストからのオーディオ、ビジュアルデータ、メタデータの高帯域幅同化。",
+    "feature2Title": "02. 処理",
+    "feature2Desc": "ニューラル抽出\nLLM主導の意味解析により、冗長なノイズをフィルタリングしてコアコンセプトを特定します。",
+    "feature3Title": "03. 出力",
+    "feature3Desc": "SKILL.md\n実行の準備が整った、純粋でバージョン管理されたMarkdownブループリントへのコンパイル。",
+    "deepDiveTitle": "トランスクリプトを超えて。\n真の意味理解。",
+    "deepDiveDesc": "標準的なツールは単にテキストを吐き出すだけです。SKILLERは動画の概念グラフを構築し、依存関係をマッピングし、コードブロックを抽出し、重要な瞬間を外科的な精度で強調します。",
+    "deepDiveFeature1": "自動チャプター生成\n時間だけでなく、トピックの移行に基づいたインテリジェントなセグメンテーション。",
+    "deepDiveFeature2": "構文の抽出\n画面に表示されているコードブロックを自動的に識別してフォーマットします。",
+    "pricingTitle": "テレメトリープラン",
+    "pricingSubtitle": "インテリジェンスの抽出をスケールさせます。",
+    "planHobby": "HOBBY",
+    "planPro": "PRO",
+    "mostPopular": "API早期アクセス",
+    "priceHobby": "0",
+    "pricePro": "10",
+    "currency": "$",
+    "mo": "/月",
+    "pricingBtnStart": "はじめる",
+    "pricingBtnUpgrade": "Proにアップグレード",
+    "footerRights": "Skiller. All rights reserved."
+  },
+  "carousel": {
+    "cta": "+ もっと見る",
+    "ctaDemo": "デモを見る",
+    "slides": [
+      {
+        "eyebrow": "01 — 取り込み",
+        "title": "プレイリストを貼り付ける",
+        "description": "SkillerはYouTube Data APIを通じてプレイリスト全体を読み取ります: 各動画のタイトル、説明、順序、メタデータ。ダウンロードも設定も不要です。",
+        "marquee": "取り込み → プレイリスト → メタデータ →"
+      },
+      {
+        "eyebrow": "02 — 抽出",
+        "title": "すべての動画がカードになる",
+        "description": "各トランスクリプトはパイプラインを通り、検証済みのJSONを返します: 重要なコンセプト、濃密な要約、画面に表示されたコードブロック。",
+        "marquee": "トランスクリプト → コンセプト → コード →"
+      },
+      {
+        "eyebrow": "03 — 合成",
+        "title": "単なる要約ではなく、スキルを",
+        "description": "カードは、関連性のない要約の山ではなく、マッピングされた依存関係と学習順序を持つ、1つの首尾一貫したドキュメントに合成されます。",
+        "marquee": "合成 → 概念グラフ →"
+      },
+      {
+        "eyebrow": "04 — 出力",
+        "title": "SKILL.md",
+        "description": "リポジトリにコミットし、コーディングアシスタントが読み取れる状態のMarkdown。やり直しやコピー＆ペーストは不要です。",
+        "marquee": "SKILL.md → コミット → 完了 →"
+      }
+    ],
+    "brandMarquee": "SKILLER → プレイリスト → SKILL.md →"
+  },
+  "nav": {
+    "features": "特徴",
+    "pricing": "料金",
+    "dashboard": "ダッシュボード",
+    "getStarted": "無料で始める",
+    "vocationalIntelligence": "職業インテリジェンス",
+    "close": "閉じる",
+    "demoVideo": "デモビデオ.MP4"
+  },
+  "skillClient": {
+    "tabs": {
+      "pluginSource": "プラグインソース",
+      "humanView": "ヒューマンビュー",
+      "visualTranscript": "ビジュアル文字起こし",
+      "nodeMap": "インデックス (ノードマップ)"
+    },
+    "transcript": {
+      "notAvailable": "トランスクリプトは利用できません。",
+      "selectVideo": "サイドバーで動画を選択してコンテンツを表示します。"
+    },
+    "sidebar": {
+      "pluginFiles": "プラグインファイル",
+      "sources": "ソース",
+      "visualization": "視覚化",
+      "graphControls": "グラフコントロール",
+      "readDoc": "分析ドキュメントを読む",
+      "nodeMapHidden": "ノードマップはドキュメントプレビューによって隠されています。「X」を使用してドキュメントを閉じるか、このメニューを使用して切り替えます。",
+      "nodeMapVisible": "AIによって生成されたインタラクティブなトポロジーを表示しています。",
+      "addSource": "ソースを追加",
+      "download": "ダウンロード",
+      "retry": "再試行",
+      "apiLog": "APIログ"
+    },
+    "modal": {
+      "addSourceTitle": "プラグインにソースを追加",
+      "addSourceDesc": "新しい動画を追加して、スキルの知識ベースを拡張します。プラグインは、既存のファイルを保持し、新しい知識を追加して再合成されます。",
+      "inputPlaceholder": "YouTube動画またはプレイリストのURLを貼り付けます",
+      "processBtn": "処理して再生成"
+    }
+  }
+}

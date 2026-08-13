@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <rect width="100%" height="100%" fill="#0a0a0c" />
+  
+  <g transform="translate(150, 100)">
+    <!-- Connecting lines -->
+    <path d="M 100 100 L 250 200" stroke="#333" stroke-width="2" />
+    <path d="M 100 300 L 250 200" stroke="#333" stroke-width="2" />
+    <path d="M 400 100 L 250 200" stroke="#333" stroke-width="2" />
+    <path d="M 400 300 L 250 200" stroke="#333" stroke-width="2" />
+    
+    <!-- Outer nodes -->
+    <circle cx="100" cy="100" r="30" fill="#1a1a1d" stroke="#444" stroke-width="2" />
+    <circle cx="100" cy="300" r="30" fill="#1a1a1d" stroke="#444" stroke-width="2" />
+    <circle cx="400" cy="100" r="30" fill="#1a1a1d" stroke="#444" stroke-width="2" />
+    <circle cx="400" cy="300" r="30" fill="#1a1a1d" stroke="#444" stroke-width="2" />
+    
+    <!-- Central Node -->
+    <circle cx="250" cy="200" r="50" fill="#FF003C" opacity="0.15" />
+    <circle cx="250" cy="200" r="40" fill="#141416" stroke="#FF003C" stroke-width="3" />
+    <polygon points="245,185 245,215 265,200" fill="#FF003C" />
+    
+    <!-- Mini data packets on lines -->
+    <circle cx="175" cy="150" r="4" fill="#FF003C" />
+    <circle cx="175" cy="250" r="4" fill="#FF003C" />
+    <circle cx="325" cy="150" r="4" fill="#FF003C" />
+  </g>
+</svg>

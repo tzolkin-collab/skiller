@@ -1,0 +1,432 @@
+/* The landing owns exactly one viewport and never scrolls — fixed positioning
+   means the document has no scrollable height at all, so there is no rubber
+   band, no pull-to-refresh and no scrollbar to hide. */
+.pageContainer {
+  position: fixed;
+  inset: 0;
+  padding-left: 80px; /* Space for the lateral header */
+  color: var(--text-primary);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.sceneLayer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 1. LOADER */
+.loaderContainer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+.loaderLayerDark, .loaderLayerRed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.loaderLayerDark {
+  background-color: var(--bg-primary);
+}
+.loaderLayerRed {
+  background-color: var(--accent-primary);
+}
+
+/* 2. LATERAL HEADER */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 80px;
+  background-color: transparent;
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  z-index: 9000;
+}
+.sidebarTop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebarMiddle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebarText {
+  font-family: var(--font-accent);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  transform: rotate(-180deg);
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+.sidebarBottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.menuBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  padding: 8px;
+}
+.menuBtn:hover {
+  color: var(--accent-primary);
+}
+
+/* 3. MENU OVERLAY */
+.menuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none; /* Let clicks pass to the menu panel */
+}
+.menuWipeRed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--accent-primary);
+  pointer-events: auto;
+}
+.menuPanelDark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-light);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+}
+.menuHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 80px;
+}
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.closeBtn:hover {
+  color: var(--accent-primary);
+}
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.navLink {
+  font-family: var(--font-heading);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: color 0.2s, transform 0.2s;
+}
+.navLink:hover {
+  color: var(--accent-primary);
+  transform: translateX(10px);
+}
+
+.topRightControls {
+  position: fixed;
+  top: 24px;
+  right: 40px;
+  z-index: 9000;
+}
+
+/* 4. MAIN CONTENT */
+.mainContent {
+  height: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* HERO */
+.heroSection {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.heroTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(60px, 12vw, 180px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  margin-bottom: 24px;
+}
+.heroSubtitle {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin-bottom: 48px;
+}
+.heroActions {
+  display: flex;
+  gap: 16px;
+}
+.primaryBtn, .secondaryBtn {
+  padding: 16px 32px;
+  font-family: var(--font-accent);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+.primaryBtn {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: 1px solid var(--accent-primary);
+}
+.primaryBtn:hover {
+  background-color: transparent;
+  color: var(--accent-primary);
+}
+.secondaryBtn {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+.secondaryBtn:hover {
+  border-color: var(--text-primary);
+}
+
+/* FEATURES GRID */
+.featuresSection {
+  padding: 80px 0;
+}
+.featuresTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+.featuresSubtitle {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin-bottom: 48px;
+}
+.featureLead {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+}
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+.featureCard {
+  border: 1px solid var(--border-light);
+  padding: 40px 32px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, transform 0.2s;
+}
+.featureCard:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-4px);
+}
+.featureTitle {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+.featureDesc {
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* 6. SCROLL INDEX */
+.scrollIndexContainer {
+  position: fixed;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  pointer-events: none;
+}
+.scrollIndexLabels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: auto;
+}
+.scrollIndexLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: color 0.2s, opacity 0.2s;
+}
+.scrollIndexLabel:hover {
+  color: var(--text-primary);
+  opacity: 1;
+}
+.scrollIndexLabel.active {
+  color: var(--accent-primary);
+  opacity: 1;
+}
+.scrollBarTrack {
+  position: relative;
+  width: 1px;
+  height: 120px;
+  background-color: var(--border-light);
+  overflow: hidden;
+}
+.scrollBarThumb {
+  position: absolute;
+  inset: 0;
+  background-color: var(--accent-primary);
+  transform-origin: top center;
+}
+
+@media (max-width: 768px) {
+  .scrollIndexContainer {
+    display: none;
+  }
+  .pageContainer {
+    padding-left: 0;
+    padding-top: 60px;
+  }
+  .sidebar {
+    width: 100%;
+    height: 60px;
+    bottom: auto;
+    flex-direction: row;
+    padding: 0 24px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .sidebarMiddle {
+    display: none;
+  }
+  .menuWipeRed, .menuPanelDark {
+    max-width: 100%;
+  }
+  .navLink {
+    font-size: 32px;
+  }
+}
+
+/* 5. VIDEO MODAL */
+.videoModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.videoModalContent {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  aspect-ratio: 16 / 9;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+}
+.videoCloseBtn {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-accent);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.videoCloseBtn:hover {
+  color: var(--accent-primary);
+}
+.videoWrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+.videoPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-family: var(--font-accent);
+  letter-spacing: 0.2em;
+  font-size: 14px;
+  cursor: pointer;
+}
+.playIcon {
+  width: 0; 
+  height: 0; 
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-left: 32px solid var(--accent-primary);
+  margin-bottom: 24px;
+  transition: transform 0.2s;
+}
+.videoPlaceholder:hover .playIcon {
+  transform: scale(1.1);
+}

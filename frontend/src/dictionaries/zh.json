@@ -1,0 +1,151 @@
+{
+  "dashboard": {
+    "menu": "菜单",
+    "librarySubtitle": "探索和管理您提取的知识技能。",
+    "mySkills": "我的技能",
+    "connector": "连接器",
+    "connectorsSubtitle": "管理您的 MCP 服务器集成和自动安装程序。",
+    "localMcpTitle": "本地 MCP 服务器",
+    "localMcpDesc": "在本地运行 Skiller MCP 服务器，允许您的 IDE (Cursor, Antigravity, Claude Desktop) 直接在您的机器上请求并安装技能。",
+    "comingSoon": "即将推出",
+    "ideTitle": "直接 IDE 集成",
+    "ideDesc": "下载连接配置文件以通过 MCP 自动将您的 Skiller 账户与支持的 AI 助手链接。",
+    "downloadProfile": "下载配置文件",
+    "logout": "退出登录",
+    "generateTitle": "生成新技能",
+    "generateSubtitle": "粘贴 YouTube 播放列表 URL 以提取知识。",
+    "inputPlaceholder": "https://www.youtube.com/playlist?list=...",
+    "btnGenerate": "生成技能",
+    "btnStarting": "正在启动...",
+    "errorInvalidUrl": "请输入有效的 YouTube 播放列表 URL。",
+    "errorFailed": "技能生成失败",
+    "libraryTitle": "您的库",
+    "searchSkills": "搜索技能...",
+    "formatGemini": "Gemini (Antigravity / Jules)",
+    "formatClaude": "Claude (Cursor)",
+    "formatCopilot": "GitHub Copilot",
+    "formatMcp": "MCP 服务器 (Model Context Protocol)",
+    "formatGeneric": "通用 (AGENTS.md)",
+    "loading": "正在加载您的技能...",
+    "fetchError": "技能加载失败。",
+    "emptyTitle": "尚未生成任何技能",
+    "emptyDesc": "在上方粘贴播放列表链接以开始。",
+    "processingSkill": "正在处理技能...",
+    "extractingData": "正在提取数据..."
+  },
+  "skill": {
+    "generationFailed": "技能生成失败",
+    "errorMsg": "处理播放列表时出错。请重试。",
+    "processingPlaylist": "正在处理播放列表...",
+    "by": "作者：",
+    "downloadBtn": "下载 SKILL.md",
+    "generationInProgress": "生成中",
+    "extracting": "正在提取概念并进行综合...",
+    "videosProcessed": "已处理视频",
+    "errorLoading": "加载技能时出错。"
+  },
+  "landing": {
+    "badge": "ENGINE ONLINE V2.4",
+    "title1": "将 YouTube 转化为",
+    "title2": "智能。",
+    "subtitle": "粘贴播放列表。提取大师课程。SKILLER 使用超级智能处理将数小时的视频综合为可操作的结构化知识。",
+    "ctaStart": "提取",
+    "ctaGithub": "查看源码",
+    "socialProof": "",
+    "featuresTitle": "综合管道",
+    "featuresSubtitle": "从原始像素到结构化语法的外科手术级精度。",
+    "feature1Title": "01. 摄取",
+    "feature1Desc": "原始数据流\n高带宽吸收来自源播放列表的音频、视觉数据和元数据。",
+    "feature2Title": "02. 处理",
+    "feature2Desc": "神经提取\nLLM 驱动的语义分析可识别核心概念，过滤多余的噪音。",
+    "feature3Title": "03. 输出",
+    "feature3Desc": "SKILL.md\n编译为完美无瑕、版本控制的 markdown 蓝图，可随时执行。",
+    "deepDiveTitle": "超越转录本。\n真正的语义理解。",
+    "deepDiveDesc": "标准工具只是转储文本。SKILLER 会构建视频的概念图，映射依赖关系，提取代码块，并以外科手术级的精度突出关键时刻。",
+    "deepDiveFeature1": "自动章节生成\n不仅仅基于时间，而是基于主题转换的智能分段。",
+    "deepDiveFeature2": "语法提取\n自动识别并格式化屏幕上显示的代码块。",
+    "pricingTitle": "遥测计划",
+    "pricingSubtitle": "扩展您的智能提取。",
+    "planHobby": "HOBBY",
+    "planPro": "PRO",
+    "mostPopular": "API 早期访问",
+    "priceHobby": "0",
+    "pricePro": "10",
+    "currency": "$",
+    "mo": "/月",
+    "pricingBtnStart": "开始",
+    "pricingBtnUpgrade": "升级到 Pro",
+    "footerRights": "Skiller。保留所有权利。"
+  },
+  "carousel": {
+    "cta": "+ 了解更多",
+    "ctaDemo": "观看演示",
+    "slides": [
+      {
+        "eyebrow": "01 — 摄取",
+        "title": "粘贴播放列表",
+        "description": "Skiller 通过 YouTube Data API 读取整个播放列表：每个视频的标题、描述、顺序和元数据。无需下载，无需设置。",
+        "marquee": "摄取 → 播放列表 → 元数据 →"
+      },
+      {
+        "eyebrow": "02 — 提取",
+        "title": "每个视频变成一张卡片",
+        "description": "每份转录本都经过一个管道处理，返回经过验证的 JSON：关键概念、浓缩的摘要以及屏幕上显示的代码块。",
+        "marquee": "转录本 → 概念 → 代码 →"
+      },
+      {
+        "eyebrow": "03 — 综合",
+        "title": "一项技能，而不仅仅是摘要",
+        "description": "卡片被综合成一份连贯的文档，具有映射的依赖关系和学习顺序——而不是一堆杂乱无章的摘要。",
+        "marquee": "综合 → 概念图 →"
+      },
+      {
+        "eyebrow": "04 — 输出",
+        "title": "SKILL.md",
+        "description": "Markdown 准备好提交到您的仓库，并由您的编码助手读取。无需返工，无需复制粘贴。",
+        "marquee": "SKILL.md → 提交 → 完成 →"
+      }
+    ],
+    "brandMarquee": "SKILLER → 播放列表 → SKILL.md →"
+  },
+  "nav": {
+    "features": "特性",
+    "pricing": "定价",
+    "dashboard": "仪表板",
+    "getStarted": "免费开始",
+    "vocationalIntelligence": "职业智能",
+    "close": "关闭",
+    "demoVideo": "演示视频.MP4"
+  },
+  "skillClient": {
+    "tabs": {
+      "pluginSource": "插件源码",
+      "humanView": "人类视图",
+      "visualTranscript": "可视化文字记录",
+      "nodeMap": "索引 (节点图)"
+    },
+    "transcript": {
+      "notAvailable": "暂无文字记录。",
+      "selectVideo": "在侧边栏选择一个视频以查看其内容。"
+    },
+    "sidebar": {
+      "pluginFiles": "插件文件",
+      "sources": "来源",
+      "visualization": "可视化",
+      "graphControls": "图表控制",
+      "readDoc": "阅读分析文档",
+      "nodeMapHidden": "节点图被文档预览遮挡。使用“X”关闭文档或使用此菜单进行切换。",
+      "nodeMapVisible": "您正在查看由 AI 生成的交互式拓扑图。",
+      "addSource": "添加来源",
+      "download": "下载",
+      "retry": "重试",
+      "apiLog": "API 日志"
+    },
+    "modal": {
+      "addSourceTitle": "向插件添加来源",
+      "addSourceDesc": "通过追加新视频来扩展您的技能知识库。插件将被重新合成，保留现有文件并添加新知识。",
+      "inputPlaceholder": "粘贴 YouTube 视频或播放列表 URL",
+      "processBtn": "处理并重新生成"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+.progress {
+  position: relative;
+  height: 0.5rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--bg-secondary);
+}
+
+.indicator {
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  background: var(--accent-gradient);
+  transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}

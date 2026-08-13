@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <rect width="100%" height="100%" fill="#0a0a0c" />
+  
+  <g transform="translate(80, 80)">
+    <!-- Video frame extracted -->
+    <rect x="0" y="0" width="300" height="180" fill="#000" stroke="#FF003C" stroke-width="2" rx="4" />
+    <circle cx="150" cy="90" r="20" fill="#FF003C" opacity="0.2" />
+    
+    <!-- Flow arrows -->
+    <path d="M 320 90 L 380 90" stroke="#444" stroke-width="2" stroke-dasharray="4 4" />
+    <polygon points="380,85 390,90 380,95" fill="#444" />
+    
+    <path d="M 320 290 L 380 290" stroke="#444" stroke-width="2" stroke-dasharray="4 4" />
+    <polygon points="380,285 390,290 380,295" fill="#444" />
+    
+    <!-- JSON / Text extraction box -->
+    <rect x="410" y="0" width="230" height="400" fill="#141416" stroke="#222" stroke-width="2" rx="4" />
+    
+    <!-- Code lines -->
+    <rect x="430" y="30" width="100" height="10" fill="#FF003C" opacity="0.8" rx="2" />
+    <rect x="450" y="60" width="140" height="8" fill="#444" rx="2" />
+    <rect x="450" y="80" width="120" height="8" fill="#444" rx="2" />
+    <rect x="450" y="100" width="160" height="8" fill="#444" rx="2" />
+    <rect x="430" y="120" width="80" height="10" fill="#FF003C" opacity="0.5" rx="2" />
+    
+    <!-- Audio wave extracted -->
+    <rect x="0" y="240" width="300" height="100" fill="#111" stroke="#222" stroke-width="2" rx="4" />
+    <path d="M 20 290 Q 40 250 60 290 T 100 290 T 140 290 T 180 290 T 220 290 T 260 290 T 280 290" stroke="#FF003C" stroke-width="3" fill="none" opacity="0.7" />
+  </g>
+</svg>

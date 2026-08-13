@@ -1,0 +1,151 @@
+{
+  "landing": {
+    "badge": "ENGINE ONLINE V2.4",
+    "title1": "Transforme Playlists em",
+    "title2": "Plugins Auto-Instaláveis.",
+    "subtitle": "O Skiller é um gerador de plugins que resolve a falta de contexto das IAs de código. Eliminamos a dor de digitar prompts gigantes para tech founders. É como o NPM, mas para plugar novas habilidades nos seus assistentes como Cursor e Copilot.",
+    "ctaStart": "EXTRAIR",
+    "ctaGithub": "Ver Código",
+    "socialProof": "",
+    "featuresTitle": "O Pipeline de Síntese",
+    "featuresSubtitle": "De um vídeo complexo para um pacote de inteligência modular, pronto para ser plugado.",
+    "feature1Title": "01. INGESTÃO",
+    "feature1Desc": "Feed Bruto\nAssimilação de alta largura de banda de áudio, dados visuais e metadados de playlists.",
+    "feature2Title": "02. PROCESSAMENTO",
+    "feature2Desc": "Extração Neural\nAnálise semântica impulsionada por LLMs identifica conceitos centrais, filtrando ruído.",
+    "feature3Title": "03. EMPACOTAMENTO",
+    "feature3Desc": "Auto-Install Plugin\nCompilação em um plugin padronizado (SKILL.md), pronto para instalação automática no seu assistente.",
+    "deepDiveTitle": "Instalação Automática.\nConhecimento Imediato.",
+    "deepDiveDesc": "Diga adeus ao copiar e colar. O SKILLER constrói plugins no padrão de assistentes modernos (como Cursor, Claude e Copilot). Basta colocar na pasta do projeto e a IA absorve todo o contexto instantaneamente.",
+    "deepDiveFeature1": "Geração Automática de Capítulos\nSegmentação inteligente baseada em mudanças de tópico, não apenas em tempo.",
+    "deepDiveFeature2": "Extração de Sintaxe\nIdentifica e formata automaticamente blocos de código mostrados na tela.",
+    "pricingTitle": "Planos de Telemetria",
+    "pricingSubtitle": "Escale sua extração de inteligência.",
+    "planHobby": "HOBBY",
+    "planPro": "PRO",
+    "mostPopular": "API EARLY ACCESS",
+    "priceHobby": "0",
+    "pricePro": "49",
+    "currency": "R$",
+    "mo": "/mês",
+    "pricingBtnStart": "Começar",
+    "pricingBtnUpgrade": "Fazer Upgrade",
+    "footerRights": "Skiller. Todos os direitos reservados."
+  },
+  "carousel": {
+    "cta": "+ VER MAIS",
+    "ctaDemo": "Ver Demo",
+    "slides": [
+      {
+        "eyebrow": "01 — INGESTÃO",
+        "title": "COLE A PLAYLIST",
+        "description": "O Skiller lê a playlist inteira pela YouTube Data API: título, descrição, ordem e metadados de cada vídeo. Sem download, sem setup.",
+        "marquee": "INGESTÃO → PLAYLIST → METADADOS →"
+      },
+      {
+        "eyebrow": "02 — EXTRAÇÃO",
+        "title": "CADA VÍDEO VIRA UMA FICHA",
+        "description": "A transcrição de cada aula passa por um pipeline que devolve JSON validado: conceitos-chave, resumo denso e os blocos de código mostrados na tela.",
+        "marquee": "TRANSCRIÇÃO → CONCEITOS → CÓDIGO →"
+      },
+      {
+        "eyebrow": "03 — SÍNTESE",
+        "title": "UMA SKILL, NÃO UM RESUMO",
+        "description": "As fichas são sintetizadas em um documento coerente, com dependências mapeadas e ordem de aprendizado — em vez de uma pilha de resumos soltos.",
+        "marquee": "SÍNTESE → GRAFO CONCEITUAL →"
+      },
+      {
+        "eyebrow": "04 — SAÍDA",
+        "title": "AUTO-INSTALL PLUGIN",
+        "description": "Ao invés de texto solto, o Skiller gera um plugin empacotado. Basta adicionar à raiz do seu projeto e assistentes modernos descobrem a nova habilidade automaticamente.",
+        "marquee": "PLUGIN COMPLETO • AUTO INSTALL • AGENTES •"
+      }
+    ],
+    "brandMarquee": "SKILLER → PLAYLIST → SKILL.md →"
+  },
+  "dashboard": {
+    "menu": "Menu",
+    "mySkills": "Minhas Skills",
+    "connector": "Conectores",
+    "connectorsSubtitle": "Gerencie suas integrações de Servidor MCP e auto-instaladores.",
+    "localMcpTitle": "Servidor MCP Local",
+    "localMcpDesc": "Rode o Servidor MCP do Skiller localmente para permitir que suas IDEs (Cursor, Antigravity, Claude Desktop) solicitem e instalem skills diretamente na sua máquina.",
+    "comingSoon": "Em Breve",
+    "ideTitle": "Integrações Diretas com IDE",
+    "ideDesc": "Baixe o perfil de conexão para vincular automaticamente sua conta Skiller com Assistentes de IA suportados via MCP.",
+    "downloadProfile": "Baixar Perfil",
+    "logout": "Sair",
+    "generateTitle": "Gerar Nova Skill",
+    "generateSubtitle": "Cole a URL de uma playlist do YouTube para extrair conhecimento.",
+    "inputPlaceholder": "https://www.youtube.com/playlist?list=...",
+    "btnGenerate": "Gerar Skill",
+    "btnStarting": "Iniciando...",
+    "errorInvalidUrl": "Por favor, insira uma URL de playlist válida do YouTube.",
+    "errorFailed": "Falha ao gerar skill",
+    "libraryTitle": "Sua Biblioteca",
+    "librarySubtitle": "Explore e gerencie suas skills de conhecimento extraídas.",
+    "searchSkills": "PESQUISAR SKILLS...",
+    "formatGemini": "Gemini (Antigravity / Jules)",
+    "formatClaude": "Claude (Cursor)",
+    "formatCopilot": "GitHub Copilot",
+    "formatMcp": "Servidor MCP (Model Context Protocol)",
+    "formatGeneric": "Genérico (AGENTS.md)",
+    "loading": "Carregando suas skills...",
+    "fetchError": "Falha ao carregar as skills.",
+    "emptyTitle": "Nenhuma skill gerada ainda",
+    "emptyDesc": "Cole o link de uma playlist acima para começar.",
+    "processingSkill": "Processando Skill...",
+    "extractingData": "Extraindo dados..."
+  },
+  "skill": {
+    "processingPlaylist": "Processando Playlist...",
+    "by": "por",
+    "downloadBtn": "Baixar SKILL.md",
+    "generationInProgress": "Geração em Andamento",
+    "extracting": "Extraindo conceitos e sintetizando...",
+    "generationFailed": "Geração Falhou",
+    "errorMsg": "Houve um erro ao gerar a skill. Por favor, tente novamente.",
+    "videosProcessed": "Vídeos Processados",
+    "errorLoading": "Erro ao carregar a skill."
+  },
+  "skillClient": {
+    "tabs": {
+      "pluginSource": "Código Fonte do Plugin",
+      "humanView": "Visão Humana",
+      "visualTranscript": "Transcrição Visual",
+      "nodeMap": "Índice (Node Map)"
+    },
+    "transcript": {
+      "notAvailable": "Transcrição não disponível.",
+      "selectVideo": "Selecione um vídeo na barra lateral para visualizar o conteúdo."
+    },
+    "sidebar": {
+      "pluginFiles": "Arquivos do Plugin",
+      "sources": "Fontes",
+      "visualization": "Visualização",
+      "graphControls": "Controles do Grafo",
+      "readDoc": "Ler Documento Analítico",
+      "nodeMapHidden": "O Node Map está oculto pelo Preview do Documento. Feche o documento no 'X' ou use este menu para alternar.",
+      "nodeMapVisible": "Você está visualizando a topologia interativa gerada pela IA.",
+      "addSource": "Adicionar Fonte",
+      "download": "Download",
+      "retry": "Tentar Novamente",
+      "apiLog": "LOG DA API"
+    },
+    "modal": {
+      "addSourceTitle": "Adicionar Fonte ao Plugin",
+      "addSourceDesc": "Expanda a base de conhecimento da sua skill adicionando um novo vídeo. O plugin será re-sintetizado mantendo os arquivos existentes e adicionando o novo conhecimento.",
+      "inputPlaceholder": "Cole a URL do Vídeo ou Playlist do YouTube",
+      "processBtn": "Processar e Re-gerar"
+    }
+  },
+  "nav": {
+    "features": "Recursos",
+    "pricing": "Preços",
+    "dashboard": "Painel",
+    "getStarted": "Comece Grátis",
+    "vocationalIntelligence": "INTELIGÊNCIA VOCACIONAL",
+    "close": "FECHAR",
+    "demoVideo": "VÍDEO_DEMO.MP4"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@skiller/mcp-server",
+  "version": "1.0.0",
+  "description": "Skiller MCP Server to install skills into IDEs",
+  "main": "dist/index.js",
+  "bin": {
+    "skiller-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.4.1",
+    "node-fetch": "^2.6.7",
+    "yauzl": "^2.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-fetch": "^2.6.2",
+    "@types/yauzl": "^2.10.3",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.1"
+  }
+}

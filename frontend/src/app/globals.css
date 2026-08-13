@@ -1,0 +1,96 @@
+:root {
+  /* Colors - Radiant Obsidian */
+  --bg-primary: #0A0A0A; /* True Obsidian */
+  --bg-secondary: #121212; /* Level 1 */
+  --bg-card: #121212; /* Level 1 */
+  --bg-elevated: #1A1A1A; /* Level 2 */
+  
+  --text-primary: #e5e2e1;
+  --text-secondary: #c8c6c5;
+  --text-muted: #929090;
+  
+  --accent-primary: #ff3333; /* Firmer, aggressive red */
+  --accent-secondary: #ff1a1a;
+  --accent-gradient: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  
+  --border-color: #1A1A1A;
+  --border-light: #262626;
+  --border-hover: rgba(255, 51, 51, 0.3);
+
+  --error: #ff3333;
+  --success: #22c55e;
+  
+  /* Shadows & Effects */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-glow: 0 0 20px rgba(255, 179, 178, 0.4);
+  
+  /* Radii - Strict 4px */
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  cursor: url('/cursor.svg') 10 10, auto;
+}
+
+body {
+  /* Fonts */
+  --font-sans: var(--font-roboto, 'Roboto'), Arial, Helvetica, sans-serif;
+  --font-heading: var(--font-syne, 'Syne'), sans-serif;
+  --font-accent: var(--font-oswald, 'Oswald'), sans-serif;
+  --font-mono: var(--font-jetbrains-mono, 'JetBrains Mono'), monospace;
+  
+  font-family: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Glassmorphism removed in favor of solid tonal layers */
+.glass {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.text-gradient {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Pista invisível */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-primary); /* A linha vermelha indicativa */
+  border-radius: var(--radius-xl);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary);
+}

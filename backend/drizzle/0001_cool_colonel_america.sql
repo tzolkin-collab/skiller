@@ -1,0 +1,1 @@
+ALTER TABLE "skills" ADD COLUMN "target_format" text DEFAULT 'generic';

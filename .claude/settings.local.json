@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"try{console.log\\(require\\('./node_modules/recharts/package.json'\\).version\\)}catch\\(e\\){console.log\\('not installed'\\)}\")",
+      "PowerShell($r=\"D:\\\\Códigos\\\\Tzolkin\\\\Projetos\\\\Produtos Tzolkin\\\\saas\\\\skiller\"; Set-Location \"$r\\\\frontend\"; \"=== tsc ===\"; npx tsc --noEmit 2>&1 | Select-Object -First 20; \"=== lint errors ===\"; npx eslint . --quiet 2>&1 | Select-Object -First 20)"
+    ]
+  }
+}

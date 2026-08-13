@@ -1,0 +1,539 @@
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 40px;
+  overflow: hidden;
+}
+
+/* `min-height: 0` is what keeps the absolutely-positioned slides from pushing
+   the flex column past the viewport — there is no scroll to absorb overflow. */
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Held for 1.2s after a transition starts so a fast wheel cannot land a click
+   on a slide that is already fading out. */
+.locked {
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- slides -- */
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* The entrance animation translates by 3rem; clip it here so the transform
+     can never leak past the slide box. */
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  will-change: opacity, visibility;
+}
+
+.slide.active {
+  opacity: 1;
+  visibility: visible;
+  z-index: 2;
+  transition:
+    opacity 1000ms cubic-bezier(0.785, 0.135, 0.15, 0.86),
+    visibility 0s;
+}
+
+/* The outgoing slide stays fully opaque underneath while the incoming one
+   fades in over it — asiaxp runs the desktop breakpoint with crossFade off. */
+.slide.leave {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.slideInner {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  gap: 48px;
+}
+
+.slideWithMedia .slideInner {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
+}
+
+.slideTypographic .slideInner {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+}
+
+/* ------------------------------------------------------------------ text -- */
+
+/* There is no scroll to absorb a long line, so the column is hard-capped at
+   the row height and every type size below is clamped against `vh` as well as
+   `vw`. Overflow here means clipped copy, not a scrollbar. */
+.textWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 640px;
+  max-height: 100%;
+  min-height: 0;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--slide-color, var(--accent-primary));
+  padding-left: 12px;
+  border-left: 1px solid var(--slide-color, var(--accent-primary));
+  margin-bottom: max(14px, min(2.4vh, 28px));
+}
+
+.title,
+.brandTitle {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  margin-bottom: max(12px, min(2vh, 20px));
+}
+
+.title {
+  font-size: max(28px, min(4.6vw, 8.2vh, 84px));
+}
+
+.brandTitle {
+  font-size: max(32px, min(5.4vw, 9vh, 100px));
+  display: flex;
+  flex-direction: column;
+}
+
+.brandAccent {
+  color: var(--slide-color, var(--accent-primary));
+}
+
+.slideTypographic .title {
+  font-size: max(44px, min(9vw, 18vh, 160px));
+  color: var(--slide-color, var(--accent-primary));
+}
+
+.description {
+  font-family: var(--font-sans);
+  font-size: max(14px, min(1.15vw, 2.3vh, 18px));
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: max(14px, min(2.4vh, 28px));
+}
+
+.cta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.slide.active .cta:hover {
+  color: var(--slide-color, var(--accent-primary));
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  padding: 16px 32px;
+  font-family: var(--font-accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primaryBtn {
+  background-color: var(--slide-color, var(--accent-primary));
+  color: var(--bg-primary);
+  border: 1px solid var(--slide-color, var(--accent-primary));
+}
+
+.primaryBtn:hover {
+  background-color: transparent;
+  color: var(--slide-color, var(--accent-primary));
+}
+
+.secondaryBtn {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.secondaryBtn:hover {
+  border-color: var(--text-primary);
+}
+
+/* ----------------------------------------------------------------- media -- */
+
+.mediaWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  will-change: clip-path;
+  transform: translateZ(0);
+}
+
+.mediaInner {
+  position: absolute;
+  inset: 0;
+  transform: scale(1.14);
+  transition: transform 1400ms cubic-bezier(0.215, 0.61, 0.355, 1);
+  will-change: transform;
+}
+
+.slide.active .mediaInner {
+  transform: scale(1);
+}
+
+.media {
+  object-fit: cover;
+}
+
+.marqueeWrapper {
+  flex: 0 0 auto;
+  margin-top: 24px;
+  opacity: 0.9;
+}
+
+/* ----------------------------------------------------- motion system ----- */
+
+/*
+ * Three things separate this from a block of text sliding in as one slab:
+ *  1. each word travels out of its own `overflow: hidden` mask;
+ *  2. every element is on a shared stagger scale (`--i`), so the slide
+ *     assembles in sequence instead of arriving at once;
+ *  3. the outgoing slide actively exits rather than just fading.
+ */
+
+.wordMask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  margin-right: 0.24em;
+  /* Breathing room so the mask clips the travel, not the descenders. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.word {
+  display: inline-block;
+  will-change: transform;
+  animation-duration: 0.9s;
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  animation-fill-mode: both;
+  animation-delay: calc(140ms + var(--i, 0) * 45ms);
+}
+
+.reveal {
+  animation-duration: 0.8s;
+  animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+  animation-fill-mode: both;
+  animation-delay: calc(140ms + var(--i, 0) * 45ms);
+  will-change: transform, opacity;
+}
+
+.brandLine {
+  display: block;
+}
+
+/* -- entrances ------------------------------------------------------------ */
+
+.root[data-slider-state='next'] .slide.active .word {
+  animation-name: maskUp;
+}
+
+.root[data-slider-state='prev'] .slide.active .word {
+  animation-name: maskDown;
+}
+
+.root[data-slider-state='next'] .slide.active .reveal {
+  animation-name: riseNext;
+}
+
+.root[data-slider-state='prev'] .slide.active .reveal {
+  animation-name: risePrev;
+}
+
+.slide.active .mediaWrapper {
+  animation: mediaReveal 1s cubic-bezier(0.76, 0, 0.24, 1) 0.15s both;
+}
+
+/* -- exits ---------------------------------------------------------------- */
+
+.root[data-slider-state='next'] .slide.leave .word {
+  animation: maskExitUp 0.55s cubic-bezier(0.76, 0, 0.24, 1) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
+}
+
+.root[data-slider-state='prev'] .slide.leave .word {
+  animation: maskExitDown 0.55s cubic-bezier(0.76, 0, 0.24, 1) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
+}
+
+.root[data-slider-state='next'] .slide.leave .reveal {
+  animation: fadeExitUp 0.5s cubic-bezier(0.76, 0, 0.24, 1) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
+}
+
+.root[data-slider-state='prev'] .slide.leave .reveal {
+  animation: fadeExitDown 0.5s cubic-bezier(0.76, 0, 0.24, 1) both;
+  animation-delay: calc(var(--i, 0) * 22ms);
+}
+
+.slide.leave .mediaWrapper {
+  animation: mediaHide 0.55s cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+
+/* -- keyframes ------------------------------------------------------------ */
+
+@keyframes maskUp {
+  from {
+    transform: translateY(110%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes maskDown {
+  from {
+    transform: translateY(-110%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes maskExitUp {
+  to {
+    transform: translateY(-110%);
+  }
+}
+
+@keyframes maskExitDown {
+  to {
+    transform: translateY(110%);
+  }
+}
+
+/* Opacity lands early so the copy is never washed out mid-travel — the same
+   shape as asiaxp's `slideInUp`, which hits full opacity at 10%. */
+@keyframes riseNext {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 1.4rem, 0);
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes risePrev {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -1.4rem, 0);
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeExitUp {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -1rem, 0);
+  }
+}
+
+@keyframes fadeExitDown {
+  to {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0);
+  }
+}
+
+@keyframes mediaReveal {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes mediaHide {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+
+  to {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+/* -------------------------------------------------------------- controls -- */
+
+.controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bullet {
+  width: 32px;
+  height: 2px;
+  padding: 0;
+  border: none;
+  background-color: var(--border-light);
+  cursor: pointer;
+  transition:
+    background-color 0.3s,
+    transform 0.3s;
+}
+
+.bullet:hover {
+  background-color: var(--text-muted);
+}
+
+.bulletActive {
+  background-color: var(--accent-primary);
+  transform: scaleY(2);
+}
+
+/* ------------------------------------------------------------ responsive -- */
+
+@media (max-width: 1025px) {
+  .root {
+    padding: 24px;
+  }
+
+  .slideWithMedia .slideInner,
+  .slideTypographic .slideInner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .description {
+    margin-bottom: 20px;
+  }
+
+  .marqueeWrapper {
+    margin-top: 16px;
+  }
+}
+
+/* Short viewports cannot afford the image column at all. */
+@media (max-height: 640px) {
+  .mediaWrapper {
+    display: none;
+  }
+
+  .slideWithMedia .slideInner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .root {
+    padding: 24px 40px;
+  }
+
+  .description {
+    -webkit-line-clamp: 3;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    padding: 12px 24px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .slide,
+  .slide.active {
+    transition: opacity 200ms linear;
+  }
+
+  .mediaInner,
+  .slide.active .mediaInner {
+    transform: none;
+    transition: none;
+  }
+
+  /* Nothing travels, nothing is masked — a plain crossfade is the whole
+     transition. Autoplay is disabled in the component for the same reason. */
+  .word,
+  .reveal,
+  .slide.active .word,
+  .slide.active .reveal,
+  .slide.leave .word,
+  .slide.leave .reveal,
+  .slide.active .mediaWrapper,
+  .slide.leave .mediaWrapper {
+    animation: none !important;
+    transform: none;
+    opacity: 1;
+    clip-path: none;
+  }
+
+  .wordMask {
+    overflow: visible;
+  }
+}

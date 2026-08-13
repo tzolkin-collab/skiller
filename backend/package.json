@@ -1,0 +1,34 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "env-cmd -f ../.env tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "env-cmd -f ../.env node dist/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "env-cmd -f ../.env tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@google/genai": "latest",
+    "@hono/node-server": "^1.13.7",
+    "bullmq": "^5.34.4",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.3",
+    "hono": "^4.6.14",
+    "ioredis": "^5.4.2",
+    "openai": "^7.4.0",
+    "pg": "^8.13.1",
+    "postgres": "^3.4.5",
+    "youtube-transcript": "^1.2.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.30.1",
+    "env-cmd": "^11.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
