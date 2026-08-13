@@ -23,7 +23,7 @@ async function boot() {
   console.log("");
   
   process.stdout.write("  ");
-  const text = "Made your way";
+  const text = "Make One's Way";
   for (let i = 0; i < text.length; i++) {
     process.stdout.write(white + bold + text[i] + reset);
     await sleep(75); // Velocidade da digitação

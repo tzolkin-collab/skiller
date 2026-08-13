@@ -30,11 +30,37 @@ function checkApiKey() {
   }
 }
 
+const MAX_TRANSCRIPT_LENGTH = 150000; // Aprox 30k tokens para extração rápida e barata
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit = error?.status === 429 || error?.message?.includes('429');
+      if (isRateLimit && i < retries - 1) {
+        console.warn(`Gemini Rate Limit atingido. Tentativa ${i + 1}/${retries}. Aguardando ${delayMs}ms...`);
+        await new Promise(res => setTimeout(res, delayMs));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 export async function extractVideoCard(transcript: string, title: string, description: string): Promise<ExtractedCard> {
   checkApiKey();
-  const prompt = buildExtractCardPrompt(transcript, title, description);
   
-  try {
+  let safeTranscript = transcript;
+  if (safeTranscript.length > MAX_TRANSCRIPT_LENGTH) {
+    console.warn(`[extractVideoCard] Transcrição muito longa (${safeTranscript.length} chars). Truncando para ${MAX_TRANSCRIPT_LENGTH}...`);
+    safeTranscript = safeTranscript.substring(0, MAX_TRANSCRIPT_LENGTH) + '\n\n[TRUNCATED DUE TO LENGTH]';
+  }
+  
+  const prompt = buildExtractCardPrompt(safeTranscript, title, description);
+  
+  return withRetry(async () => {
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
       contents: prompt,
@@ -60,10 +86,7 @@ export async function extractVideoCard(transcript: string, title: string, descri
 
     const parsed = JSON.parse(response.text);
     return CardSchema.parse(parsed);
-  } catch (error) {
-    console.error('Failed to extract video card via Gemini:', error);
-    throw error;
-  }
+  });
 }
 
 export async function synthesizeSkill(cards: ExtractedCard[], sourceTitle: string, format: SkillFormat = 'generic', language: string = 'en'): Promise<PluginPackage> {
@@ -73,7 +96,7 @@ export async function synthesizeSkill(cards: ExtractedCard[], sourceTitle: strin
 
   console.log(`[synthesizeSkill] Synthesizing skill package in "${format}" format for "${sourceTitle}" in language "${language}"`);
 
-  try {
+  return withRetry(async () => {
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
       contents: prompt,
@@ -108,8 +131,5 @@ export async function synthesizeSkill(cards: ExtractedCard[], sourceTitle: strin
     const packageData = SynthesizedSkillSchema.parse(json);
     console.log(`[synthesizeSkill] Synthesized package with ${packageData.files.length} files for "${sourceTitle}"`);
     return packageData;
-  } catch (error) {
-    console.error('Failed to synthesize skill package via Gemini:', error);
-    throw error;
-  }
+  });
 }

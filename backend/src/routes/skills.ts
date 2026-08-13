@@ -35,6 +35,18 @@ skillsRouter.post('/', async (c) => {
       return c.json({ error: 'Could not extract playlist ID or video ID from URL' }, 400);
     }
 
+    // Deduplication check: Se a URL contém o mesmo ID, já foi processada ou está na fila
+    const searchId = playlistId || videoId;
+    if (searchId) {
+      const existingSkills = await db.select().from(skills)
+        .where(ilike(skills.playlistUrl, `%${searchId}%`))
+        .limit(1);
+        
+      if (existingSkills.length > 0) {
+        return c.json({ id: existingSkills[0].id, status: existingSkills[0].status, deduplicated: true }, 200);
+      }
+    }
+
     const inserted = await db.insert(skills).values({
       playlistUrl: result.data.playlistUrl,
       targetFormat: result.data.targetFormat,
