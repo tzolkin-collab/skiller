@@ -1,151 +1,236 @@
 {
-    "landing": {
-        "badge": "ENGINE ONLINE V2.4",
-        "title1": "Transformez YouTube en",
-        "title2": "Intelligence.",
-        "subtitle": "Collez une playlist. Extrayez une masterclass. SKILLER utilise un traitement hyper-intelligent pour synthétiser des heures de vidéo en connaissances structurées.",
-        "ctaStart": "EXTRAIRE",
-        "ctaGithub": "Code Source",
-        "socialProof": "",
-        "featuresTitle": "Le Pipeline de Synthèse",
-        "featuresSubtitle": "Une précision chirurgicale, des pixels bruts à la syntaxe structurée.",
-        "feature1Title": "01. INGESTION",
-        "feature1Desc": "Flux Brut\nAssimilation à large bande passante de l\u0027audio, des données visuelles et des métadonnées.",
-        "feature2Title": "02. TRAITEMENT",
-        "feature2Desc": "Extraction Neurale\nL\u0027analyse sémantique pilotée par LLM identifie les concepts centraux, filtrant le bruit.",
-        "feature3Title": "03. SORTIE",
-        "feature3Desc": "SKILL.md\nCompilation dans un blueprint markdown vierge prêt pour l\u0027exécution.",
-        "deepDiveTitle": "Au-delà des transcriptions.\nVéritable compréhension sémantique.",
-        "deepDiveDesc": "Les outils standards ne font que recracher du texte. SKILLER construit un graphe conceptuel de la vidéo, mappant les dépendances, extrayant les blocs de code et soulignant les moments clés.",
-        "deepDiveFeature1": "Génération Automatique de Chapitres\nSegmentation intelligente basée sur les changements de sujet.",
-        "deepDiveFeature2": "Extraction de Syntaxe\nIdentifie et formate automatiquement les blocs de code affichés à l\u0027écran.",
-        "pricingTitle": "Plans de Télémétrie",
-        "pricingSubtitle": "Mettez à l\u0027échelle votre extraction d\u0027intelligence.",
-        "planHobby": "HOBBY",
-        "planPro": "PRO",
-        "mostPopular": "API EARLY ACCESS",
-        "priceHobby": "0",
-        "pricePro": "10",
-        "currency": "€",
-        "mo": "/mois",
-        "pricingBtnStart": "Commencer",
-        "pricingBtnUpgrade": "Passer à la version Pro",
-        "footerRights": "Skiller. Tous droits réservés."
+  "landing": {
+    "badge": "ENGINE ONLINE V2.4",
+    "title1": "Transformez YouTube en",
+    "title2": "Intelligence.",
+    "subtitle": "Collez une playlist. Extrayez une masterclass. SKILLER utilise un traitement hyper-intelligent pour synthétiser des heures de vidéo en connaissances structurées.",
+    "ctaStart": "EXTRAIRE",
+    "ctaGithub": "Code Source",
+    "socialProof": "",
+    "featuresTitle": "Le Pipeline de Synthèse",
+    "featuresSubtitle": "Une précision chirurgicale, des pixels bruts à la syntaxe structurée.",
+    "feature1Title": "01. INGESTION",
+    "feature1Desc": "Flux Brut\nAssimilation à large bande passante de l'audio, des données visuelles et des métadonnées.",
+    "feature2Title": "02. TRAITEMENT",
+    "feature2Desc": "Extraction Neurale\nL'analyse sémantique pilotée par LLM identifie les concepts centraux, filtrant le bruit.",
+    "feature3Title": "03. SORTIE",
+    "feature3Desc": "SKILL.md\nCompilation dans un blueprint markdown vierge prêt pour l'exécution.",
+    "deepDiveTitle": "Au-delà des transcriptions.\nVéritable compréhension sémantique.",
+    "deepDiveDesc": "Les outils standards ne font que recracher du texte. SKILLER construit un graphe conceptuel de la vidéo, mappant les dépendances, extrayant les blocs de code et soulignant les moments clés.",
+    "deepDiveFeature1": "Génération Automatique de Chapitres\nSegmentation intelligente basée sur les changements de sujet.",
+    "deepDiveFeature2": "Extraction de Syntaxe\nIdentifie et formate automatiquement les blocs de code affichés à l'écran.",
+    "pricingTitle": "Plans de Télémétrie",
+    "pricingSubtitle": "Mettez à l'échelle votre extraction d'intelligence.",
+    "planHobby": "HOBBY",
+    "planPro": "PRO",
+    "mostPopular": "API EARLY ACCESS",
+    "priceHobby": "0",
+    "pricePro": "10",
+    "currency": "€",
+    "mo": "/mois",
+    "pricingBtnStart": "Commencer",
+    "pricingBtnUpgrade": "Passer à la version Pro",
+    "footerRights": "Skiller. Tous droits réservés."
+  },
+  "carousel": {
+    "cta": "+ VOIR PLUS",
+    "ctaDemo": "Voir la Démo",
+    "slides": [
+      {
+        "eyebrow": "01 — INGESTION",
+        "title": "COLLEZ LA PLAYLIST",
+        "description": "Skiller lit la playlist entière via la YouTube Data API : titre, description, ordre et métadonnées de chaque vidéo. Aucun téléchargement, aucune configuration.",
+        "marquee": "INGESTION → PLAYLIST → MÉTADONNÉES →"
+      },
+      {
+        "eyebrow": "02 — EXTRACTION",
+        "title": "CHAQUE VIDÉO DEVIENT UNE FICHE",
+        "description": "La transcription de chaque cours passe par un pipeline qui renvoie du JSON validé : concepts clés, résumé dense et les blocs de code affichés à l'écran.",
+        "marquee": "TRANSCRIPTION → CONCEPTS → CODE →"
+      },
+      {
+        "eyebrow": "03 — SYNTHÈSE",
+        "title": "UNE SKILL, PAS UN RÉSUMÉ",
+        "description": "Les fiches sont synthétisées en un document cohérent, avec les dépendances cartographiées et un ordre d'apprentissage — au lieu d'une pile de résumés épars.",
+        "marquee": "SYNTHÈSE → GRAPHE CONCEPTUEL →"
+      },
+      {
+        "eyebrow": "04 — SORTIE",
+        "title": "SKILL.md",
+        "description": "Du markdown prêt à être commité dans votre dépôt et lu par votre assistant de code. Aucune reprise, aucun copier-coller.",
+        "marquee": "SKILL.md → COMMIT → PRÊT →"
+      }
+    ],
+    "brandMarquee": "SKILLER → PLAYLIST → SKILL.md →"
+  },
+  "dashboard": {
+    "menu": "Menu",
+    "librarySubtitle": "Explorez et gérez vos compétences extraites.",
+    "mySkills": "Mes Compétences",
+    "connector": "Connecteurs",
+    "connectorsSubtitle": "Gérez vos intégrations de Serveur MCP et vos auto-installateurs.",
+    "localMcpTitle": "Serveur MCP Local",
+    "localMcpDesc": "Exécutez le serveur MCP Skiller localement pour permettre à vos IDE (Cursor, Antigravity, Claude Desktop) de demander et d'installer des compétences directement sur votre machine.",
+    "comingSoon": "Bientôt Disponible",
+    "ideTitle": "Intégrations IDE Directes",
+    "ideDesc": "Téléchargez le profil de connexion pour lier automatiquement votre compte Skiller aux Assistants IA compatibles via MCP.",
+    "downloadProfile": "Télécharger le Profil",
+    "logout": "Se déconnecter",
+    "generateTitle": "Générer une Nouvelle Compétence",
+    "generateSubtitle": "Collez une URL de playlist YouTube pour extraire les connaissances.",
+    "inputPlaceholder": "https://www.youtube.com/playlist?list=...",
+    "btnGenerate": "Générer la Compétence",
+    "btnStarting": "Démarrage...",
+    "errorInvalidUrl": "Veuillez entrer une URL de playlist YouTube valide.",
+    "errorFailed": "Échec de la génération de la compétence",
+    "libraryTitle": "Votre Bibliothèque",
+    "searchSkills": "RECHERCHER DES COMPÉTENCES...",
+    "formatGemini": "Gemini (Antigravity / Jules)",
+    "formatClaude": "Claude (Cursor)",
+    "formatCopilot": "GitHub Copilot",
+    "formatMcp": "Serveur MCP (Model Context Protocol)",
+    "formatGeneric": "Générique (AGENTS.md)",
+    "loading": "Chargement de vos compétences...",
+    "fetchError": "Échec du chargement des compétences.",
+    "emptyTitle": "Aucune compétence générée pour le moment",
+    "emptyDesc": "Collez un lien de playlist ci-dessus pour commencer.",
+    "processingSkill": "Traitement de la Compétence...",
+    "extractingData": "Extraction des données..."
+  },
+  "skill": {
+    "processingPlaylist": "Traitement de la Playlist...",
+    "by": "par",
+    "downloadBtn": "Télécharger SKILL.md",
+    "generationInProgress": "Génération en Cours",
+    "extracting": "Extraction de concepts et synthèse...",
+    "generationFailed": "Échec de la Génération",
+    "errorMsg": "Une erreur s'est produite lors de la génération de la compétence. Veuillez réessayer.",
+    "videosProcessed": "Vidéos Traitées",
+    "errorLoading": "Erreur lors du chargement de la compétence."
+  },
+  "nav": {
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "dashboard": "Tableau de Bord",
+    "getStarted": "Commencer Gratuitement",
+    "vocationalIntelligence": "INTELLIGENCE VOCATIONNELLE",
+    "close": "FERMER",
+    "demoVideo": "VIDEO_DEMO.MP4"
+  },
+  "skillClient": {
+    "tabs": {
+      "pluginSource": "Plugin Source",
+      "humanView": "Vue Humaine",
+      "visualTranscript": "Visual Transcript",
+      "nodeMap": "Index (Node Map)"
     },
-    "carousel": {
-        "cta": "+ VOIR PLUS",
-        "ctaDemo": "Voir la Démo",
-        "slides": [
-            {
-                "eyebrow": "01 — INGESTION",
-                "title": "COLLEZ LA PLAYLIST",
-                "description": "Skiller lit la playlist entière via la YouTube Data API : titre, description, ordre et métadonnées de chaque vidéo. Aucun téléchargement, aucune configuration.",
-                "marquee": "INGESTION → PLAYLIST → MÉTADONNÉES →"
-            },
-            {
-                "eyebrow": "02 — EXTRACTION",
-                "title": "CHAQUE VIDÉO DEVIENT UNE FICHE",
-                "description": "La transcription de chaque cours passe par un pipeline qui renvoie du JSON validé : concepts clés, résumé dense et les blocs de code affichés à l\u0027écran.",
-                "marquee": "TRANSCRIPTION → CONCEPTS → CODE →"
-            },
-            {
-                "eyebrow": "03 — SYNTHÈSE",
-                "title": "UNE SKILL, PAS UN RÉSUMÉ",
-                "description": "Les fiches sont synthétisées en un document cohérent, avec les dépendances cartographiées et un ordre d\u0027apprentissage — au lieu d\u0027une pile de résumés épars.",
-                "marquee": "SYNTHÈSE → GRAPHE CONCEPTUEL →"
-            },
-            {
-                "eyebrow": "04 — SORTIE",
-                "title": "SKILL.md",
-                "description": "Du markdown prêt à être commité dans votre dépôt et lu par votre assistant de code. Aucune reprise, aucun copier-coller.",
-                "marquee": "SKILL.md → COMMIT → PRÊT →"
-            }
-        ],
-        "brandMarquee": "SKILLER → PLAYLIST → SKILL.md →"
+    "transcript": {
+      "notAvailable": "Transcript not available.",
+      "selectVideo": "Select a video on the sidebar to view its content."
     },
-    "dashboard": {
-        "menu": "Menu",
-        "librarySubtitle": "Explorez et gérez vos compétences extraites.",
-        "mySkills": "Mes Compétences",
-        "connector": "Connecteurs",
-        "connectorsSubtitle": "Gérez vos intégrations de Serveur MCP et vos auto-installateurs.",
-        "localMcpTitle": "Serveur MCP Local",
-        "localMcpDesc": "Exécutez le serveur MCP Skiller localement pour permettre à vos IDE (Cursor, Antigravity, Claude Desktop) de demander et d\u0027installer des compétences directement sur votre machine.",
-        "comingSoon": "Bientôt Disponible",
-        "ideTitle": "Intégrations IDE Directes",
-        "ideDesc": "Téléchargez le profil de connexion pour lier automatiquement votre compte Skiller aux Assistants IA compatibles via MCP.",
-        "downloadProfile": "Télécharger le Profil",
-        "logout": "Se déconnecter",
-        "generateTitle": "Générer une Nouvelle Compétence",
-        "generateSubtitle": "Collez une URL de playlist YouTube pour extraire les connaissances.",
-        "inputPlaceholder": "https://www.youtube.com/playlist?list=...",
-        "btnGenerate": "Générer la Compétence",
-        "btnStarting": "Démarrage...",
-        "errorInvalidUrl": "Veuillez entrer une URL de playlist YouTube valide.",
-        "errorFailed": "Échec de la génération de la compétence",
-        "libraryTitle": "Votre Bibliothèque",
-        "searchSkills": "RECHERCHER DES COMPÉTENCES...",
-        "formatGemini": "Gemini (Antigravity / Jules)",
-        "formatClaude": "Claude (Cursor)",
-        "formatCopilot": "GitHub Copilot",
-        "formatMcp": "Serveur MCP (Model Context Protocol)",
-        "formatGeneric": "Générique (AGENTS.md)",
-        "loading": "Chargement de vos compétences...",
-        "fetchError": "Échec du chargement des compétences.",
-        "emptyTitle": "Aucune compétence générée pour le moment",
-        "emptyDesc": "Collez un lien de playlist ci-dessus pour commencer.",
-        "processingSkill": "Traitement de la Compétence...",
-        "extractingData": "Extraction des données..."
+    "sidebar": {
+      "pluginFiles": "Plugin Files",
+      "sources": "Sources",
+      "visualization": "Visualization",
+      "graphControls": "Graph Controls",
+      "readDoc": "Read Analytical Document",
+      "nodeMapHidden": "The Node Map is hidden by the Document Preview. Close the document using the 'X' or use this menu to toggle.",
+      "nodeMapVisible": "You are viewing the interactive topology generated by AI.",
+      "addSource": "Add Source",
+      "download": "Download",
+      "retry": "Retry",
+      "apiLog": "API LOG"
     },
-    "skill": {
-        "processingPlaylist": "Traitement de la Playlist...",
-        "by": "par",
-        "downloadBtn": "Télécharger SKILL.md",
-        "generationInProgress": "Génération en Cours",
-        "extracting": "Extraction de concepts et synthèse...",
-        "generationFailed": "Échec de la Génération",
-        "errorMsg": "Une erreur s\u0027est produite lors de la génération de la compétence. Veuillez réessayer.",
-        "videosProcessed": "Vidéos Traitées",
-        "errorLoading": "Erreur lors du chargement de la compétence."
-    },
-    "nav": {
-        "features": "Fonctionnalités",
-        "pricing": "Tarifs",
-        "dashboard": "Tableau de Bord",
-        "getStarted": "Commencer Gratuitement",
-        "vocationalIntelligence": "INTELLIGENCE VOCATIONNELLE",
-        "close": "FERMER",
-        "demoVideo": "VIDEO_DEMO.MP4"
-    },
-    "skillClient": {
-        "tabs": {
-            "pluginSource": "Plugin Source",
-            "humanView": "Vue Humaine",
-            "visualTranscript": "Visual Transcript",
-            "nodeMap": "Index (Node Map)"
-        },
-        "transcript": {
-            "notAvailable": "Transcript not available.",
-            "selectVideo": "Select a video on the sidebar to view its content."
-        },
-        "sidebar": {
-            "pluginFiles": "Plugin Files",
-            "sources": "Sources",
-            "visualization": "Visualization",
-            "graphControls": "Graph Controls",
-            "readDoc": "Read Analytical Document",
-            "nodeMapHidden": "The Node Map is hidden by the Document Preview. Close the document using the \u0027X\u0027 or use this menu to toggle.",
-            "nodeMapVisible": "You are viewing the interactive topology generated by AI.",
-            "addSource": "Add Source",
-            "download": "Download",
-            "retry": "Retry",
-            "apiLog": "API LOG"
-        },
-        "modal": {
-            "addSourceTitle": "Add Source to Plugin",
-            "addSourceDesc": "Expand your skill\u0027s knowledge base by appending a new video. The plugin will be re-synthesized keeping the existing files and adding the new knowledge.",
-            "inputPlaceholder": "Paste YouTube Video or Playlist URL",
-            "processBtn": "Process and Re-generate"
-        }
+    "modal": {
+      "addSourceTitle": "Add Source to Plugin",
+      "addSourceDesc": "Expand your skill's knowledge base by appending a new video. The plugin will be re-synthesized keeping the existing files and adding the new knowledge.",
+      "inputPlaceholder": "Paste YouTube Video or Playlist URL",
+      "processBtn": "Process and Re-generate"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "account": "My Account",
+      "plan": "Plan & Billing",
+      "preferences": "Preferences",
+      "connections": "Connections"
+    },
+    "account": {
+      "profile": "Profile",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "memberSince": "Member since"
+    },
+    "plan": {
+      "currentPlan": "Current Plan",
+      "free": "Free Tier",
+      "starter": "Starter Tier",
+      "pro": "Pro Tier",
+      "upgradeToPro": "Upgrade to Pro",
+      "benefitsTitle": "Pro Benefits",
+      "benefit1": "Dynamic Skills (MCP Namespaces)",
+      "benefit2": "Cloud Hosting (MCP Proxy)",
+      "benefit3": "Unlimited private skill extractions"
+    },
+    "preferences": {
+      "language": "Language",
+      "theme": "Theme"
+    },
+    "connections": {
+      "apiKeys": "API Keys",
+      "notion": "Notion Integration",
+      "github": "GitHub Integration"
+    }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Choose Your",
+    "subtitle": "Start free, upgrade when you need unlimited power. No surprises, cancel anytime.",
+    "free": "Starter",
+    "pro": "Skiller Pro",
+    "enterprise": "Enterprise",
+    "select": "Get Started",
+    "popular": "Most Popular",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save": "-20%",
+    "perMonth": "/mo",
+    "billedAnnually": "billed annually",
+    "foreverFree": "free forever",
+    "customPricing": "Custom",
+    "contactSales": "Contact Sales",
+    "footerNote": "Need a custom plan for your team?",
+    "contactUs": "Contact us",
+    "features": {
+      "free": [
+        "5 public extractions per month",
+        "Markdown Export",
+        "Community Support"
+      ],
+      "starter": [
+        "Unlimited public skill extractions",
+        "Generic AI Prompts",
+        "Standard Generation Speed"
+      ],
+      "pro": [
+        "Dynamic Skills (MCP Namespaces)",
+        "Cloud Hosting (MCP Proxy)",
+        "Unlimited private skill extractions",
+        "Live chat with video context",
+        "Maximum Generation Speed",
+        "Priority Support"
+      ],
+      "enterprise": [
+        "Dedicated Infrastructure",
+        "SSO & SAML Authentication",
+        "Custom Integrations",
+        "Custom LLM Connectors",
+        "Dedicated Account Manager"
+      ]
+    },
+    "starter": "Starter",
+    "perUser": "/user"
+  }
 }

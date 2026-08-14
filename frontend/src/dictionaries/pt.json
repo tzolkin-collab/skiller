@@ -183,5 +183,51 @@
       "notion": "Integração Notion",
       "github": "Integração GitHub"
     }
+  },
+  "pricing": {
+    "eyebrow": "Planos",
+    "title": "Escolha Sua",
+    "subtitle": "Comece grátis, faça upgrade quando precisar de poder ilimitado. Sem surpresas, cancele quando quiser.",
+    "free": "Grátis",
+    "starter": "Starter",
+    "pro": "Skiller Pro",
+    "enterprise": "Enterprise",
+    "select": "Começar",
+    "popular": "Mais Popular",
+    "monthly": "Mensal",
+    "annual": "Anual",
+    "save": "-20%",
+    "perMonth": "/mês",
+    "perUser": "/usuário",
+    "billedAnnually": "faturado anualmente",
+    "foreverFree": "grátis para sempre",
+    "customPricing": "Sob Demanda",
+    "contactSales": "Falar com Vendas",
+    "footerNote": "Precisa de um plano personalizado para o seu time?",
+    "contactUs": "Fale conosco",
+    "features": {
+      "free": [
+        "Extração instantânea de playlists inteiras",
+        "Esqueça a engenharia de prompts manual",
+        "Auto-install no Cursor, Claude e Copilot"
+      ],
+      "starter": [
+        "Extrações instantâneas ilimitadas",
+        "Zero setup, fluxo de copiar e colar",
+        "Construa agentes modulares facilmente"
+      ],
+      "pro": [
+        "Privacidade total para vídeos internos",
+        "Proxy em Nuvem MCP (Sem terminal local)",
+        "Namespaces Dinâmicos para múltiplos agentes",
+        "Velocidade máxima e contexto em vídeo"
+      ],
+      "enterprise": [
+        "Segurança Corporativa (SSO & SAML)",
+        "Nuvem LLM Dedicada (Zero-Data Retention)",
+        "Engenharia de Prompt p/ seu ecossistema",
+        "Gerenciamento de acessos (RBAC) para Times"
+      ]
+    }
   }
 }

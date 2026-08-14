@@ -35,6 +35,7 @@ export const skills = pgTable('skills', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
   playlistUrl: text('playlist_url').notNull(),
+  sourceUrls: jsonb('source_urls'),
   playlistTitle: text('playlist_title'),
   channelName: text('channel_name'),
   channelId: text('channel_id'),

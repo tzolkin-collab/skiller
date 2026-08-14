@@ -43,6 +43,13 @@
       "when": 1786688598191,
       "tag": "0005_left_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786695104012,
+      "tag": "0006_narrow_spacker_dave",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,10 @@ export async function getPlaylistVideos(playlistId: string) {
     
     for (const item of data.items) {
       if (item.snippet.resourceId.kind === 'youtube#video') {
+        const title = item.snippet.title;
+        // Ignore private or deleted videos from the playlist
+        if (title === 'Private video' || title === 'Deleted video') continue;
+
         videos.push({
           videoId: item.snippet.resourceId.videoId,
           title: item.snippet.title,
@@ -57,7 +61,12 @@ export async function getPlaylistDetails(playlistId: string) {
 export function extractPlaylistId(url: string): string | null {
   try {
     const parsedUrl = new URL(url);
-    return parsedUrl.searchParams.get('list');
+    const listId = parsedUrl.searchParams.get('list');
+    if (listId) return listId;
+    
+    // Fallback regex
+    const match = url.match(/[?&]list=([^#\&\?]+)/);
+    return match ? match[1] : null;
   } catch {
     return null;
   }
@@ -67,12 +76,23 @@ export function extractVideoId(url: string): string | null {
   try {
     const parsedUrl = new URL(url);
     if (parsedUrl.hostname === 'youtu.be') {
-      return parsedUrl.pathname.slice(1);
+      return parsedUrl.pathname.slice(1).split('?')[0]; // Remove query params if any
     }
-    return parsedUrl.searchParams.get('v');
+    if (parsedUrl.pathname.startsWith('/shorts/')) {
+      return parsedUrl.pathname.split('/')[2];
+    }
+    if (parsedUrl.pathname.startsWith('/live/')) {
+      return parsedUrl.pathname.split('/')[2];
+    }
+    const v = parsedUrl.searchParams.get('v');
+    if (v) return v;
   } catch {
-    return null;
+    // Ignore URL parse error and fall through to regex
   }
+
+  // Regex fallback for edge cases
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([^"&?\/\s]{11})/);
+  return match ? match[1] : null;
 }
 
 export async function getVideoDetails(videoId: string) {

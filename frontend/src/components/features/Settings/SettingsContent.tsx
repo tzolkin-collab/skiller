@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { User, CreditCard, Sliders, Link as LinkIcon, Check, Sparkles } from 'lucide-react';
 import styles from './Settings.module.css';
 
+import type { Dictionary } from '@/types/dictionary';
+
 interface SettingsContentProps {
-  dict: any;
+  dict: Dictionary;
 }
 
 export function SettingsContent({ dict }: SettingsContentProps) {

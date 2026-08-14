@@ -183,5 +183,51 @@
       "notion": "Notion Integration",
       "github": "GitHub Integration"
     }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Choose Your",
+    "subtitle": "Start free, upgrade when you need unlimited power. No surprises, cancel anytime.",
+    "free": "Free",
+    "starter": "Starter",
+    "pro": "Skiller Pro",
+    "enterprise": "Enterprise",
+    "select": "Get Started",
+    "popular": "Most Popular",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "save": "-20%",
+    "perMonth": "/mo",
+    "perUser": "/user",
+    "billedAnnually": "billed annually",
+    "foreverFree": "free forever",
+    "customPricing": "Custom",
+    "contactSales": "Contact Sales",
+    "footerNote": "Need a custom plan for your team?",
+    "contactUs": "Contact us",
+    "features": {
+      "free": [
+        "Instant extraction from full playlists",
+        "Stop writing manual, repetitive prompts",
+        "Auto-install in Cursor, Claude, & Copilot"
+      ],
+      "starter": [
+        "Unlimited instant extractions",
+        "Zero setup, copy-paste workflow",
+        "Build modular AI agents easily"
+      ],
+      "pro": [
+        "Total Privacy for internal videos",
+        "Cloud MCP Proxy (No local terminal needed)",
+        "Dynamic Namespaces for simultaneous agents",
+        "Max generation speed & Video context"
+      ],
+      "enterprise": [
+        "Corporate Network Security (SSO & SAML)",
+        "Dedicated LLM Cloud (Zero-Data Retention)",
+        "Custom Prompt Engineering for your stack",
+        "RBAC and Team Access Management"
+      ]
+    }
   }
 }

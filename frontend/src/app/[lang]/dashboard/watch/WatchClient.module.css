@@ -1,0 +1,220 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-dashboard);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backBtn:hover {
+  background-color: var(--hover-color);
+}
+
+.mainContent {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .mainContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+.playerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.playerContainer {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: black;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.iframe {
+  width: 100%;
+  height: 100%;
+}
+
+.videoDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.channelInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar, .avatarImg {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  object-fit: cover;
+}
+
+.channelName {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cartBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cartBtn:hover {
+  background: var(--hover-color);
+}
+
+.cartBtnActive {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
+.cartBtnActive:hover {
+  background: var(--accent-primary);
+}
+
+.descriptionBox {
+  background: var(--surface-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.stats {
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.description {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.recommendationsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendationsTitle {
+  font-size: 18px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.placeholder {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.suggestedList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loadingSkeleton {
+  height: 100px;
+  background: var(--surface-color);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  animation: pulse 1.5s infinite;
+}
+
+.error {
+  color: red;
+  padding: 20px;
+  text-align: center;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}

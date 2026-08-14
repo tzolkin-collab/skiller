@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Roboto, Oswald, Syne, JetBrains_Mono } from "next/font/google";
-import { FaviconAnimator } from "@/components/ui/FaviconAnimator/FaviconAnimator";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -27,7 +26,12 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Skiller | YouTube Playlist to Skills",
   description: "Transform any YouTube playlist into an actionable, structured SKILL.md document for AI coding assistants.",
+  icons: [
+    { rel: "icon", url: "/icon.svg", type: "image/svg+xml" }
+  ],
 };
+
+import { CartProvider } from "@/components/providers/CartProvider";
 
 export default function RootLayout({
   children,
@@ -37,8 +41,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${roboto.variable} ${oswald.variable} ${syne.variable} ${jetbrainsMono.variable}`}>
-        <FaviconAnimator />
-        {children}
+        <CartProvider>
+          {children}
+        </CartProvider>
       </body>
     </html>
   );

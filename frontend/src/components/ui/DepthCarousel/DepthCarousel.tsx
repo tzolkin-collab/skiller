@@ -6,16 +6,18 @@ import {
   useState,
   CSSProperties,
   PointerEvent as ReactPointerEvent,
-  KeyboardEvent as ReactKeyboardEvent
+  KeyboardEvent as ReactKeyboardEvent,
+  ReactNode
 } from 'react';
 import gsap from 'gsap';
 import './DepthCarousel.css';
 
-export type DepthCarouselItem = string | { image: string; alt?: string };
 type TiltDirection = 'left' | 'right';
 
-export interface DepthCarouselProps {
-  items?: DepthCarouselItem[];
+export interface DepthCarouselProps<T> {
+  items?: T[];
+  renderItem?: (item: T, index: number) => ReactNode;
+  captureGlobalScroll?: boolean;
   cardWidth?: number;
   cardHeight?: number;
   radius?: number;
@@ -35,7 +37,7 @@ export interface DepthCarouselProps {
   loop?: boolean;
   showControls?: boolean;
   showIndicators?: boolean;
-  onChange?: (index: number, item: { image: string; alt?: string }) => void;
+  onChange?: (index: number, item: T) => void;
   className?: string;
 }
 
@@ -65,20 +67,12 @@ interface DragState {
   id: number;
 }
 
-const DEFAULT_ITEMS: DepthCarouselItem[] = [
-  { image: 'https://picsum.photos/seed/depth1/800/1000', alt: 'Slide 1' },
-  { image: 'https://picsum.photos/seed/depth2/800/1000', alt: 'Slide 2' },
-  { image: 'https://picsum.photos/seed/depth3/800/1000', alt: 'Slide 3' },
-  { image: 'https://picsum.photos/seed/depth4/800/1000', alt: 'Slide 4' },
-  { image: 'https://picsum.photos/seed/depth5/800/1000', alt: 'Slide 5' },
-  { image: 'https://picsum.photos/seed/depth6/800/1000', alt: 'Slide 6' }
-];
-
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
-const normalizeItem = (it: DepthCarouselItem) => (typeof it === 'string' ? { image: it, alt: '' } : it);
 
-const DepthCarousel = ({
-  items = DEFAULT_ITEMS,
+const DepthCarousel = <T,>({
+  items = [],
+  renderItem,
+  captureGlobalScroll = false,
   cardWidth = 300,
   cardHeight = 380,
   radius = 18,
@@ -100,8 +94,8 @@ const DepthCarousel = ({
   showIndicators = true,
   onChange,
   className = ''
-}: DepthCarouselProps) => {
-  const data = useMemo(() => (Array.isArray(items) ? items : []).map(normalizeItem), [items]);
+}: DepthCarouselProps<T>) => {
+  const data = useMemo(() => Array.isArray(items) ? items : [], [items]);
   const count = data.length;
 
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -252,15 +246,23 @@ const DepthCarousel = ({
   }, [layout]);
 
   useEffect(() => {
-    const el = rootRef.current;
+    const el = captureGlobalScroll ? window : rootRef.current;
     if (!el) return;
-    const onWheel = (e: WheelEvent) => {
+    const onWheel = (e: Event) => {
+      const wheelEvent = e as WheelEvent;
       const cfg = cfgRef.current;
       if (cfg.count < 2) return;
-      e.preventDefault();
+      if (!captureGlobalScroll) {
+        wheelEvent.preventDefault();
+      }
       tweenRef.current?.kill();
-      const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      const delta = e.deltaMode === 1 ? raw * 24 : raw;
+      const raw = Math.abs(wheelEvent.deltaX) > Math.abs(wheelEvent.deltaY) ? wheelEvent.deltaX : wheelEvent.deltaY;
+      const delta = wheelEvent.deltaMode === 1 ? raw * 24 : raw;
+      
+      if (captureGlobalScroll) {
+        wheelEvent.preventDefault();
+      }
+
       const step = clamp(delta / (cfg.cardWidth * 0.9), -0.6, 0.6);
       posRef.current += step;
       layout(posRef.current);
@@ -272,7 +274,7 @@ const DepthCarousel = ({
       el.removeEventListener('wheel', onWheel);
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
     };
-  }, [layout, setFocus]);
+  }, [layout, setFocus, captureGlobalScroll]);
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const cfg = cfgRef.current;
@@ -431,7 +433,11 @@ const DepthCarousel = ({
             aria-hidden={active !== i}
             onClick={() => onCardClick(i)}
           >
-            <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable={false} />
+            {renderItem ? (
+              renderItem(item, i)
+            ) : (
+              <img className="depth-carousel__img" src={(item as { image?: string; alt?: string })?.image} alt={(item as { image?: string; alt?: string })?.alt || ''} draggable={false} />
+            )}
             <span
               className="depth-carousel__tint"
               ref={el => {

@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { SKILL_QUEUE_NAME } from './queue.js';
-import { getPlaylistVideos, getPlaylistDetails, getVideoDetails } from '../services/youtube.js';
+import { getPlaylistVideos, getPlaylistDetails, getVideoDetails, extractPlaylistId, extractVideoId } from '../services/youtube.js';
 import { getVideoTranscript } from '../services/transcript.js';
 import { extractVideoCard, synthesizeSkill, ExtractedCard } from '../services/gemini.js';
 import { SkillFormat } from '../prompts/synthesis.js';
@@ -30,7 +30,8 @@ const redisConnection = new Redis({
 
 interface SkillJobData {
   skillId: string;
-  playlistId: string | null;
+  urls?: string[];
+  playlistId?: string | null;
   videoId?: string | null;
   targetFormat?: SkillFormat;
   isAppend?: boolean;
@@ -41,7 +42,7 @@ interface SkillJobData {
 export const skillWorker = new Worker<SkillJobData>(
   SKILL_QUEUE_NAME,
   async (job: Job<SkillJobData>) => {
-    const { skillId, playlistId, videoId, isAppend, language, userId } = job.data;
+    const { skillId, urls, playlistId, videoId, isAppend, language, userId } = job.data;
     
     const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
     if (!skillResult.length) throw new Error('Skill not found');
@@ -51,44 +52,63 @@ export const skillWorker = new Worker<SkillJobData>(
     
     await db.update(skills).set({ status: 'processing' }).where(eq(skills.id, skillId));
 
-    // Telemetria da execução — NFR "todo job deve gerar log estruturado completo".
-    // Acumulada aqui e gravada nos dois caminhos, sucesso e falha.
     const runId = crypto.randomUUID();
     const startedAt = Date.now();
     let totalUsage: LlmUsage = { ...EMPTY_USAGE };
-    const videoLogs: Record<string, unknown>[] = [];
     let sanitizeWarnings: SanitizeFinding[] = [];
     let cardsExtracted = 0;
 
     try {
       await job.updateProgress(10);
       
-      let playlistDetails;
-      let videos = [];
-      
-      if (playlistId) {
-        playlistDetails = await getPlaylistDetails(playlistId);
-        videos = await getPlaylistVideos(playlistId);
-      } else if (videoId) {
-        const vid = await getVideoDetails(videoId);
-        playlistDetails = {
-          playlistTitle: vid.title,
-          channelName: vid.channelName,
-          channelId: vid.channelId
-        };
-        videos = [vid];
-      } else {
-        throw new Error('No playlist or video ID provided');
+      const sourceUrls = urls || [];
+      if (sourceUrls.length === 0 && (playlistId || videoId)) {
+        sourceUrls.push(playlistId ? `https://youtube.com/playlist?list=${playlistId}` : `https://youtube.com/watch?v=${videoId}`);
       }
 
-      if (!isAppend) {
-        // Idempotency: Clean up existing videos if this is a job retry
-        await db.delete(skillVideos).where(eq(skillVideos.skillId, skillId));
+      if (sourceUrls.length === 0) {
+        throw new Error('No URLs provided for skill generation');
+      }
+
+      let allVideos: any[] = [];
+      let primaryDetails: any = null;
+      
+      for (const url of sourceUrls) {
+        const pId = extractPlaylistId(url);
+        const vId = extractVideoId(url);
         
+        if (pId) {
+          const details = await getPlaylistDetails(pId);
+          if (!primaryDetails) primaryDetails = details;
+          const vids = await getPlaylistVideos(pId);
+          allVideos = allVideos.concat(vids);
+        } else if (vId) {
+          const vid = await getVideoDetails(vId);
+          if (!primaryDetails) {
+            primaryDetails = {
+              playlistTitle: vid.title,
+              channelName: vid.channelName,
+              channelId: vid.channelId
+            };
+          }
+          allVideos.push(vid);
+        }
+      }
+      
+      // Deduplicate videos by videoId just in case
+      const seenIds = new Set();
+      const videos = allVideos.filter(v => {
+        if (seenIds.has(v.videoId)) return false;
+        seenIds.add(v.videoId);
+        return true;
+      });
+
+      if (!isAppend) {
+        await db.delete(skillVideos).where(eq(skillVideos.skillId, skillId));
         await db.update(skills).set({
-          playlistTitle: playlistDetails.playlistTitle,
-          channelName: playlistDetails.channelName,
-          channelId: playlistDetails.channelId,
+          playlistTitle: primaryDetails?.playlistTitle || 'Custom Selection',
+          channelName: primaryDetails?.channelName || 'Multiple Channels',
+          channelId: primaryDetails?.channelId,
         }).where(eq(skills.id, skillId));
       }
       await job.updateProgress(20);
@@ -176,7 +196,7 @@ export const skillWorker = new Worker<SkillJobData>(
       // e conector fora da allowlist antes de chegarmos aqui.
       const synthesis = await synthesizeSkill(
         allCards,
-        skill.playlistTitle || playlistDetails.playlistTitle,
+        skill.playlistTitle || primaryDetails?.playlistTitle || 'Custom Selection',
         targetLanguage
       );
       const document = synthesis.data;
@@ -201,8 +221,8 @@ export const skillWorker = new Worker<SkillJobData>(
       const gitPackage = buildGitPackage(pluginPackage.files);
 
       await db.update(skills).set({
-        name: `Skill: ${skill.playlistTitle || playlistDetails.playlistTitle}`,
-        description: `Generated from ${skill.channelName || playlistDetails.channelName}`,
+        name: `Skill: ${skill.playlistTitle || primaryDetails?.playlistTitle || 'Custom Selection'}`,
+        description: `Generated from ${skill.channelName || primaryDetails?.channelName || 'Multiple Channels'}`,
         skillMdContent: skillMd, // Fallback for backwards compatibility
         humanMdContent: humanMd,
         skillPackage: gitPackage,

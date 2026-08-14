@@ -7,6 +7,7 @@ config({ path: path.resolve(process.cwd(), '../.env') })
 import { skillsRouter } from './routes/skills.js'
 import { queueRouter } from './routes/queue.js'
 import { oauthRouter } from './routes/oauth.js'
+import { youtubeRouter } from './routes/youtube.js'
 import './queue/worker.js' // initialize the worker
 
 const app = new Hono()
@@ -17,9 +18,13 @@ app.get('/', (c) => {
   return c.text('Skiller API is running')
 })
 
+import { mcpRouter } from './routes/mcp.js'
+
 app.route('/api/skills', skillsRouter)
 app.route('/api/queue', queueRouter)
 app.route('/api/oauth', oauthRouter)
+app.route('/api/youtube', youtubeRouter)
+app.route('/api/mcp', mcpRouter)
 
 const port = parseInt(process.env.BACKEND_PORT || '3001')
 console.log(`Server is running on port ${port}`)

@@ -12,7 +12,8 @@ import type { SkillFormat } from '../prompts/synthesis.js';
 const skillsRouter = new Hono();
 
 const createSkillSchema = z.object({
-  playlistUrl: z.string().url(),
+  playlistUrl: z.string().url().optional(),
+  urls: z.array(z.string().url()).min(1).optional(),
   targetFormat: z.enum(['gemini', 'claude', 'copilot', 'mcp', 'generic']).default('generic'),
   language: z.string().optional().default('en')
 });
@@ -23,14 +24,22 @@ skillsRouter.post('/', async (c) => {
     const result = createSkillSchema.safeParse(body);
     
     if (!result.success) {
-      return c.json({ error: 'Invalid URL' }, 400);
+      return c.json({ error: 'Invalid payload' }, 400);
     }
     
-    const playlistId = extractPlaylistId(result.data.playlistUrl);
-    const videoId = extractVideoId(result.data.playlistUrl);
+    // Support legacy playlistUrl or new urls array
+    const sourceUrls = result.data.urls || (result.data.playlistUrl ? [result.data.playlistUrl] : []);
+    
+    if (sourceUrls.length === 0) {
+      return c.json({ error: 'No valid URLs provided' }, 400);
+    }
+    
+    const primaryUrl = sourceUrls[0];
+    const playlistId = extractPlaylistId(primaryUrl);
+    const videoId = extractVideoId(primaryUrl);
     
     if (!playlistId && !videoId) {
-      return c.json({ error: 'Could not extract playlist ID or video ID from URL' }, 400);
+      return c.json({ error: 'Could not extract playlist ID or video ID from primary URL' }, 400);
     }
 
     // Mock auth: Pega o primeiro usuário do banco ou cria um dummy
@@ -62,7 +71,8 @@ skillsRouter.post('/', async (c) => {
     }
 
     const inserted = await db.insert(skills).values({
-      playlistUrl: result.data.playlistUrl,
+      playlistUrl: primaryUrl,
+      sourceUrls: sourceUrls,
       targetFormat: result.data.targetFormat,
       language: result.data.language,
       userId: user.id, // Grava o dono da skill
@@ -73,8 +83,7 @@ skillsRouter.post('/', async (c) => {
     
     await skillQueue.add('generate-skill', {
       skillId: skill.id,
-      playlistId,
-      videoId,
+      urls: sourceUrls,
       targetFormat: result.data.targetFormat,
       language: result.data.language,
       userId: user.id // Passa pro worker abater os créditos
@@ -108,6 +117,7 @@ skillsRouter.get('/', async (c) => {
     
     return c.json(allSkills);
   } catch (error: unknown) {
+    console.error('GET /api/skills failed:', error);
     return c.json({ error: getErrorMessage(error) }, 500);
   }
 });
@@ -186,8 +196,7 @@ skillsRouter.post('/:id/retry', async (c) => {
     await db.delete(pipelineLogs).where(eq(pipelineLogs.skillId, skillId));
     await db.update(skills).set({ status: 'queued', skillMdContent: null, skillPackage: null, skillJsonOutput: null }).where(eq(skills.id, skillId));
     
-    const playlistId = extractPlaylistId(skill.playlistUrl);
-    const videoId = extractVideoId(skill.playlistUrl);
+    const sourceUrls = (skill.sourceUrls as string[]) || [skill.playlistUrl];
     
     try {
       const oldJob = await skillQueue.getJob(skill.id);
@@ -200,8 +209,7 @@ skillsRouter.post('/:id/retry', async (c) => {
     
     await skillQueue.add('generate-skill', {
       skillId: skill.id,
-      playlistId,
-      videoId
+      urls: sourceUrls
     }, {
       jobId: `${skill.id}-retry-${Date.now()}` // Bypass BullMQ lock using a unique retry ID
     });
@@ -213,7 +221,8 @@ skillsRouter.post('/:id/retry', async (c) => {
 });
 
 const appendSkillSchema = z.object({
-  playlistUrl: z.string().url()
+  playlistUrl: z.string().url().optional(),
+  urls: z.array(z.string().url()).min(1).optional()
 });
 
 skillsRouter.post('/:id/append', async (c) => {
@@ -223,25 +232,23 @@ skillsRouter.post('/:id/append', async (c) => {
     const result = appendSkillSchema.safeParse(body);
     
     if (!result.success) {
-      return c.json({ error: 'Invalid URL' }, 400);
+      return c.json({ error: 'Invalid payload' }, 400);
+    }
+    
+    const sourceUrls = result.data.urls || (result.data.playlistUrl ? [result.data.playlistUrl] : []);
+    
+    if (sourceUrls.length === 0) {
+      return c.json({ error: 'No valid URLs provided' }, 400);
     }
     
     const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
     if (skillResult.length === 0) return c.json({ error: 'Skill not found' }, 404);
-    
-    const playlistId = extractPlaylistId(result.data.playlistUrl);
-    const videoId = extractVideoId(result.data.playlistUrl);
-    
-    if (!playlistId && !videoId) {
-      return c.json({ error: 'Could not extract playlist ID or video ID from URL' }, 400);
-    }
 
     await db.update(skills).set({ status: 'queued' }).where(eq(skills.id, skillId));
     
     await skillQueue.add('append-skill', {
       skillId,
-      playlistId,
-      videoId,
+      urls: sourceUrls,
       isAppend: true
     }, {
       jobId: `${skillId}-append-${Date.now()}` // Allow multiple distinct appends

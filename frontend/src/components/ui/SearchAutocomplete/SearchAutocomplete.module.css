@@ -1,0 +1,111 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.searchForm {
+  width: 100%;
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  position: relative;
+}
+
+.inputWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-right: none;
+  border-radius: 24px 0 0 24px;
+  overflow: hidden;
+  padding-left: 16px;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* On focus, the wrapper gets the accent border. 
+   We also need to overlap the right border so it doesn't look weird next to the button */
+.inputWrapper:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+  /* Optional: we can add a left search icon that appears on focus, like YouTube, but let's keep it simple */
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 0 16px 0 8px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  outline: none;
+  width: 100%;
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+.searchButton {
+  background: rgba(255, 255, 255, 0.08); /* YouTube style subtle gray */
+  border: 1px solid var(--border-light);
+  border-radius: 0 24px 24px 0;
+  color: var(--text-primary);
+  height: 100%;
+  width: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.searchButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+  z-index: 100;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  transition: background-color 0.2s;
+}
+
+.suggestionItem:hover, .suggestionItem.active {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.suggestionIcon {
+  color: var(--text-secondary);
+}

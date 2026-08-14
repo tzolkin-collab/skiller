@@ -11,9 +11,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-// The base URL of the Skiller backend. For local dev, this might be localhost.
-// In production, it would be the real SaaS URL.
-const API_BASE_URL = process.env.SKILLER_API_URL || "http://localhost:3001/api";
+const API_BASE_URL = process.env.SKILLER_API_URL;
+if (!API_BASE_URL) {
+  throw new Error("SKILLER_API_URL is required in the environment variables.");
+}
 
 const server = new Server(
   {

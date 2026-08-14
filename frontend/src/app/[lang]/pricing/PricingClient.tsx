@@ -11,69 +11,51 @@ import type { Dictionary } from '@/types/dictionary';
 type Currency = 'USD' | 'BRL' | 'EUR';
 type BillingPeriod = 'monthly' | 'annual';
 
-type PricingDict = Dictionary & { pricing?: Record<string, string> };
-
 interface PricingClientProps {
   lang: string;
-  dict: PricingDict;
+  dict: Dictionary;
 }
 
 export default function PricingClient({ lang, dict }: PricingClientProps) {
   const router = useRouter();
   const [currency, setCurrency] = useState<Currency>('USD');
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
-  const [activeIndex, setActiveIndex] = useState(1); // Default to PRO
+  const [activeIndex, setActiveIndex] = useState(0); 
 
-  // Depth Carousel fires onChange aggressively, so we need to set initial state right away,
-  // but let's default to 1 since we want to show PRO by default in the design.
-  
   const copy = {
-    eyebrow: dict.pricing?.eyebrow || 'Pricing',
-    title: dict.pricing?.title || 'Choose Your',
+    eyebrow: dict.pricing.eyebrow,
+    title: dict.pricing.title,
     titleAccent: 'Weapon',
-    subtitle: dict.pricing?.subtitle || 'Start free, upgrade when you need unlimited power. No surprises, cancel anytime.',
-    free: dict.pricing?.free || 'Starter',
-    pro: dict.pricing?.pro || 'Skiller Pro',
-    enterprise: dict.pricing?.enterprise || 'Enterprise',
-    select: dict.pricing?.select || 'Get Started',
-    popular: dict.pricing?.popular || 'Most Popular',
-    monthly: dict.pricing?.monthly || 'Monthly',
-    annual: dict.pricing?.annual || 'Annual',
-    save: dict.pricing?.save || '-20%',
-    perMonth: dict.pricing?.perMonth || '/mo',
-    billedAnnually: dict.pricing?.billedAnnually || 'billed annually',
-    foreverFree: dict.pricing?.foreverFree || 'free forever',
-    customPricing: dict.pricing?.customPricing || 'Custom',
-    contactSales: dict.pricing?.contactSales || 'Contact Sales',
-    footerNote: dict.pricing?.footerNote || 'Need a custom plan for your team?',
-    contactUs: dict.pricing?.contactUs || 'Contact us',
+    subtitle: dict.pricing.subtitle,
+    free: dict.pricing.free,
+    starter: dict.pricing.starter,
+    pro: dict.pricing.pro,
+    enterprise: dict.pricing.enterprise,
+    select: dict.pricing.select,
+    popular: dict.pricing.popular,
+    monthly: dict.pricing.monthly,
+    annual: dict.pricing.annual,
+    save: dict.pricing.save,
+    perMonth: dict.pricing.perMonth,
+    perUser: dict.pricing.perUser,
+    billedAnnually: dict.pricing.billedAnnually,
+    foreverFree: dict.pricing.foreverFree,
+    customPricing: dict.pricing.customPricing,
+    contactSales: dict.pricing.contactSales,
+    footerNote: dict.pricing.footerNote,
+    contactUs: dict.pricing.contactUs,
     features: {
-      free: [
-        '5 public extractions per month',
-        'Markdown Export',
-        'Community Support',
-      ],
-      starter: [
-        'Unlimited public skill extractions',
-        'Generic AI Prompts',
-        'Standard Generation Speed',
-      ],
-      pro: [
-        'Dynamic Skills (MCP Namespaces)',
-        'Cloud Hosting (MCP Proxy)',
-        'Unlimited private skill extractions',
-        'Live chat with video context',
-        'Maximum Generation Speed',
-        'Priority Support',
-      ],
-      enterprise: [
-        'Dedicated Infrastructure',
-        'SSO & SAML Authentication',
-        'Custom Integrations',
-        'Custom LLM Connectors',
-        'Dedicated Account Manager',
-      ],
+      free: dict.pricing.features.free,
+      starter: dict.pricing.features.starter,
+      pro: dict.pricing.features.pro,
+      enterprise: dict.pricing.features.enterprise,
     },
+    possibilities: {
+      free: lang === 'pt' ? 'Comece a extrair e estruturar conhecimentos de forma básica. Ideal para experimentar a plataforma e criar suas primeiras skills sem compromisso.' : 'Start extracting and structuring knowledge basic level. Ideal to experience the platform and create your first skills with no commitment.',
+      starter: lang === 'pt' ? 'Para criadores e desenvolvedores que precisam de mais volume. Acesse funcionalidades que começam a escalar sua produtividade e integrar inteligência aos seus fluxos.' : 'For creators and developers who need more volume. Access features that start to scale your productivity.',
+      pro: lang === 'pt' ? 'O plano definitivo para profissionais de IA. Limites generosos, processamento rápido e integrações completas para criar agentes que realmente entendem o contexto e a linguagem de quem ensina.' : 'The definitive plan for AI professionals. Generous limits, fast processing, and full integrations.',
+      enterprise: lang === 'pt' ? 'Para organizações e times que exigem escala, segurança e conformidade corporativa. Soluções customizadas, auditoria de segurança e suporte premium 24/7.' : 'For organizations and teams that require scale, security, and corporate compliance. Customized solutions, 24/7 premium support.'
+    }
   };
 
   const prices: Record<Currency, { free: number; starter: number; proMonthly: number; proAnnual: number; symbol: string }> = {
@@ -82,21 +64,15 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     EUR: { free: 0, starter: 9.90, proMonthly: 19, proAnnual: 15, symbol: '€' },
   };
 
-  const carouselItems = [
-    { image: '/assets/pricing/plan_free.jpg', alt: 'Free Plan' },
-    { image: '/assets/pricing/plan_starter.jpg', alt: 'Starter Plan' },
-    { image: '/assets/pricing/plan_pro.jpg', alt: 'Skiller Pro Plan' },
-    { image: '/assets/pricing/plan_enterprise.jpg', alt: 'Enterprise Plan' },
-  ];
-
   const plansData = [
     {
       id: 'free',
-      name: copy.free || 'Free',
+      name: copy.free,
       price: prices[currency].free,
       period: copy.perMonth,
       subtext: copy.foreverFree,
       features: copy.features.free,
+      possibilityText: copy.possibilities.free,
       ctaText: copy.select,
       badge: null,
       cardClass: styles.card,
@@ -106,11 +82,12 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     },
     {
       id: 'starter',
-      name: copy.starter || 'Starter',
+      name: copy.starter,
       price: prices[currency].starter,
       period: copy.perMonth,
       subtext: copy.monthly,
       features: copy.features.starter,
+      possibilityText: copy.possibilities.starter,
       ctaText: copy.select,
       badge: null,
       cardClass: styles.card,
@@ -123,8 +100,9 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
       name: copy.pro,
       price: billing === 'monthly' ? prices[currency].proMonthly : prices[currency].proAnnual,
       period: copy.perMonth,
-      subtext: billing === 'annual' ? copy.billedAnnually : '\u00A0',
+      subtext: billing === 'annual' ? copy.billedAnnually : ' ',
       features: copy.features.pro,
+      possibilityText: copy.possibilities.pro,
       ctaText: copy.select,
       badge: copy.popular,
       cardClass: `${styles.card} ${styles.pro}`,
@@ -135,10 +113,11 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     {
       id: 'enterprise',
       name: copy.enterprise,
-      price: null, // Custom
-      period: '',
-      subtext: copy.customPricing, // 'Per User' / 'Por Usuário'
+      price: billing === 'monthly' ? prices[currency].proMonthly : prices[currency].proAnnual,
+      period: copy.perMonth + ' ' + copy.perUser,
+      subtext: copy.billedAnnually ? (billing === 'annual' ? copy.billedAnnually : ' ') : ' ',
       features: copy.features.enterprise,
+      possibilityText: copy.possibilities.enterprise,
       ctaText: copy.contactSales,
       badge: null,
       cardClass: `${styles.card} ${styles.enterprise}`,
@@ -148,12 +127,11 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     },
   ];
 
-  const activePlanData = plansData[activeIndex] || plansData[2]; // Default to Pro (index 2)
+  const activePlanData = plansData[activeIndex] || plansData[0];
 
-  // Helper to render a card content given the plan data
-  const renderCardContent = (plan: typeof plansData[0], isCarouselContext = false) => (
-    <div className={`${plan.cardClass} ${isCarouselContext ? styles.carouselCardContent : ''}`}>
-      {plan.badge && <span className={styles.popularBadge}>{plan.badge}</span>}
+  const renderCardContent = (plan: typeof plansData[0]) => (
+    <div key={plan.id} className={plan.cardClass} style={{ width: '100%', height: '100%', boxShadow: 'none' }}>
+      {plan.badge ? <span className={styles.popularBadge}>{plan.badge}</span> : null}
       <div className={plan.nameClass}>{plan.name}</div>
       <div className={styles.planPriceRow}>
         {plan.price !== null ? (
@@ -178,56 +156,74 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
           </div>
         ))}
       </div>
-
-      <button className={plan.ctaClass} onClick={plan.action}>
-        {plan.ctaText}
-        <ArrowRight size={14} className={styles.arrowIcon} />
-      </button>
     </div>
   );
-
-  // Auto focus the carousel to index 1 (Pro) after mount since loop is false 
-  // wait, DepthCarousel doesn't expose a method to set index programmatically from outside unless we use ref.
-  // By default DepthCarousel starts at 0, so if we want the state to match, we could either start state at 0,
-  // or modify the component to take initialIndex. We will let it start at 0, so change initial state to 0.
-  useEffect(() => {
-    setActiveIndex(0);
-  }, []);
 
   return (
     <div className={styles.pageContainer}>
       <div className={styles.container}>
+        
+        {/* Header: Toggle ONLY */}
+        <div className={styles.header}>
+          <div className={styles.billingToggle}>
+            <button
+              className={`${styles.billingOption} ${billing === 'monthly' ? styles.active : ''}`}
+              onClick={() => setBilling('monthly')}
+            >
+              {copy.monthly}
+            </button>
+            <button
+              className={`${styles.billingOption} ${billing === 'annual' ? styles.active : ''}`}
+              onClick={() => setBilling('annual')}
+            >
+              <span>{copy.annual}</span>
+              <span className={styles.saveBadge}>{copy.save}</span>
+            </button>
+          </div>
+        </div>
 
-
-        {/* Desktop Split Layout (Hidden on Mobile) */}
+        {/* Desktop Split Layout */}
         <div className={styles.desktopSplitLayout}>
           <div className={styles.leftColumn}>
-            {/* The active plan's detailed view */}
-            {renderCardContent(activePlanData, true)}
+            <div key={activePlanData.id} className={styles.valuePropContainer}>
+              <h2 className={styles.valuePropTitle}>{activePlanData.name}</h2>
+              <p className={styles.valuePropText}>{activePlanData.possibilityText}</p>
+              
+              <button className={activePlanData.ctaClass} onClick={activePlanData.action}>
+                <span>{activePlanData.ctaText}</span>
+                <ArrowRight size={14} className={styles.arrowIcon} />
+              </button>
+            </div>
           </div>
           <div className={styles.rightColumn}>
             <div className={styles.carouselWrapper}>
               <DepthCarousel
-                items={carouselItems}
+                items={plansData}
+                renderItem={(item) => renderCardContent(item)}
                 autoplay={false}
                 loop={false}
                 visibleCards={3}
-                cardWidth={280}
-                cardHeight={350}
+                cardWidth={340}
+                cardHeight={480}
+                captureGlobalScroll={true}
                 onChange={(idx) => setActiveIndex(idx)}
               />
-              <div className={styles.carouselInstruction}>
-                ← Arraste para selecionar o plano →
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile Stacked Layout (Hidden on Desktop) */}
+        {/* Mobile Stacked Layout */}
         <div className={styles.mobileStackedLayout}>
           {plansData.map((plan) => (
-            <div key={plan.id} className={styles.mobileCardWrapper}>
+            <div key={plan.id} className={styles.mobileCardWrapper} style={{ marginBottom: '24px' }}>
               {renderCardContent(plan)}
+              <div className={styles.mobileValueProp} style={{ marginTop: '16px', textAlign: 'center' }}>
+                <p className={styles.valuePropText}>{plan.possibilityText}</p>
+                <button className={plan.ctaClass} onClick={plan.action}>
+                  <span>{plan.ctaText}</span>
+                  <ArrowRight size={14} className={styles.arrowIcon} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -235,7 +231,7 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
         {/* Footer Note */}
         <div className={styles.footerNote}>
           <p className={styles.footerText}>
-            {copy.footerNote}{' '}
+            <span>{copy.footerNote} </span>
             <a href={`/${lang}/contact`} className={styles.footerLink}>
               {copy.contactUs} →
             </a>
