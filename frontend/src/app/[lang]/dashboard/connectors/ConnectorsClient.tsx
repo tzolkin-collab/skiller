@@ -111,8 +111,11 @@ const GeminiLogo = () => (
     </defs>
   </svg>
 );
+type DictionaryType = Record<string, unknown> & {
+  dashboard: Record<string, string>;
+};
 
-export default function ConnectorsClient({ dict, lang }: { dict: Record<string, Record<string, string>>, lang: string }) {
+export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType, lang: string }) {
   const [activeTab, setActiveTab] = useState<'ide' | 'chat'>('chat');
 
   const handleConnect = async (provider: string) => {
@@ -167,117 +170,306 @@ export default function ConnectorsClient({ dict, lang }: { dict: Record<string, 
       </div>
 
       {activeTab === 'ide' && (
-        <div className={styles.grid}>
-          <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(255,255,255,0.02))', border: '1px solid var(--border)' }}>
-            <CardHeader>
-              <CardTitle className={styles.skillTitle}>
-                <Terminal size={18} className={styles.titleIcon} style={{ color: 'var(--text-primary)' }} />
-                {dict.dashboard.localMcpTitle}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={styles.skillDesc}>
-                Authenticate your local environment to allow IDEs to request and install skills directly.
-              </p>
-              <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                  npx @skiller/mcp-server auth login
-                </div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Run this command in your terminal. You will be prompted to enter a code in the browser to authorize your machine.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>General Environment</h2>
+            <div className={styles.grid}>
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(255,255,255,0.02))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle}>
+                    <Terminal size={18} className={styles.titleIcon} style={{ color: 'var(--text-primary)' }} />
+                    {dict.dashboard.localMcpTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Authenticate your local environment to allow IDEs to request and install skills directly.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                      npx @skiller/mcp-server auth login
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Run this command in your terminal. You will be prompted to enter a code in the browser to authorize your machine.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
-          <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(211,167,124,0.05))', border: '1px solid var(--border)' }}>
-            <CardHeader>
-              <CardTitle className={styles.skillTitle}>
-                <div style={{ display: 'flex', gap: '0.5rem', marginRight: '0.5rem' }}>
-                  <CursorLogo />
-                </div>
-                {dict.dashboard.ideTitle}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={styles.skillDesc}>
-                {dict.dashboard.ideDesc}
-              </p>
-              <div className={styles.skillMeta} style={{ marginTop: '1rem' }}>
-                <DownloadProfileButton text={dict.dashboard.downloadProfile} />
-              </div>
-            </CardContent>
-          </Card>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>IDE Plugins (MCP)</h2>
+            <div className={styles.grid}>
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(211,167,124,0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CursorLogo />
+                    Cursor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    {dict.dashboard.ideDesc}
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <DownloadProfileButton text={dict.dashboard.downloadProfile} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                      Or add <code style={{background:'var(--bg-secondary)', padding:'2px 4px', borderRadius:'2px'}}>npx -y @skiller/mcp-server start</code> in Cursor Settings (Features &gt; MCP).
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(27,113,242,0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <GeminiLogo />
+                    Google Antigravity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Use Skiller natively as a plugin in Google Antigravity IDE.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Add this to your global mcp_config.json file.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(16,163,127,0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Terminal size={18} />
+                    Windsurf
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Use Skiller in Codeium Windsurf IDE.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Add this to ~/.codeium/windsurf/mcp_config.json
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(27,113,242,0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Bot size={18} />
+                    Roo Code / Continue.dev
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Use Skiller in VS Code with Roo Code (Cline) or Continue.dev.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Add this to your VS Code MCP settings file.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {activeTab === 'chat' && (
-        <div className={styles.grid}>
-          <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(211, 167, 124, 0.05))', border: '1px solid var(--border)' }}>
-            <CardHeader>
-              <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ClaudeLogo />
-                Claude Desktop (MCP)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={styles.skillDesc}>
-                Connect Skiller MCP to Claude Desktop so your AI assistant can discover and execute your skills in real-time.
-              </p>
-              <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                  {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
-                </div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Add this to your claude_desktop_config.json
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+          
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Anthropic (Claude)</h2>
+            <div className={styles.grid}>
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(211, 167, 124, 0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ClaudeLogo />
+                    Claude Desktop
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Connect Skiller MCP to Claude Desktop so your AI assistant can discover and execute your skills in real-time.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Add this to your claude_desktop_config.json
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(16, 163, 127, 0.05))', border: '1px solid var(--border)' }}>
-            <CardHeader>
-              <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ChatGPTLogo />
-                ChatGPT (MCP)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={styles.skillDesc}>
-                Connect Skiller MCP to ChatGPT using compatible open-source clients or native integration (when available).
-              </p>
-              <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                  https://api.skiller.local/mcp
-                </div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Configure your MCP client to point to the SSE remote endpoint.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(211, 167, 124, 0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ClaudeLogo />
+                    Claude Code (CLI)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Use Skiller inside Anthropic's new terminal-based agent, Claude Code.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      claude mcp add skiller npx -y @skiller/mcp-server start
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Run this command in your terminal
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
-          <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(27, 113, 242, 0.05))', border: '1px solid var(--border)' }}>
-            <CardHeader>
-              <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <GeminiLogo />
-                Google Gemini (MCP)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={styles.skillDesc}>
-                Use Skiller MCP with Google Gemini Advanced (via internal tools extension) or compatible Gemini Chat interfaces.
-              </p>
-              <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                  https://api.skiller.local/mcp
-                </div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Configure your Gemini MCP Extension with the URL above.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>OpenAI (ChatGPT)</h2>
+            <div className={styles.grid}>
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(16, 163, 127, 0.05))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ChatGPTLogo />
+                    ChatGPT (MCP)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Connect Skiller MCP to ChatGPT using compatible open-source clients or native integration (when available).
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      https://api.skiller.local/mcp
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Configure your MCP client to point to the SSE remote endpoint.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Google (Gemini)</h2>
+            <div className={styles.grid}>
+              <Card style={{ backgroundColor: 'var(--surface-bg)' }}>
+                <CardHeader>
+                  <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                    <GeminiLogo />
+                    Google Gemini (Spark)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent style={{ color: 'var(--text-secondary)' }}>
+                  <p style={{ marginBottom: '1rem' }}>
+                    Use the Skiller Spark Agent Package with the Google Spark autonomous agent framework. 
+                  </p>
+                  <div style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.9rem' }}>
+                    <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <Terminal size={14} /> <strong>Spark Extension:</strong>
+                    </p>
+                    <p style={{ opacity: 0.8 }}>
+                      Import the generated <code>spark.json</code> or <code>SKILL.md</code> into your Google Spark workspace to empower your autonomous agent.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Open Source & Local AI</h2>
+            <div className={styles.grid}>
+              
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(255, 255, 255, 0.03))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Bot size={18} />
+                    LibreChat
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Connect Skiller MCP to LibreChat (Open Source ChatGPT alternative).
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      https://api.skiller.local/mcp
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Add this URL as an SSE endpoint in your librechat.yaml config.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(255, 255, 255, 0.03))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Bot size={18} />
+                    AnythingLLM
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Use Skiller in AnythingLLM as an Agent Skill.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      https://api.skiller.local/mcp
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Add this SSE URL in the Workspace Agent Skills configuration.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className={styles.skillCard} style={{ background: 'linear-gradient(to bottom right, var(--bg-primary), rgba(255, 255, 255, 0.03))', border: '1px solid var(--border)' }}>
+                <CardHeader>
+                  <CardTitle className={styles.skillTitle} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Bot size={18} />
+                    Open WebUI
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.skillDesc}>
+                    Run Skiller alongside Llama and Mistral in Open WebUI.
+                  </p>
+                  <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      https://api.skiller.local/mcp
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Configure the remote MCP Tool connection with this SSE URL.
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+              
+            </div>
+          </div>
+
         </div>
       )}
     </div>

@@ -10,9 +10,12 @@ const openai = new OpenAI({
 
 const CardSchema = z.object({
   title: z.string().describe('The main topic or title of this video segment'),
-  keyConcepts: z.array(z.string()).describe('List of key concepts explained'),
+  goal: z.string().optional().describe('The overarching intent or objective of the skill extracted from this segment (e.g., "Build a scalable API"). Explain what the bot is trying to achieve.'),
+  reasoning: z.string().optional().describe('The reasoning of WHY these concepts are vital to achieve the goal.'),
+  setupRequirements: z.array(z.string()).optional().describe('Any environment setup, installations, or configuration steps (e.g., "npm install x", "set ENV_VAR") mentioned in the video.'),
+  keyConcepts: z.array(z.string()).describe('Exhaustive list of all granular concepts, topics, formulas, and techniques explained. MUST include timestamps if available. Extract as many as possible.'),
   summary: z.string().describe('A detailed summary of the core message and learnings'),
-  codeSnippets: z.array(z.string()).describe('Any important code snippets discussed, formatted in markdown. Use empty array if none.')
+  codeSnippets: z.array(z.string()).describe('Any important code snippets discussed. Empty array if none.')
 });
 
 export type ExtractedCard = z.infer<typeof CardSchema>;

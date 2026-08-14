@@ -316,7 +316,7 @@ function PricingCards() {
         <Text position={[0, 1.8, 0.1]} fontSize={0.4} color="#dddddd" anchorX="center" fontWeight="bold">STARTER</Text>
         
         <group position={[0, 0.9, 0.1]}>
-          <Text anchorX="right" position={[-0.02, 0, 0]} fontSize={0.7} color="#ffffff" letterSpacing={-0.05}>$0</Text>
+          <Text anchorX="right" position={[-0.02, 0, 0]} fontSize={0.7} color="#ffffff" letterSpacing={-0.05}>$9</Text>
           <Text anchorX="left" position={[0.02, -0.15, 0]} fontSize={0.3} color="#888888">/mo</Text>
         </group>
 
@@ -328,10 +328,9 @@ function PricingCards() {
 
         {/* Features List */}
         <Text position={[-1.2, -0.2, 0.1]} fontSize={0.2} color="#aaaaaa" anchorX="left" lineHeight={1.8}>
-          •  10 Videos per month{'\n'}
-          •  Standard Speed{'\n'}
-          •  Community Support{'\n'}
-          •  Markdown Export
+          •  Unlimited Public Extractions{'\n'}
+          •  Generic AI Prompts{'\n'}
+          •  Standard Generation Speed
         </Text>
 
         {/* Button */}
@@ -372,10 +371,10 @@ function PricingCards() {
 
         {/* Features List */}
         <Text position={[-1.2, -0.2, 0.1]} fontSize={0.2} color="#dddddd" anchorX="left" lineHeight={1.8}>
-          •  Unlimited Videos{'\n'}
-          •  Maximum Speed{'\n'}
-          •  Priority Support{'\n'}
-          •  API Access
+          •  MCP Namespaces{'\n'}
+          •  Cloud Hosting (Proxy){'\n'}
+          •  Unlimited Extractions{'\n'}
+          •  Priority Support
         </Text>
 
         {/* Button */}
@@ -423,11 +422,11 @@ function PricingCards() {
         {/* Right Column (Features) */}
         <Text position={[0.5, 0.8, 0.1]} fontSize={0.22} color="#ffffff" anchorX="left">Everything in Pro, plus:</Text>
         <Text position={[0.5, -0.2, 0.1]} fontSize={0.18} color="#cccccc" anchorX="left" lineHeight={2}>
-          •  Dedicated Infrastructure & Hardware{'\n'}
-          •  Guaranteed SLA 99.99%{'\n'}
-          •  SSO & SAML Authentication{'\n'}
-          •  Custom Workflows & Integrations{'\n'}
-          •  On-premise Deployment Options
+          •  Dedicated Infrastructure{'\n'}
+          •  SSO & SAML Auth{'\n'}
+          •  Custom LLM Connectors{'\n'}
+          •  Custom Integrations{'\n'}
+          •  Dedicated Account Manager
         </Text>
       </group>
     </group>

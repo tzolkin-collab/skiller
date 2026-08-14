@@ -4,8 +4,12 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card/Card';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
+type DictionaryType = Record<string, unknown> & {
+  verify?: Record<string, string>;
+  common?: Record<string, string>;
+};
 
-export default function VerifyClient({ lang, dict }: { lang: string, dict: Record<string, Record<string, string>> }) {
+export default function VerifyClient({ lang, dict }: { lang: string, dict: DictionaryType }) {
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -16,7 +20,7 @@ export default function VerifyClient({ lang, dict }: { lang: string, dict: Recor
 
     setStatus('loading');
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(`${baseUrl}/api/oauth/device/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,9 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { z } from 'zod';
 import { buildExtractCardPrompt } from '../prompts/extraction.js';
-import { buildSynthesisPrompt } from '../prompts/synthesis.js';
+import { buildSynthesisPrompt, SkillFormat } from '../prompts/synthesis.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { getErrorMessage } from '../lib/errors.js';
 import { CONNECTOR_IDS, SkillDocumentSchema, type SkillDocument } from '../lib/skill-document.js';
 
@@ -171,6 +173,78 @@ function readUsage(meta: { promptTokenCount?: number; candidatesTokenCount?: num
   };
 }
 
+/**
+ * Erro de parse que carrega o suficiente para consertar o prompt.
+ *
+ * Sem isto, uma reprovação do Zod vira uma string no log e a resposta bruta se
+ * perde — que é justamente o artefato necessário para saber o que o modelo
+ * realmente devolveu.
+ */
+export class SynthesisParseError extends Error {
+  constructor(
+    message: string,
+    /** Campos que falharam, com caminho e código. */
+    public readonly issues: { path: string; code: string; message: string }[],
+    /** Resposta crua, truncada — vai para o log do pipeline. */
+    public readonly rawResponse: string
+  ) {
+    super(message);
+    this.name = 'SynthesisParseError';
+  }
+}
+
+const RAW_EXCERPT_LIMIT = 20_000;
+
+function parseSkillDocument(text: string): SkillDocument {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new SynthesisParseError(
+      'Resposta da síntese não é JSON válido',
+      [],
+      text.slice(0, RAW_EXCERPT_LIMIT)
+    );
+  }
+
+  const result = SkillDocumentSchema.safeParse(json);
+  if (result.success) return result.data;
+
+  const issues = result.error.issues.map(i => ({
+    path: i.path.join('.') || '(raiz)',
+    code: i.code,
+    message: i.message
+  }));
+
+  const resumo = issues.map(i => `${i.path}: ${i.message}`).join('; ');
+  throw new SynthesisParseError(
+    `Documento de skill inválido — ${resumo}`,
+    issues,
+    text.slice(0, RAW_EXCERPT_LIMIT)
+  );
+}
+
+/**
+ * Grava a resposta crua em disco quando SKILLER_RECORD_LLM=1.
+ *
+ * É a metade "record" do modo replay: com o arquivo salvo, iterar no prompt
+ * deixa de exigir nova chamada paga. Desligado por padrão para não sujar
+ * ambiente que não está sendo depurado.
+ */
+async function recordRawResponse(kind: string, label: string, text: string): Promise<void> {
+  if (process.env.SKILLER_RECORD_LLM !== '1') return;
+  try {
+    const dir = path.resolve(process.cwd(), 'fixtures', kind);
+    await fs.mkdir(dir, { recursive: true });
+    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) || 'sem-titulo';
+    const file = path.join(dir, `${Date.now()}-${slug}.json`);
+    await fs.writeFile(file, text, 'utf8');
+    console.log(`[record] resposta bruta salva em ${file}`);
+  } catch (error: unknown) {
+    console.warn('[record] não foi possível salvar a resposta bruta:', getErrorMessage(error));
+  }
+}
+
 function checkApiKey() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is missing! Please add it to your .env file. Get it for free at https://aistudio.google.com/');
@@ -267,9 +341,11 @@ export async function synthesizeSkill(
       throw new Error('No output generated from Gemini');
     }
 
+    await recordRawResponse('synthesis', sourceTitle, response.text);
+
     // O structured output do provedor garante a forma; o Zod garante o conteúdo
     // — tamanho mínimo, slug válido, conector dentro da allowlist.
-    const document = SkillDocumentSchema.parse(JSON.parse(response.text));
+    const document = parseSkillDocument(response.text);
 
     console.log(
       `[synthesizeSkill] Document "${document.name}": ${document.principles.length} principles, ` +

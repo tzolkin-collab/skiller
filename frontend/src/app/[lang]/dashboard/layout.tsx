@@ -67,9 +67,9 @@ export default async function DashboardLayout({ children, params }: { children: 
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <LanguageSwitcher />
-            <button className={styles.settingsBtn}>
+            <Link href={`/${lang}/dashboard/settings`} className={styles.settingsBtn}>
               <Settings size={20} />
-            </button>
+            </Link>
           </div>
         </div>
         <div className={styles.content}>

@@ -1,3 +1,3 @@
-ALTER TABLE "skills" ADD COLUMN "human_md_content" text;--> statement-breakpoint
-ALTER TABLE "skills" ADD COLUMN "skill_package" jsonb;--> statement-breakpoint
-ALTER TABLE "skills" ADD COLUMN "language" text DEFAULT 'en';
+-- ALTER TABLE "skills" ADD COLUMN "human_md_content" text;--> statement-breakpoint
+-- ALTER TABLE "skills" ADD COLUMN "skill_package" jsonb;--> statement-breakpoint
+-- ALTER TABLE "skills" ADD COLUMN "language" text DEFAULT 'en';

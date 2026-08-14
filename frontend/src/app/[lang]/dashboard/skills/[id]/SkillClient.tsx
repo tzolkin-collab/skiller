@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card/Card';
 import { Progress } from '@/components/ui/Progress/Progress';
 import { Button } from '@/components/ui/Button/Button';
-import { CheckCircle2, CircleDashed, Download, Loader2, RotateCcw, Copy, Check, Video, LayoutList, Puzzle, BrainCircuit, Box, Lightbulb, Youtube, X } from 'lucide-react';
+import { CheckCircle2, CircleDashed, Download, Loader2, RotateCcw, Copy, Check, Video, LayoutList, Puzzle, BrainCircuit, Box, Lightbulb, Youtube, X, Target, Settings } from 'lucide-react';
 import JSZip from 'jszip';
 import { fetcher } from '@/lib/fetcher';
 import type { Dictionary } from '@/types/dictionary';
@@ -15,8 +15,9 @@ import { FileTree } from '@/components/ui/FileTree/FileTree';
 import { Modal } from '@/components/ui/Modal/Modal';
 import styles from './page.module.css';
 import { SkillNodeMap } from './SkillNodeMap';
+import { HumanWorkspace } from './HumanWorkspace';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface SkillClientProps {
   dict: Dictionary;
@@ -73,6 +74,8 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
       setIsAppending(false);
     }
   };
+
+
 
   const handleDownload = async () => {
     if (skillData?.skillPackage?.blobs && skillData?.skillPackage?.root) {
@@ -231,17 +234,8 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
             )}
 
             {/* CONTEÚDO NOVO: HUMAN VIEW */}
-            {mainTab === 'human' && isCompleted && skillData.humanMdContent && (
-              <Card glass className={styles.markdownCard}>
-                <div className={styles.markdownContentWrapper}>
-                  <div className={styles.markdownContent}>
-                    <ReactMarkdown>{skillData.humanMdContent}</ReactMarkdown>
-                  </div>
-                </div>
-              </Card>
-            )}
-            {mainTab === 'human' && isCompleted && !skillData.humanMdContent && (
-              <div className={styles.emptyState}>{dict.skillClient.transcript.notAvailable}</div>
+            {mainTab === 'human' && (
+              <HumanWorkspace skillData={skillData} dict={dict} />
             )}
 
             {/* CONTEÚDO 2: TRANSCRICAO */}
@@ -357,7 +351,18 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                             Arquivo Gerado (Plugin)
                           </h3>
                           <p style={{ color: 'var(--text-secondary)' }}>Este nó representa a saída de código/arquivos gerada pela IA após compreender toda a base de conhecimento.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>Vá para a aba <strong>Plugin Source</strong> para ver o código fonte completo!</p>
+                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', marginBottom: '1.5rem' }}>Vá para a aba <strong>Plugin Source</strong> para ver o código fonte completo!</p>
+                          
+                          {skillData.videos.map(v => v.extractedCard?.reasoning ? (
+                            <div key={v.id} style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Raciocínio (Fonte: {v.title || 'Vídeo'})
+                              </strong>
+                              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', fontStyle: 'italic' }}>
+                                "{v.extractedCard.reasoning}"
+                              </p>
+                            </div>
+                          ) : null)}
                         </div>
                       );
                     }
@@ -370,7 +375,57 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                             Conceito Chave
                           </h3>
                           <p style={{ color: 'var(--text-secondary)' }}>A IA identificou este conceito de forma autônoma a partir da fonte de conhecimento.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>No futuro, a IA poderá expandir este conceito iterativamente ao ler mais fontes e cruzar referências.</p>
+                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', marginBottom: '1.5rem' }}>No futuro, a IA poderá expandir este conceito iterativamente ao ler mais fontes e cruzar referências.</p>
+                          
+                          {skillData.videos.map(v => v.extractedCard?.reasoning ? (
+                            <div key={v.id} style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                              <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Raciocínio (Fonte: {v.title || 'Vídeo'})
+                              </strong>
+                              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', fontStyle: 'italic' }}>
+                                "{v.extractedCard.reasoning}"
+                              </p>
+                            </div>
+                          ) : null)}
+                        </div>
+                      );
+                    }
+
+                    if (focusedNodeId.startsWith('goal_')) {
+                      return (
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#10b981', marginBottom: '1rem', paddingRight: '2rem' }}>
+                            <Target size={20} />
+                            Objetivo Principal
+                          </h3>
+                          <p style={{ color: 'var(--text-secondary)' }}>A IA inferiu que este é o propósito central do conteúdo analisado.</p>
+                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>Todas as ferramentas e configurações extraídas são voltadas para atingir este alvo.</p>
+                        </div>
+                      );
+                    }
+
+                    if (focusedNodeId.startsWith('reasoning_')) {
+                      return (
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#8b5cf6', marginBottom: '1rem', paddingRight: '2rem' }}>
+                            <BrainCircuit size={20} />
+                            Raciocínio Abstrato
+                          </h3>
+                          <p style={{ color: 'var(--text-secondary)' }}>Este nó representa a linha de pensamento puro da IA.</p>
+                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>É aqui que ela justifica o motivo de ter derivado as ferramentas, mostrando como conectou os pontos do tutorial.</p>
+                        </div>
+                      );
+                    }
+
+                    if (focusedNodeId.startsWith('setup_') || focusedNodeId.startsWith('req_')) {
+                      return (
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#f59e0b', marginBottom: '1rem', paddingRight: '2rem' }}>
+                            <Settings size={20} />
+                            Requisitos de Configuração
+                          </h3>
+                          <p style={{ color: 'var(--text-secondary)' }}>Passos preparatórios identificados pela IA.</p>
+                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>A IA notou que sem essas dependências (chaves de API, contas, pacotes), a skill falharia no mundo real.</p>
                         </div>
                       );
                     }
@@ -486,7 +541,13 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
             {/* SE O MAIN É "PLUGIN" -> MOSTRA FILE TREE */}
             {mainTab === 'plugin' && isCompleted && skillData.skillPackage && skillData.skillPackage.root && (
               <div className={styles.fileTreeContainer}>
-                <h3 className={styles.sidebarSectionTitle}>{dict.skillClient.sidebar.pluginFiles}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <h3 className={styles.sidebarSectionTitle} style={{ margin: 0 }}>{dict.skillClient.sidebar.pluginFiles}</h3>
+                  <Button variant="secondary" onClick={handleDownload}>
+                    <Download size={14} style={{ marginRight: '0.5rem' }} />
+                    Download .zip
+                  </Button>
+                </div>
                 <FileTree 
                   node={skillData.skillPackage.root}
                   activeSha={activeSha}

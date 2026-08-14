@@ -147,5 +147,41 @@
     "vocationalIntelligence": "VOCATIONAL INTELLIGENCE",
     "close": "CLOSE",
     "demoVideo": "DEMO_VIDEO.MP4"
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "account": "My Account",
+      "plan": "Plan & Billing",
+      "preferences": "Preferences",
+      "connections": "Connections"
+    },
+    "account": {
+      "profile": "Profile",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "memberSince": "Member since"
+    },
+    "plan": {
+      "currentPlan": "Current Plan",
+      "free": "Free Tier",
+      "starter": "Starter Tier",
+      "pro": "Pro Tier",
+      "upgradeToPro": "Upgrade to Pro",
+      "benefitsTitle": "Pro Benefits",
+      "benefit1": "Dynamic Skills (MCP Namespaces)",
+      "benefit2": "Cloud Hosting (MCP Proxy)",
+      "benefit3": "Unlimited private skill extractions"
+    },
+    "preferences": {
+      "language": "Language",
+      "theme": "Theme"
+    },
+    "connections": {
+      "apiKeys": "API Keys",
+      "notion": "Notion Integration",
+      "github": "GitHub Integration"
+    }
   }
 }

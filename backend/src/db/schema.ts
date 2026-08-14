@@ -4,6 +4,8 @@ export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').unique().notNull(),
   name: text('name'),
+  plan: text('plan').default('starter').notNull(),
+  creditsBalance: integer('credits_balance').default(1000).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -31,6 +33,7 @@ export const oauthConnections = pgTable('oauth_connections', {
 
 export const skills = pgTable('skills', {
   id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
   playlistUrl: text('playlist_url').notNull(),
   playlistTitle: text('playlist_title'),
   channelName: text('channel_name'),

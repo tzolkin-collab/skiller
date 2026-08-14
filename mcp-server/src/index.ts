@@ -166,13 +166,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     throw new Error(`Unknown tool: ${name}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
       isError: true,
       content: [
         {
           type: "text",
-          text: `Error: ${error.message}`,
+          text: `Error: ${message}`,
         },
       ],
     };

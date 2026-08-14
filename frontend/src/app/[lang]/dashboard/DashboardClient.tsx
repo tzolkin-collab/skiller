@@ -35,8 +35,7 @@ export default function DashboardClient({ dict, lang }: DashboardClientProps) {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const res = await fetch(`${apiUrl}/api/skills`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/skills`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

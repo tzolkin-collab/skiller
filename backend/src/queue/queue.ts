@@ -1,8 +1,12 @@
 import { Queue, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 
+if (!process.env.REDIS_HOST) {
+  throw new Error('REDIS_HOST is required in the environment variables.');
+}
+
 const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
+  host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null

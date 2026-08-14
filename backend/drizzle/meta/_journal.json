@@ -36,6 +36,13 @@
       "when": 1786685299961,
       "tag": "0004_rename_cost_to_micro_usd",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786688598191,
+      "tag": "0005_left_hydra",
+      "breakpoints": true
     }
   ]
 }

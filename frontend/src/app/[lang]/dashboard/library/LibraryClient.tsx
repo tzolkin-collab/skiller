@@ -20,7 +20,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const { data: skills, error: fetchError } = useSWR<SkillSummary[]>(`${apiUrl}/api/skills`, fetcher, {
     refreshInterval: 10000,
   });

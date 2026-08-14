@@ -29,6 +29,9 @@ export interface SkillSummary {
  */
 export interface ExtractedCard {
   title: string;
+  goal?: string;
+  reasoning?: string;
+  setupRequirements?: string[];
   keyConcepts: string[];
   summary: string;
   codeSnippets: string[];

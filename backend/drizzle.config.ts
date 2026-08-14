@@ -6,7 +6,7 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgres://user:pass@localhost:5432/skiller',
+    url: process.env.DATABASE_URL!,
   },
   verbose: true,
   strict: true,

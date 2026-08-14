@@ -147,5 +147,41 @@
     "vocationalIntelligence": "INTELIGÊNCIA VOCACIONAL",
     "close": "FECHAR",
     "demoVideo": "VÍDEO_DEMO.MP4"
+  },
+  "settings": {
+    "title": "Configurações",
+    "tabs": {
+      "account": "Minha Conta",
+      "plan": "Plano e Faturamento",
+      "preferences": "Preferências",
+      "connections": "Conexões"
+    },
+    "account": {
+      "profile": "Perfil",
+      "name": "Nome",
+      "email": "E-mail",
+      "role": "Cargo",
+      "memberSince": "Membro desde"
+    },
+    "plan": {
+      "currentPlan": "Plano Atual",
+      "free": "Plano Gratuito",
+      "starter": "Plano Starter",
+      "pro": "Plano Pro",
+      "upgradeToPro": "Assinar Pro",
+      "benefitsTitle": "Benefícios Pro",
+      "benefit1": "Skills Dinâmicas (MCP Namespaces)",
+      "benefit2": "Hospedagem em Nuvem (Proxy MCP)",
+      "benefit3": "Extrações ilimitadas de skills privadas"
+    },
+    "preferences": {
+      "language": "Idioma",
+      "theme": "Tema"
+    },
+    "connections": {
+      "apiKeys": "Chaves de API",
+      "notion": "Integração Notion",
+      "github": "Integração GitHub"
+    }
   }
 }

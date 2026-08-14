@@ -49,37 +49,41 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     contactUs: dict.pricing?.contactUs || 'Contact us',
     features: {
       free: [
-        '10 Videos per month',
-        'Standard Generation Speed',
+        '5 public extractions per month',
         'Markdown Export',
         'Community Support',
       ],
+      starter: [
+        'Unlimited public skill extractions',
+        'Generic AI Prompts',
+        'Standard Generation Speed',
+      ],
       pro: [
-        'Unlimited Videos',
+        'Dynamic Skills (MCP Namespaces)',
+        'Cloud Hosting (MCP Proxy)',
+        'Unlimited private skill extractions',
+        'Live chat with video context',
         'Maximum Generation Speed',
         'Priority Support',
-        'Custom Branding',
-        'API Access',
-        'Advanced Analytics',
       ],
       enterprise: [
         'Dedicated Infrastructure',
-        'SLA 99.99%',
         'SSO & SAML Authentication',
         'Custom Integrations',
+        'Custom LLM Connectors',
         'Dedicated Account Manager',
-        'On-premise Deployment Options',
       ],
     },
   };
 
-  const prices: Record<Currency, { free: number; proMonthly: number; proAnnual: number; symbol: string }> = {
-    USD: { free: 0, proMonthly: 19, proAnnual: 15, symbol: '$' },
-    BRL: { free: 0, proMonthly: 97, proAnnual: 77, symbol: 'R$' },
-    EUR: { free: 0, proMonthly: 19, proAnnual: 15, symbol: '€' },
+  const prices: Record<Currency, { free: number; starter: number; proMonthly: number; proAnnual: number; symbol: string }> = {
+    USD: { free: 0, starter: 9.90, proMonthly: 19, proAnnual: 15, symbol: '$' },
+    BRL: { free: 0, starter: 49.90, proMonthly: 97, proAnnual: 77, symbol: 'R$' },
+    EUR: { free: 0, starter: 9.90, proMonthly: 19, proAnnual: 15, symbol: '€' },
   };
 
   const carouselItems = [
+    { image: '/assets/pricing/plan_free.jpg', alt: 'Free Plan' },
     { image: '/assets/pricing/plan_starter.jpg', alt: 'Starter Plan' },
     { image: '/assets/pricing/plan_pro.jpg', alt: 'Skiller Pro Plan' },
     { image: '/assets/pricing/plan_enterprise.jpg', alt: 'Enterprise Plan' },
@@ -88,11 +92,25 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
   const plansData = [
     {
       id: 'free',
-      name: copy.free,
-      price: 0,
+      name: copy.free || 'Free',
+      price: prices[currency].free,
       period: copy.perMonth,
       subtext: copy.foreverFree,
       features: copy.features.free,
+      ctaText: copy.select,
+      badge: null,
+      cardClass: styles.card,
+      nameClass: styles.planName,
+      ctaClass: `${styles.ctaButton} ${styles.ctaSecondary}`,
+      action: () => router.push(`/${lang}/dashboard`),
+    },
+    {
+      id: 'starter',
+      name: copy.starter || 'Starter',
+      price: prices[currency].starter,
+      period: copy.perMonth,
+      subtext: copy.monthly,
+      features: copy.features.starter,
       ctaText: copy.select,
       badge: null,
       cardClass: styles.card,
@@ -119,7 +137,7 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
       name: copy.enterprise,
       price: null, // Custom
       period: '',
-      subtext: 'Para equipes B2B de alto volume',
+      subtext: copy.customPricing, // 'Per User' / 'Por Usuário'
       features: copy.features.enterprise,
       ctaText: copy.contactSales,
       badge: null,
@@ -130,7 +148,7 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     },
   ];
 
-  const activePlanData = plansData[activeIndex] || plansData[1];
+  const activePlanData = plansData[activeIndex] || plansData[2]; // Default to Pro (index 2)
 
   // Helper to render a card content given the plan data
   const renderCardContent = (plan: typeof plansData[0], isCarouselContext = false) => (

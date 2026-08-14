@@ -5,26 +5,28 @@ import { getPlaylistVideos, getPlaylistDetails, getVideoDetails } from '../servi
 import { getVideoTranscript } from '../services/transcript.js';
 import { extractVideoCard, synthesizeSkill, ExtractedCard } from '../services/gemini.js';
 import { SkillFormat } from '../prompts/synthesis.js';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { skills, skillVideos, pipelineLogs } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { skills, skillVideos, pipelineLogs, users } from '../db/schema.js';
+import { eq, sql as drizzleSql } from 'drizzle-orm';
+import { db } from '../db/db.js';
 import crypto from 'crypto';
 import { getErrorMessage } from '../lib/errors.js';
 import { buildGitPackage } from '../utils/git-indexer.js';
 import { assertCardsUsable, assertSynthesisUsable } from '../lib/skill-package.js';
 import { addUsage, usageToMicroUsd, EMPTY_USAGE, type LlmUsage } from '../services/gemini.js';
 import { renderSkill } from '../lib/renderers.js';
-import { assertDocumentSafe, type SanitizeFinding } from '../lib/sanitize.js';
+import { assertDocumentSafe, SanitizeError, type SanitizeFinding } from '../lib/sanitize.js';
+import { SynthesisParseError } from '../services/gemini.js';
+
+if (!process.env.REDIS_HOST) {
+  throw new Error('REDIS_HOST is required in the environment variables.');
+}
 
 const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
+  host: process.env.REDIS_HOST,
   port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null
 });
-const sql = postgres(process.env.DATABASE_URL || 'postgres://postgres:password@127.0.0.1:5432/skiller');
-const db = drizzle(sql);
 
 interface SkillJobData {
   skillId: string;
@@ -33,12 +35,13 @@ interface SkillJobData {
   targetFormat?: SkillFormat;
   isAppend?: boolean;
   language?: string;
+  userId?: string;
 }
 
 export const skillWorker = new Worker<SkillJobData>(
   SKILL_QUEUE_NAME,
   async (job: Job<SkillJobData>) => {
-    const { skillId, playlistId, videoId, isAppend, language } = job.data;
+    const { skillId, playlistId, videoId, isAppend, language, userId } = job.data;
     
     const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
     if (!skillResult.length) throw new Error('Skill not found');
@@ -55,6 +58,7 @@ export const skillWorker = new Worker<SkillJobData>(
     let totalUsage: LlmUsage = { ...EMPTY_USAGE };
     const videoLogs: Record<string, unknown>[] = [];
     let sanitizeWarnings: SanitizeFinding[] = [];
+    let cardsExtracted = 0;
 
     try {
       await job.updateProgress(10);
@@ -236,6 +240,18 @@ export const skillWorker = new Worker<SkillJobData>(
         totalDurationMs: Date.now() - startedAt
       });
 
+      if (userId) {
+        const microUsd = usageToMicroUsd(totalUsage);
+        // 1 cent ($0.01) = 10,000 microUsd. 1 Skiller Credit = 1 cent. Markup = 5x
+        const creditsToDeduct = Math.max(1, Math.ceil((microUsd / 10000) * 5));
+        
+        await db.update(users)
+          .set({ creditsBalance: drizzleSql`credits_balance - ${creditsToDeduct}` })
+          .where(eq(users.id, userId));
+          
+        console.log(`[worker] Deducted ${creditsToDeduct} credits from user ${userId} for skill ${skillId}`);
+      }
+
       await job.updateProgress(100);
 
     } catch (error: unknown) {
@@ -250,16 +266,47 @@ export const skillWorker = new Worker<SkillJobData>(
       // Falha também gera log: sem isto, execução reprovada some e o custo
       // já gasto até o ponto da falha nunca aparece na conta.
       try {
+        // Diagnóstico específico por tipo de falha. Sem isto, reprovação de
+        // schema vira uma string e a resposta do modelo — o único artefato que
+        // permite corrigir o prompt — se perde.
+        const diagnosis: Record<string, unknown> = {
+          success: false,
+          error: message,
+          format: targetFormat,
+          stage: cardsExtracted === 0 ? 'extraction' : 'synthesis'
+        };
+
+        if (error instanceof SynthesisParseError) {
+          diagnosis.kind = 'schema-rejected';
+          diagnosis.issues = error.issues;
+          diagnosis.rawResponse = error.rawResponse;
+        } else if (error instanceof SanitizeError) {
+          diagnosis.kind = 'sanitize-blocked';
+          diagnosis.findings = error.findings;
+        }
+
         await db.insert(pipelineLogs).values({
           skillId,
           runId,
           videoLogs,
-          synthesisLog: { success: false, error: message, format: targetFormat },
+          synthesisLog: diagnosis,
           totalInputTokens: totalUsage.inputTokens,
           totalOutputTokens: totalUsage.outputTokens,
           estimatedCostMicroUsd: usageToMicroUsd(totalUsage),
           totalDurationMs: Date.now() - startedAt
         });
+
+        if (userId) {
+          const microUsd = usageToMicroUsd(totalUsage);
+          if (microUsd > 0) {
+            const creditsToDeduct = Math.max(1, Math.ceil((microUsd / 10000) * 5));
+            await db.update(users)
+              .set({ creditsBalance: drizzleSql`credits_balance - ${creditsToDeduct}` })
+              .where(eq(users.id, userId));
+              
+            console.log(`[worker] (Failure Path) Deducted ${creditsToDeduct} credits from user ${userId} for skill ${skillId}`);
+          }
+        }
       } catch (logError: unknown) {
         console.error('Could not persist pipeline log for failed run', getErrorMessage(logError));
       }

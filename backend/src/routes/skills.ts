@@ -1,17 +1,13 @@
 import { Hono } from 'hono';
 import { extractPlaylistId, extractVideoId } from '../services/youtube.js';
+import { db } from '../db/db.js';
 import { skillQueue } from '../queue/queue.js';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { skills, skillVideos, pipelineLogs } from '../db/schema.js';
+import { skills, skillVideos, pipelineLogs, users } from '../db/schema.js';
 import { eq, desc, or, ilike } from 'drizzle-orm';
 import { z } from 'zod';
 import { getErrorMessage } from '../lib/errors.js';
 import { DOWNLOAD_NAME_BY_FORMAT } from '../lib/skill-package.js';
 import type { SkillFormat } from '../prompts/synthesis.js';
-
-const queryClient = postgres(process.env.DATABASE_URL || 'postgres://postgres:password@127.0.0.1:5432/skiller');
-const db = drizzle(queryClient);
 
 const skillsRouter = new Hono();
 
@@ -37,6 +33,22 @@ skillsRouter.post('/', async (c) => {
       return c.json({ error: 'Could not extract playlist ID or video ID from URL' }, 400);
     }
 
+    // Mock auth: Pega o primeiro usuário do banco ou cria um dummy
+    let user = (await db.select().from(users).limit(1))[0];
+    if (!user) {
+      const insertedUser = await db.insert(users).values({
+        email: 'dummy@skiller.com',
+        name: 'Dummy User',
+        plan: 'starter',
+        creditsBalance: 1000
+      }).returning();
+      user = insertedUser[0];
+    }
+
+    if (user.creditsBalance <= 0) {
+      return c.json({ error: 'Insufficient credits to process this skill' }, 402);
+    }
+
     // Deduplication check: Se a URL contém o mesmo ID, já foi processada ou está na fila
     const searchId = playlistId || videoId;
     if (searchId) {
@@ -53,6 +65,7 @@ skillsRouter.post('/', async (c) => {
       playlistUrl: result.data.playlistUrl,
       targetFormat: result.data.targetFormat,
       language: result.data.language,
+      userId: user.id, // Grava o dono da skill
       status: 'queued'
     }).returning();
     
@@ -63,7 +76,8 @@ skillsRouter.post('/', async (c) => {
       playlistId,
       videoId,
       targetFormat: result.data.targetFormat,
-      language: result.data.language
+      language: result.data.language,
+      userId: user.id // Passa pro worker abater os créditos
     }, {
       jobId: skill.id
     });

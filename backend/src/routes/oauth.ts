@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-
-const queryClient = postgres(process.env.DATABASE_URL || 'postgres://postgres:password@127.0.0.1:5432/skiller');
-const db = drizzle(queryClient);
+import { db } from '../db/db.js';
 import { mcpDevices, oauthConnections, users } from '../db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
 import crypto from 'crypto';
+
+if (!process.env.API_URL) {
+  throw new Error('API_URL is required in the environment variables.');
+}
 
 export const oauthRouter = new Hono();
 
@@ -25,7 +25,7 @@ oauthRouter.post('/device/code', async (c) => {
     status: 'pending'
   });
 
-  const verificationUri = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/verify` : 'http://localhost:3000/verify';
+  const verificationUri = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/verify` : `${process.env.API_URL}/verify`;
 
   return c.json({
     device_code: deviceCode,
