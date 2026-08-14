@@ -14,6 +14,8 @@ import { getErrorMessage } from '../lib/errors.js';
 import { buildGitPackage } from '../utils/git-indexer.js';
 import { assertCardsUsable, assertSynthesisUsable } from '../lib/skill-package.js';
 import { addUsage, usageToMicroUsd, EMPTY_USAGE, type LlmUsage } from '../services/gemini.js';
+import { renderSkill } from '../lib/renderers.js';
+import { assertDocumentSafe, type SanitizeFinding } from '../lib/sanitize.js';
 
 const redisConnection = new Redis({
   host: process.env.REDIS_HOST || '127.0.0.1',
@@ -52,6 +54,7 @@ export const skillWorker = new Worker<SkillJobData>(
     const startedAt = Date.now();
     let totalUsage: LlmUsage = { ...EMPTY_USAGE };
     const videoLogs: Record<string, unknown>[] = [];
+    let sanitizeWarnings: SanitizeFinding[] = [];
 
     try {
       await job.updateProgress(10);
@@ -164,11 +167,28 @@ export const skillWorker = new Worker<SkillJobData>(
       // all failed transcription produces a fabricated skill marked `completed`.
       assertCardsUsable(allCards, skillId);
 
-      const synthesis = await synthesizeSkill(allCards, skill.playlistTitle || playlistDetails.playlistTitle, targetFormat, targetLanguage);
-      const pluginPackage = synthesis.data;
+      // ADR-004: o modelo devolve conhecimento estruturado, não arquivos.
+      // O Zod dentro de `synthesizeSkill` já reprovou campo curto, slug inválido
+      // e conector fora da allowlist antes de chegarmos aqui.
+      const synthesis = await synthesizeSkill(
+        allCards,
+        skill.playlistTitle || playlistDetails.playlistTitle,
+        targetLanguage
+      );
+      const document = synthesis.data;
       totalUsage = addUsage(totalUsage, synthesis.usage);
 
-      // Gate 2 — the package must actually carry a skill for this format.
+      // Gate 2 — sanitização. Só é possível porque agora existem campos:
+      // sequestro de contexto, credencial e shell destrutivo reprovam o job.
+      sanitizeWarnings = assertDocumentSafe(document).filter(f => f.severity === 'warn');
+      if (sanitizeWarnings.length > 0) {
+        console.warn(`[worker] ${sanitizeWarnings.length} aviso(s) de sanitização em ${skillId}`);
+      }
+
+      // Renderização determinística. Uma síntese, cinco formatos — sem custo extra.
+      const pluginPackage = { files: renderSkill(document, targetFormat) };
+
+      // Gate 3 — o que renderizamos precisa carregar uma skill de verdade.
       const mainFile = assertSynthesisUsable(pluginPackage, targetFormat);
 
       const skillMd = mainFile.content;
@@ -198,6 +218,15 @@ export const skillWorker = new Worker<SkillJobData>(
           cardsUsed: allCards.length,
           filesGenerated: pluginPackage.files.length,
           mainFile: mainFile.path,
+          // Forma do documento estruturado — permite avaliar qualidade sem reler o texto.
+          document: {
+            name: document.name,
+            principles: document.principles.length,
+            modules: document.modules.length,
+            commands: document.commands.length,
+            connectors: document.connectors.map(c => c.id)
+          },
+          sanitizeWarnings,
           inputTokens: synthesis.usage.inputTokens,
           outputTokens: synthesis.usage.outputTokens
         },

@@ -1,8 +1,9 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { z } from 'zod';
 import { buildExtractCardPrompt } from '../prompts/extraction.js';
-import { buildSynthesisPrompt, SkillFormat } from '../prompts/synthesis.js';
+import { buildSynthesisPrompt } from '../prompts/synthesis.js';
 import { getErrorMessage } from '../lib/errors.js';
+import { CONNECTOR_IDS, SkillDocumentSchema, type SkillDocument } from '../lib/skill-document.js';
 
 // Inicializa o GenAI. Se a chave não existir, lançaremos erro legível nas funções.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'MISSING_KEY' });
@@ -19,14 +20,108 @@ const CardSchema = z.object({
 
 export type ExtractedCard = z.infer<typeof CardSchema>;
 
-const SynthesizedSkillSchema = z.object({
-  files: z.array(z.object({
-    path: z.string(),
-    content: z.string()
-  }))
-});
+/**
+ * Mantido apenas para o `skillPackage` já gravado no banco continuar tipado.
+ * A síntese não produz mais isto diretamente — ver `lib/renderers.ts`.
+ */
+export interface PluginPackage {
+  files: { path: string; content: string }[];
+}
 
-export type PluginPackage = z.infer<typeof SynthesizedSkillSchema>;
+/** Espelha `SkillDocumentSchema` para o structured output do Gemini. */
+const SKILL_DOCUMENT_RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    name: { type: Type.STRING },
+    title: { type: Type.STRING },
+    description: { type: Type.STRING },
+    goal: { type: Type.STRING },
+    principles: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: { title: { type: Type.STRING }, rule: { type: Type.STRING } },
+        required: ['title', 'rule']
+      }
+    },
+    modules: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          slug: { type: Type.STRING },
+          title: { type: Type.STRING },
+          summary: { type: Type.STRING },
+          sections: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                heading: { type: Type.STRING },
+                body: { type: Type.STRING },
+                snippets: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      language: { type: Type.STRING },
+                      code: { type: Type.STRING },
+                      caption: { type: Type.STRING }
+                    },
+                    required: ['language', 'code']
+                  }
+                }
+              },
+              required: ['heading', 'body']
+            }
+          }
+        },
+        required: ['slug', 'title', 'summary', 'sections']
+      }
+    },
+    connectors: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING, enum: [...CONNECTOR_IDS] },
+          reason: { type: Type.STRING },
+          required: { type: Type.BOOLEAN }
+        },
+        required: ['id', 'reason']
+      }
+    },
+    commands: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          description: { type: Type.STRING },
+          steps: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ['name', 'description', 'steps']
+      }
+    },
+    humanGuide: {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        sections: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { heading: { type: Type.STRING }, body: { type: Type.STRING } },
+            required: ['heading', 'body']
+          }
+        },
+        mermaid: { type: Type.STRING }
+      },
+      required: ['summary']
+    }
+  },
+  required: ['name', 'title', 'description', 'goal', 'principles', 'commands', 'humanGuide']
+} as const;
 
 /** Tokens consumed by one call, read from the provider's own accounting. */
 export interface LlmUsage {
@@ -142,12 +237,20 @@ export async function extractVideoCard(transcript: string, title: string, descri
   });
 }
 
-export async function synthesizeSkill(cards: ExtractedCard[], sourceTitle: string, format: SkillFormat = 'generic', language: string = 'en'): Promise<LlmResult<PluginPackage>> {
+/**
+ * Sintetiza o documento estruturado. Não recebe mais `format`: o formato é
+ * decidido na renderização, então uma geração serve os cinco.
+ */
+export async function synthesizeSkill(
+  cards: ExtractedCard[],
+  sourceTitle: string,
+  language: string = 'en'
+): Promise<LlmResult<SkillDocument>> {
   checkApiKey();
   const cardsJson = JSON.stringify(cards, null, 2);
-  const prompt = buildSynthesisPrompt(cardsJson, sourceTitle, format, language);
+  const prompt = buildSynthesisPrompt(cardsJson, sourceTitle, language);
 
-  console.log(`[synthesizeSkill] Synthesizing skill package in "${format}" format for "${sourceTitle}" in language "${language}"`);
+  console.log(`[synthesizeSkill] Synthesizing skill document for "${sourceTitle}" (humanGuide in "${language}")`);
 
   return withRetry(async () => {
     const response = await ai.models.generateContent({
@@ -156,33 +259,23 @@ export async function synthesizeSkill(cards: ExtractedCard[], sourceTitle: strin
       config: {
         temperature: 0.3,
         responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            files: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  path: { type: Type.STRING },
-                  content: { type: Type.STRING }
-                },
-                required: ['path', 'content']
-              }
-            }
-          },
-          required: ['files']
-        }
+        responseSchema: SKILL_DOCUMENT_RESPONSE_SCHEMA
       }
     });
 
     if (!response.text) {
-      throw new Error("No output generated from Gemini");
+      throw new Error('No output generated from Gemini');
     }
 
-    const json = JSON.parse(response.text);
-    const packageData = SynthesizedSkillSchema.parse(json);
-    console.log(`[synthesizeSkill] Synthesized package with ${packageData.files.length} files for "${sourceTitle}"`);
-    return { data: packageData, usage: readUsage(response.usageMetadata) };
+    // O structured output do provedor garante a forma; o Zod garante o conteúdo
+    // — tamanho mínimo, slug válido, conector dentro da allowlist.
+    const document = SkillDocumentSchema.parse(JSON.parse(response.text));
+
+    console.log(
+      `[synthesizeSkill] Document "${document.name}": ${document.principles.length} principles, ` +
+        `${document.modules.length} modules, ${document.commands.length} commands`
+    );
+
+    return { data: document, usage: readUsage(response.usageMetadata) };
   });
 }
