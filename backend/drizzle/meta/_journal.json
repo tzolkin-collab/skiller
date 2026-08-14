@@ -29,6 +29,13 @@
       "when": 1786653883686,
       "tag": "0003_nice_dorian_gray",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786685299961,
+      "tag": "0004_rename_cost_to_micro_usd",
+      "breakpoints": true
     }
   ]
 }

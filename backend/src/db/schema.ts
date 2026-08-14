@@ -80,7 +80,9 @@ export const pipelineLogs = pgTable('pipeline_logs', {
   synthesisLog: jsonb('synthesis_log'),
   totalInputTokens: integer('total_input_tokens'),
   totalOutputTokens: integer('total_output_tokens'),
-  estimatedCostUsd: integer('estimated_cost_usd'), // Assuming cents for integer, or should be real/float. Better as real or numeric. Let's stick to simple mapping for now.
+  // Micro-dólares (1 USD = 1_000_000). Inteiro de propósito: dinheiro em float
+  // acumula erro, e este campo soma dezenas de chamadas por execução.
+  estimatedCostMicroUsd: integer('estimated_cost_micro_usd'),
   totalDurationMs: integer('total_duration_ms'),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });

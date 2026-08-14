@@ -12,6 +12,8 @@ import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { getErrorMessage } from '../lib/errors.js';
 import { buildGitPackage } from '../utils/git-indexer.js';
+import { assertCardsUsable, assertSynthesisUsable } from '../lib/skill-package.js';
+import { addUsage, usageToMicroUsd, EMPTY_USAGE, type LlmUsage } from '../services/gemini.js';
 
 const redisConnection = new Redis({
   host: process.env.REDIS_HOST || '127.0.0.1',
@@ -43,6 +45,13 @@ export const skillWorker = new Worker<SkillJobData>(
     const targetLanguage = language || skill.language || 'en';
     
     await db.update(skills).set({ status: 'processing' }).where(eq(skills.id, skillId));
+
+    // Telemetria da execução — NFR "todo job deve gerar log estruturado completo".
+    // Acumulada aqui e gravada nos dois caminhos, sucesso e falha.
+    const runId = crypto.randomUUID();
+    const startedAt = Date.now();
+    let totalUsage: LlmUsage = { ...EMPTY_USAGE };
+    const videoLogs: Record<string, unknown>[] = [];
 
     try {
       await job.updateProgress(10);
@@ -102,7 +111,9 @@ export const skillWorker = new Worker<SkillJobData>(
             transcriptContent: transcript,
           }).where(eq(skillVideos.id, dbVideo[0].id));
 
-          const card = await extractVideoCard(transcript, video.title, video.description);
+          const extraction = await extractVideoCard(transcript, video.title, video.description);
+          const card = extraction.data;
+          totalUsage = addUsage(totalUsage, extraction.usage);
           cards.push(card);
 
           await db.update(skillVideos).set({
@@ -110,8 +121,13 @@ export const skillWorker = new Worker<SkillJobData>(
             processingStatus: 'completed',
             processedAt: new Date()
           }).where(eq(skillVideos.id, dbVideo[0].id));
-          
-          videoLogs.push({ videoId: video.videoId, status: 'success' });
+
+          videoLogs.push({
+            videoId: video.videoId,
+            status: 'success',
+            inputTokens: extraction.usage.inputTokens,
+            outputTokens: extraction.usage.outputTokens
+          });
 
         } catch (error: unknown) {
           const message = getErrorMessage(error, `Failed processing video ${video.videoId}`);
@@ -143,10 +159,19 @@ export const skillWorker = new Worker<SkillJobData>(
       
       // Filter out null cards just in case
       allCards = allCards.filter(c => !!c);
-      
-      const pluginPackage = await synthesizeSkill(allCards, skill.playlistTitle || playlistDetails.playlistTitle, targetFormat, targetLanguage);
-      
-      const skillMd = pluginPackage.files.find(f => f.path.toUpperCase() === 'SKILL.MD' || f.path.toUpperCase() === 'AGENTS.MD')?.content || '';
+
+      // Gate 1 — nothing to synthesize from. Without this a playlist whose videos
+      // all failed transcription produces a fabricated skill marked `completed`.
+      assertCardsUsable(allCards, skillId);
+
+      const synthesis = await synthesizeSkill(allCards, skill.playlistTitle || playlistDetails.playlistTitle, targetFormat, targetLanguage);
+      const pluginPackage = synthesis.data;
+      totalUsage = addUsage(totalUsage, synthesis.usage);
+
+      // Gate 2 — the package must actually carry a skill for this format.
+      const mainFile = assertSynthesisUsable(pluginPackage, targetFormat);
+
+      const skillMd = mainFile.content;
       const humanMd = pluginPackage.files.find(f => f.path.toLowerCase() === 'human.md')?.content || '';
 
       const gitPackage = buildGitPackage(pluginPackage.files);
@@ -162,26 +187,64 @@ export const skillWorker = new Worker<SkillJobData>(
         updatedAt: new Date()
       }).where(eq(skills.id, skillId));
 
-      const runId = crypto.randomUUID();
       await db.insert(pipelineLogs).values({
         skillId,
         runId,
-        videoLogs: videoLogs,
-        synthesisLog: { success: true }
+        videoLogs,
+        synthesisLog: {
+          success: true,
+          format: targetFormat,
+          language: targetLanguage,
+          cardsUsed: allCards.length,
+          filesGenerated: pluginPackage.files.length,
+          mainFile: mainFile.path,
+          inputTokens: synthesis.usage.inputTokens,
+          outputTokens: synthesis.usage.outputTokens
+        },
+        totalInputTokens: totalUsage.inputTokens,
+        totalOutputTokens: totalUsage.outputTokens,
+        estimatedCostMicroUsd: usageToMicroUsd(totalUsage),
+        totalDurationMs: Date.now() - startedAt
       });
 
       await job.updateProgress(100);
 
     } catch (error: unknown) {
-      console.error(`Job failed for skill ${skillId}`, getErrorMessage(error), error);
-      await db.update(skills).set({ 
+      const message = getErrorMessage(error);
+      console.error(`Job failed for skill ${skillId}`, message, error);
+
+      await db.update(skills).set({
         status: 'failed',
         updatedAt: new Date()
       }).where(eq(skills.id, skillId));
+
+      // Falha também gera log: sem isto, execução reprovada some e o custo
+      // já gasto até o ponto da falha nunca aparece na conta.
+      try {
+        await db.insert(pipelineLogs).values({
+          skillId,
+          runId,
+          videoLogs,
+          synthesisLog: { success: false, error: message, format: targetFormat },
+          totalInputTokens: totalUsage.inputTokens,
+          totalOutputTokens: totalUsage.outputTokens,
+          estimatedCostMicroUsd: usageToMicroUsd(totalUsage),
+          totalDurationMs: Date.now() - startedAt
+        });
+      } catch (logError: unknown) {
+        console.error('Could not persist pipeline log for failed run', getErrorMessage(logError));
+      }
+
       throw error;
     }
   },
-  { connection: redisConnection, concurrency: 1 }
+  {
+    connection: redisConnection,
+    // Each video costs one transcript fetch plus one LLM call, both network-bound.
+    // At concurrency 1 a 50-video playlist runs far past the 5-minute target in
+    // vision.md. Raise via WORKER_CONCURRENCY once the provider rate limits are known.
+    concurrency: parseInt(process.env.WORKER_CONCURRENCY || '4')
+  }
 );
 
 skillWorker.on('failed', (job, err) => {

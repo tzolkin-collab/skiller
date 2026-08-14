@@ -7,6 +7,8 @@ import { skills, skillVideos, pipelineLogs } from '../db/schema.js';
 import { eq, desc, or, ilike } from 'drizzle-orm';
 import { z } from 'zod';
 import { getErrorMessage } from '../lib/errors.js';
+import { DOWNLOAD_NAME_BY_FORMAT } from '../lib/skill-package.js';
+import type { SkillFormat } from '../prompts/synthesis.js';
 
 const queryClient = postgres(process.env.DATABASE_URL || 'postgres://postgres:password@127.0.0.1:5432/skiller');
 const db = drizzle(queryClient);
@@ -118,35 +120,25 @@ skillsRouter.get('/:id/download', async (c) => {
     const skillId = c.req.param('id');
     const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
     
-    if (skillResult.length === 0 || !skillResult[0].skillMdContent) {
+    const skill = skillResult[0];
+
+    // Narrowed here rather than through the array index so the type survives.
+    const content = skill?.skillMdContent;
+    if (!content) {
       return c.json({ error: 'Skill markdown not found' }, 404);
     }
-    
-    const skill = skillResult[0];
-    const format = skill.targetFormat || 'generic';
-    
-    let filename: string;
-    switch (format) {
-      case 'gemini':
-        filename = 'SKILL.md';
-        break;
-      case 'claude':
-        filename = `${(skill.name || 'skill').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mdc`;
-        break;
-      case 'copilot':
-        filename = 'copilot-instructions.md';
-        break;
-      case 'mcp':
-        filename = 'mcp-server.md';
-        break;
-      default:
-        filename = 'AGENTS.md';
-    }
-    
-    c.header('Content-Type', 'text/markdown');
+
+    const format = (skill.targetFormat || 'generic') as SkillFormat;
+
+    // Named from the same table the worker and the synthesis prompt use, so the
+    // attachment always matches the file that was actually generated.
+    const filename = DOWNLOAD_NAME_BY_FORMAT[format] ?? DOWNLOAD_NAME_BY_FORMAT.generic;
+    const contentType = format === 'mcp' ? 'text/plain' : 'text/markdown';
+
+    c.header('Content-Type', `${contentType}; charset=utf-8`);
     c.header('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    return c.text(skill.skillMdContent || '');
+
+    return c.text(content);
   } catch (error: unknown) {
     return c.json({ error: getErrorMessage(error) }, 500);
   }
