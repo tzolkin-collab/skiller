@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { LogOut, Settings, LayoutDashboard, Plug, Wand2, Library , BrainCircuit} from 'lucide-react';
+import { Settings, Plug, Wand2, Library, BrainCircuit } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher/LanguageSwitcher';
 import { Logo } from '@/components/ui/Logo/Logo';
 import { LogoText } from '@/components/ui/Logo/LogoText';
 import { getDictionary } from '@/dictionaries';
 import { TopbarClient } from './TopbarClient';
 import { AccountSwitcher } from './AccountSwitcher';
+import { LogoutButton } from './LogoutButton';
 import { GlobalScrollTracker } from './GlobalScrollTracker';
 import { SessionGate } from '@/components/features/SessionGate/SessionGate';
 import { exigirSessao } from '@/lib/require-session';
@@ -64,9 +65,7 @@ export default async function DashboardLayout({ children, params }: { children: 
               todo mundo. Agora mostra a conta de verdade e permite trocar —
               sem isso o painel exigia `?userId=` digitado na URL. */}
           <AccountSwitcher lang={lang} />
-          <button className={styles.logoutBtn} title={dict.dashboard.logout}>
-            <LogOut size={16} />
-          </button>
+          <LogoutButton lang={lang} title={dict.dashboard.logout} className={styles.logoutBtn} />
         </div>
       </aside>
 
