@@ -22,6 +22,28 @@ export interface SessaoAtual {
   emailVerified: boolean;
 }
 
+/**
+ * Ter conta nao e ter acesso.
+ *
+ * A porta de entrada e o teste de 7 dias do Starter, com cartao. Quem so
+ * cadastrou e nunca comecou o teste — ou cancelou, ou deixou vencer — fica em
+ * `free`, que nao da capacidade nenhuma. Sem esta checagem essas pessoas
+ * entravam no painel e usavam o produto: era o "avanco livre".
+ */
+async function temPlanoAtivo(cookieSessao: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/account`, {
+      headers: { cookie: `${COOKIE}=${cookieSessao}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return false;
+    const conta = (await res.json()) as { plan?: { id?: string } };
+    return Boolean(conta.plan?.id && conta.plan.id !== 'free');
+  } catch {
+    return false;
+  }
+}
+
 /** Devolve o usuário, ou redireciona para `/entrar` guardando o destino. */
 export async function exigirSessao(lang: string, destino: string): Promise<SessaoAtual> {
   const jar = await cookies();
@@ -47,6 +69,11 @@ export async function exigirSessao(lang: string, destino: string): Promise<Sessa
 
   // Fora do try: `redirect()` funciona lançando, e um catch o engoliria.
   if (!usuario) paraLogin();
+
+  // Sessao valida, mas sem assinatura em vigor: manda escolher um plano em vez
+  // de abrir o painel. `/pricing` e publica, entao nao ha laco de redirect.
+  const ativo = await temPlanoAtivo(sessao!.value);
+  if (!ativo) redirect(`/${lang}/pricing?motivo=sem-plano`);
 
   return usuario!;
 }
