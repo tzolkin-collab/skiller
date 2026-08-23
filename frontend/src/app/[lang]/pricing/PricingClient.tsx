@@ -40,7 +40,6 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     title: dict.pricing.title,
     titleAccent: 'Weapon',
     subtitle: dict.pricing.subtitle,
-    free: dict.pricing.free,
     starter: dict.pricing.starter,
     pro: dict.pricing.pro,
     enterprise: dict.pricing.enterprise,
@@ -52,20 +51,23 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     perMonth: dict.pricing.perMonth,
     perUser: dict.pricing.perUser,
     billedAnnually: dict.pricing.billedAnnually,
-    foreverFree: dict.pricing.foreverFree,
+    trialBadge: lang === 'pt' ? '7 dias grátis' : '7 days free',
+    trialCta: lang === 'pt' ? 'Começar teste grátis' : 'Start free trial',
+    trialSubtext:
+      lang === 'pt'
+        ? 'Cartão na assinatura. Cancele em até 7 dias sem cobrança.'
+        : 'Card required. Cancel within 7 days and pay nothing.',
     customPricing: dict.pricing.customPricing,
     contactSales: dict.pricing.contactSales,
     footerNote: dict.pricing.footerNote,
     redirecting: lang === 'pt' ? 'Abrindo checkout...' : 'Opening checkout...',
     contactUs: dict.pricing.contactUs,
     features: {
-      free: dict.pricing.features.free,
       starter: dict.pricing.features.starter,
       pro: dict.pricing.features.pro,
       enterprise: dict.pricing.features.enterprise,
     },
     possibilities: {
-      free: lang === 'pt' ? 'Comece a extrair e estruturar conhecimentos de forma básica. Ideal para experimentar a plataforma e criar suas primeiras skills sem compromisso.' : 'Start extracting and structuring knowledge basic level. Ideal to experience the platform and create your first skills with no commitment.',
       starter: lang === 'pt' ? 'Para criadores e desenvolvedores que precisam de mais volume. Acesse funcionalidades que começam a escalar sua produtividade e integrar inteligência aos seus fluxos.' : 'For creators and developers who need more volume. Access features that start to scale your productivity.',
       pro: lang === 'pt' ? 'O plano definitivo para profissionais de IA. Limites generosos, processamento rápido e integrações completas para criar agentes que realmente entendem o contexto e a linguagem de quem ensina.' : 'The definitive plan for AI professionals. Generous limits, fast processing, and full integrations.',
       enterprise: lang === 'pt' ? 'Para organizações e times que exigem escala, segurança e conformidade corporativa. Soluções customizadas, auditoria de segurança e suporte premium 24/7.' : 'For organizations and teams that require scale, security, and corporate compliance. Customized solutions, 24/7 premium support.'
@@ -178,33 +180,18 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
 
   const plansData = [
     {
-      id: 'free',
-      name: copy.free,
-      price: 0 as number | null,
-      period: copy.perMonth,
-      subtext: copy.foreverFree,
-      features: copy.features.free,
-      possibilityText: copy.possibilities.free,
-      ctaText: copy.select,
-      badge: null,
-      cardClass: styles.card,
-      nameClass: styles.planName,
-      ctaClass: `${styles.ctaButton} ${styles.ctaSecondary}`,
-      // A entrada e o teste de 7 dias do Starter, que o checkout ja monta com
-      // `trial_period_days`. Antes este botao empurrava para o painel sem
-      // assinatura nenhuma — e era por ali que se entrava no app de graca.
-      action: () => assinar('starter'),
-    },
-    {
+      // Entrada unica do produto. O card "Grátis" separado saiu: ele abria o
+      // mesmo checkout que este, entao eram dois cards vendendo a mesma coisa.
+      // O teste de 7 dias e um atributo do Starter, nao um plano ao lado dele.
       id: 'starter',
       name: copy.starter,
       price: precoEmCentavos('starter'),
       period: copy.perMonth,
-      subtext: copy.monthly,
+      subtext: copy.trialSubtext,
       features: copy.features.starter,
       possibilityText: copy.possibilities.starter,
-      ctaText: copy.select,
-      badge: null,
+      ctaText: copy.trialCta,
+      badge: copy.trialBadge,
       cardClass: styles.card,
       nameClass: styles.planName,
       ctaClass: `${styles.ctaButton} ${styles.ctaSecondary}`,
