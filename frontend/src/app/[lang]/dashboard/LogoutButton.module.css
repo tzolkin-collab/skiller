@@ -1,0 +1,8 @@
+/* A falha precisa aparecer: sair sem sair é pior que não conseguir sair. */
+.erro {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--error);
+}
