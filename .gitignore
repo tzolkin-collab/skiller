@@ -9,3 +9,12 @@ build/
 *.tsbuildinfo
 .turbo/
 coverage/
+
+# Scripts descartaveis de migracao. `migrate-temp.js` chegou a ser commitado com
+# a string de conexao de producao inteira; use `src/db/migrate.ts`, que le do .env.
+migrate-temp.js
+**/migrate-temp*.js
+
+# Respostas cruas do LLM gravadas com SKILLER_RECORD_LLM=1.
+# Contêm transcrição da fonte — não versionar.
+backend/fixtures/

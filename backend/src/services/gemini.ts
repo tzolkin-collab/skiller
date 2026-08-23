@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { z } from 'zod';
 import { buildExtractCardPrompt } from '../prompts/extraction.js';
-import { buildSynthesisPrompt, SkillFormat } from '../prompts/synthesis.js';
+import { buildSynthesisPrompt } from '../prompts/synthesis.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { getErrorMessage } from '../lib/errors.js';
@@ -17,7 +17,14 @@ const CardSchema = z.object({
   setupRequirements: z.array(z.string()).optional().describe('Any environment setup, installations, or configuration steps (e.g., "npm install x", "set ENV_VAR") mentioned in the video.'),
   keyConcepts: z.array(z.string()).describe('Exhaustive list of all granular concepts, topics, formulas, and techniques explained. MUST include timestamps if available (e.g., "[120s] Concept"). Extract as many as possible.'),
   summary: z.string().describe('A detailed summary of the core message and learnings'),
-  codeSnippets: z.array(z.string()).describe('Any important code snippets discussed. Empty array if none.')
+  codeSnippets: z.array(z.string()).describe('Any important code snippets discussed. Empty array if none.'),
+  transcriptParagraphs: z.array(z.object({
+    startTime: z.number().describe('Start time in seconds of this paragraph'),
+    endTime: z.number().describe('End time in seconds of this paragraph'),
+    text: z.string().describe('The summarized or rewritten paragraph covering this timeframe'),
+    isImportant: z.boolean().describe('Set to true when this paragraph is a turning point in the explanation - a key definition, a decisive result, or where a concept clicks - so the reader can jump straight to it.')
+  })).describe('The original transcript structured and grouped into paragraphs chronologically. Each paragraph groups several lines together into a readable text.'),
+  sourceUrl: z.string().optional().describe('The URL of the source material')
 });
 
 export type ExtractedCard = z.infer<typeof CardSchema>;
@@ -245,6 +252,78 @@ async function recordRawResponse(kind: string, label: string, text: string): Pro
   }
 }
 
+export async function extractFromGoogleSearch(query: string): Promise<{ data: ExtractedCard; usage: LlmUsage }> {
+  checkApiKey();
+  const prompt = `You are an expert researcher. Conduct a comprehensive web search on the following query and extract the knowledge into a structured card. 
+The output MUST strictly match the provided schema.
+Gather definitions, tutorials, concepts, and code snippets relevant to the query.
+
+Query: "${query}"`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            goal: { type: Type.STRING },
+            reasoning: { type: Type.STRING },
+            setupRequirements: { type: Type.ARRAY, items: { type: Type.STRING } },
+            keyConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
+            summary: { type: Type.STRING },
+            codeSnippets: { type: Type.ARRAY, items: { type: Type.STRING } },
+            transcriptParagraphs: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  startTime: { type: Type.NUMBER },
+                  endTime: { type: Type.NUMBER },
+                  text: { type: Type.STRING },
+                  isImportant: { type: Type.BOOLEAN }
+                },
+                required: ['startTime', 'endTime', 'text', 'isImportant']
+              }
+            }
+          },
+          required: ['title', 'keyConcepts', 'summary', 'codeSnippets', 'transcriptParagraphs']
+        },
+        temperature: 0.1
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error('Empty response from model');
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e: unknown) {
+      throw new Error(`Invalid JSON format from Gemini: ${text}`, { cause: e });
+    }
+
+    const validation = CardSchema.safeParse(parsed);
+    if (!validation.success) {
+      throw new Error(`Schema mismatch from Gemini: ${validation.error.message}`);
+    }
+
+    return {
+      data: validation.data,
+      usage: {
+        inputTokens: response.usageMetadata?.promptTokenCount || 0,
+        outputTokens: response.usageMetadata?.candidatesTokenCount || 0
+      }
+    };
+  } catch (error: unknown) {
+    throw new Error(`Failed to extract from Google Search: ${getErrorMessage(error)}`, { cause: error });
+  }
+}
+
 function checkApiKey() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is missing! Please add it to your .env file. Get it for free at https://aistudio.google.com/');
@@ -284,7 +363,7 @@ export async function extractVideoCard(transcript: string, title: string, descri
   
   return withRetry(async () => {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -292,11 +371,30 @@ export async function extractVideoCard(transcript: string, title: string, descri
           type: Type.OBJECT,
           properties: {
             title: { type: Type.STRING },
+            // goal e setupRequirements precisam estar aqui — com structured output
+            // o Gemini só preenche campos declarados no responseSchema do provider.
+            // O CardSchema Zod os define como opcionais, mas sem esta declaração
+            // eles chegam sempre nulos e a síntese perde a âncora de intenção.
+            goal: { type: Type.STRING },
+            setupRequirements: { type: Type.ARRAY, items: { type: Type.STRING } },
             keyConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
             summary: { type: Type.STRING },
-            codeSnippets: { type: Type.ARRAY, items: { type: Type.STRING } }
+            codeSnippets: { type: Type.ARRAY, items: { type: Type.STRING } },
+            transcriptParagraphs: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  startTime: { type: Type.NUMBER },
+                  endTime: { type: Type.NUMBER },
+                  text: { type: Type.STRING },
+                  isImportant: { type: Type.BOOLEAN }
+                },
+                required: ['startTime', 'endTime', 'text', 'isImportant']
+              }
+            }
           },
-          required: ['title', 'keyConcepts', 'summary', 'codeSnippets']
+          required: ['title', 'goal', 'keyConcepts', 'summary', 'codeSnippets', 'transcriptParagraphs']
         },
         temperature: 0.4
       }
@@ -305,6 +403,8 @@ export async function extractVideoCard(transcript: string, title: string, descri
     if (!response.text) {
         throw new Error("No output generated from Gemini");
     }
+
+    await recordRawResponse('extraction', title, response.text);
 
     const parsed = JSON.parse(response.text);
     return { data: CardSchema.parse(parsed), usage: readUsage(response.usageMetadata) };
@@ -320,6 +420,14 @@ export async function synthesizeSkill(
   sourceTitle: string,
   language: string = 'en'
 ): Promise<LlmResult<SkillDocument>> {
+  // Defesa-em-profundidade: o worker já chama assertCardsUsable, mas qualquer
+  // chamador direto (script, teste, outro worker) também precisa desta guarda.
+  if (cards.length === 0) {
+    throw new Error(
+      'synthesizeSkill chamada com zero cards — recusando produzir uma skill de nada'
+    );
+  }
+
   checkApiKey();
   const cardsJson = JSON.stringify(cards, null, 2);
   const prompt = buildSynthesisPrompt(cardsJson, sourceTitle, language);
@@ -328,7 +436,7 @@ export async function synthesizeSkill(
 
   return withRetry(async () => {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         temperature: 0.3,

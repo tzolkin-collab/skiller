@@ -16,24 +16,27 @@ export interface PackageFile {
  */
 export const MAIN_FILE_BY_FORMAT: Record<SkillFormat, string> = {
   gemini: 'SKILL.md',
-  claude: '.cursorrules',
-  copilot: 'copilot-instructions.md',
-  mcp: 'src/index.ts',
+  cursor: '.cursor/rules/main.mdc',
+  claude: 'CLAUDE.md',
+  copilot: '.github/copilot-instructions.md',
+  mcp: 'src/index.js',
   generic: 'AGENTS.md'
 };
 
 /** Filename offered to the browser on download. */
 export const DOWNLOAD_NAME_BY_FORMAT: Record<SkillFormat, string> = {
   gemini: 'SKILL.md',
-  claude: '.cursorrules',
-  copilot: 'copilot-instructions.md',
-  mcp: 'index.ts',
+  cursor: 'cursor-rules.zip',
+  claude: 'CLAUDE.md',
+  copilot: 'copilot-instructions.zip',
+  mcp: 'index.js',
   generic: 'AGENTS.md'
 };
 
 /** Formats whose main file is prose; `mcp` emits TypeScript instead. */
 const MARKDOWN_FORMATS: ReadonlySet<SkillFormat> = new Set<SkillFormat>([
   'gemini',
+  'cursor',
   'claude',
   'copilot',
   'generic'
