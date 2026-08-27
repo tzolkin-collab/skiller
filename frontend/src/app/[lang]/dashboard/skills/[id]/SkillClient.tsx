@@ -1,21 +1,25 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card/Card';
 import { Progress } from '@/components/ui/Progress/Progress';
 import { Button } from '@/components/ui/Button/Button';
-import { CheckCircle2, CircleDashed, Download, Loader2, RotateCcw, Copy, Check, Video, LayoutList, Puzzle, BrainCircuit, Box, Lightbulb, Youtube, X, Target, Settings } from 'lucide-react';
+import { CheckCircle2, CircleDashed, Download, Loader2, RotateCcw, Copy, Check, Video, LayoutList, Puzzle, BrainCircuit, Box, Lightbulb, Youtube, X, Target, Settings, Play, Send, MessageSquare, Pencil, Eye, Save } from 'lucide-react';
 import JSZip from 'jszip';
 import { fetcher } from '@/lib/fetcher';
 import type { Dictionary } from '@/types/dictionary';
-import type { QueueJobStatus, SkillDetail, SkillVideo, TreeNode } from '@/types/api';
+import type { QueueJobStatus, SkillDetail, SkillVideo, TreeNode, SkillDocument } from '@/types/api';
 import { FileTree } from '@/components/ui/FileTree/FileTree';
-import { Modal } from '@/components/ui/Modal/Modal';
 import styles from './page.module.css';
-import { SkillNodeMap } from './SkillNodeMap';
 import { HumanWorkspace } from './HumanWorkspace';
+import { CodeEditor } from '@/components/ui/CodeEditor/CodeEditor';
+import { SkillEditor } from '@/components/ui/SkillEditor/SkillEditor';
+import { SkillConnectors } from '@/components/ui/SkillConnectors/SkillConnectors';
+import { SkillNodeMap } from './SkillNodeMap';
+import humanStyles from './human.module.css';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -25,7 +29,11 @@ interface SkillClientProps {
 }
 
 export default function SkillClient({ dict, skillId }: SkillClientProps) {
-  const { data: skillData, error: skillError } = useSWR<SkillDetail>(`${BASE_URL}/api/skills/${skillId}`, fetcher, {
+  const router = useRouter();
+  const params = useParams();
+  const lang = params?.lang || 'en';
+
+  const { data: skillData, error: skillError, mutate } = useSWR<SkillDetail>(`${BASE_URL}/api/skills/${skillId}`, fetcher, {
     refreshInterval: (data) => (data && (data.status === 'completed' || data.status === 'failed')) ? 0 : 2000
   });
 
@@ -38,12 +46,17 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
   );
 
   const [isRetrying, setIsRetrying] = useState(false);
+
+  // Formato do download. Começa no que a skill foi gerada — hoje sempre
+  // AGENTS.md, o universal — e pode virar qualquer outro sem gerar de novo.
+  const [formatoDownload, setFormatoDownload] = useState('generic');
+  const [baixando, setBaixando] = useState(false);
+  const [erroDownload, setErroDownload] = useState<string | null>(null);
   
   // ==========================================
   // STATE: Main Tab Control
   // ==========================================
-  const [mainTab, setMainTab] = useState<'plugin' | 'human' | 'transcricao' | 'indice'>('plugin');
-  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [mainTab, setMainTab] = useState<'plugin' | 'nodemap' | 'human' | 'transcricao' | 'conexoes'>('plugin');
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [playerTime, setPlayerTime] = useState<number>(0);
 
@@ -51,62 +64,99 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
   const [activeSha, setActiveSha] = useState<string | null>(null);
   const [activePath, setActivePath] = useState<string | null>(null);
   const [copiedInstall, setCopiedInstall] = useState(false);
-  const [appendUrl, setAppendUrl] = useState('');
-  const [isAppending, setIsAppending] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAppend = async () => {
-    if (!appendUrl) return;
+
+  // Editor state
+  const [editorMode, setEditorMode] = useState<'preview' | 'code'>('preview');
+  const [editContent, setEditContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+
+  const handleSaveDocument = async (doc: SkillDocument) => {
+    setIsSaving(true);
+    setSaveStatus('idle');
     try {
-      setIsAppending(true);
-      const res = await fetch(`${BASE_URL}/api/skills/${skillId}/append`, {
-        method: 'POST',
+      const res = await fetch(`${BASE_URL}/api/skills/${skillId}/document`, {
+        credentials: 'include',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playlistUrl: appendUrl })
+        body: JSON.stringify(doc),
       });
-      if (res.ok) {
-        setAppendUrl('');
-        setIsModalOpen(false);
-      }
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error('Failed to save document');
+      setSaveStatus('saved');
+      mutate();
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      setSaveStatus('error');
     } finally {
-      setIsAppending(false);
+      setIsSaving(false);
     }
   };
 
 
+  /**
+   * Baixa o pacote no formato escolhido.
+   *
+   * A geração não pergunta mais o formato — sai em AGENTS.md, que qualquer
+   * agente lê. A escolha mora aqui porque renderizar é função pura sobre o
+   * documento estruturado: trocar de formato não exige gerar de novo.
+   *
+   * Quando o formato é o mesmo que a geração produziu, usa o pacote que já está
+   * em memória. Para os outros, pede ao backend, que renderiza na hora.
+   */
+  const handleDownload = async (formato?: string) => {
+    const alvo = formato ?? formatoDownload;
+    const baseName = (skillData?.name || 'plugin').replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
-  const handleDownload = async () => {
-    if (skillData?.skillPackage?.blobs && skillData?.skillPackage?.root) {
+    const compactar = async (arquivos: { path: string; content: string }[]) => {
       const zip = new JSZip();
-      
-      const traverseTree = (node: TreeNode, currentPath: string) => {
-        const fullPath = currentPath ? `${currentPath}/${node.name}` : node.name;
-        if (node.type === 'file' && node.sha) {
-           const content = skillData.skillPackage!.blobs[node.sha].content;
-           zip.file(fullPath, content);
-        } else if (node.children) {
-           node.children.forEach(child => traverseTree(child, fullPath));
-        }
-      };
-
-      if (skillData.skillPackage.root.children) {
-        // Inicializamos com 'plugin' para que todos os arquivos fiquem dentro dessa pasta raiz
-        skillData.skillPackage.root.children.forEach(child => traverseTree(child, 'plugin'));
+      for (const f of arquivos) {
+        zip.file(f.path, f.content, { base64: f.path.includes('assets/') });
       }
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(skillData.name || 'plugin').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.skill`;
+      a.download = `${baseName}-${alvo}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } else {
-      window.location.href = `${BASE_URL}/api/skills/${skillId}/download`;
+    };
+
+    // Formato diferente do gerado: o backend renderiza a partir do documento.
+    if (alvo !== (skillData?.targetFormat || 'generic')) {
+      setBaixando(true);
+      try {
+        const res = await fetch(`${BASE_URL}/api/skills/${skillId}/package?format=${alvo}`, { credentials: 'include' });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.message ?? 'Não foi possível gerar este formato.');
+        await compactar(d.files);
+      } catch (e) {
+        setErroDownload(e instanceof Error ? e.message : 'Falha ao baixar.');
+      } finally {
+        setBaixando(false);
+      }
+      return;
     }
+
+    // Mesmo formato: o pacote já está aqui, não precisa de rede.
+    if (skillData?.skillPackage?.blobs && skillData?.skillPackage?.root) {
+      const arquivos: { path: string; content: string }[] = [];
+      const percorrer = (node: TreeNode, caminho: string) => {
+        const completo = caminho ? `${caminho}/${node.name}` : node.name;
+        if (node.type === 'file' && node.sha) {
+          arquivos.push({ path: completo, content: skillData.skillPackage!.blobs[node.sha].content });
+        } else if (node.children) {
+          node.children.forEach((filho) => percorrer(filho, completo));
+        }
+      };
+      skillData.skillPackage.root.children?.forEach((filho) => percorrer(filho, ''));
+      await compactar(arquivos);
+      return;
+    }
+
+    window.location.href = `${BASE_URL}/api/skills/${skillId}/download?format=${alvo}`;
   };
 
   const handleCopyInstallCommand = () => {
@@ -120,6 +170,7 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
     try {
       setIsRetrying(true);
       await fetch(`${BASE_URL}/api/skills/${skillId}/retry`, {
+        credentials: 'include',
         method: 'POST'
       });
       setIsRetrying(false);
@@ -132,6 +183,40 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
   const handleVideoSelect = (vidId: string) => {
     setSelectedVideoId(vidId);
     setPlayerTime(0);
+  };
+
+  // Inject base64 images from assets folder into markdown
+  const markdownComponents: Components = {
+    img: ({ node, src, alt, ...props }) => {
+      if (src && typeof src === 'string' && (src.startsWith('./assets/') || src.startsWith('assets/'))) {
+        const filename = src.replace('./assets/', '').replace('assets/', '');
+        
+        const findAsset = (tree: TreeNode[], currentPath: string): TreeNode | undefined => {
+          for (const child of tree) {
+            const fullPath = currentPath ? `${currentPath}/${child.name}` : child.name;
+            if (fullPath === `assets/${filename}` || fullPath === `./assets/${filename}`) {
+              return child;
+            }
+            if (child.children) {
+              const found = findAsset(child.children, fullPath);
+              if (found) return found;
+            }
+          }
+          return undefined;
+        };
+
+        if (skillData?.skillPackage?.root?.children) {
+          const fileNode = findAsset(skillData.skillPackage.root.children, '');
+          if (fileNode?.sha && skillData.skillPackage.blobs[fileNode.sha]) {
+            const base64 = skillData.skillPackage.blobs[fileNode.sha].content;
+            const ext = filename.split('.').pop()?.toLowerCase();
+            const mime = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : 'image/png';
+            return <img {...props} src={`data:${mime};base64,${base64}`} alt={alt} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid var(--border-light)' }} />;
+          }
+        }
+      }
+      return <img {...props} src={src} alt={alt} />;
+    }
   };
 
   if (skillError) return <div className={styles.container}>{dict.skill.errorLoading}</div>;
@@ -172,6 +257,13 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                 {dict.skillClient.tabs.pluginSource}
               </button>
               <button 
+                className={`${styles.workspaceTabButton} ${mainTab === 'nodemap' ? styles.workspaceTabButtonActive : ''}`} 
+                onClick={() => setMainTab('nodemap')}
+              >
+                <BrainCircuit size={16} />
+                Grafo de Nós
+              </button>
+              <button 
                 className={`${styles.workspaceTabButton} ${mainTab === 'human' ? styles.workspaceTabButtonActive : ''}`} 
                 onClick={() => setMainTab('human')}
               >
@@ -186,11 +278,11 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                 {dict.skillClient.tabs.visualTranscript}
               </button>
               <button 
-                className={`${styles.workspaceTabButton} ${mainTab === 'indice' ? styles.workspaceTabButtonActive : ''}`} 
-                onClick={() => setMainTab('indice')}
+                className={`${styles.workspaceTabButton} ${mainTab === 'conexoes' ? styles.workspaceTabButtonActive : ''}`} 
+                onClick={() => setMainTab('conexoes')}
               >
-                <LayoutList size={16} />
-                {dict.skillClient.tabs.nodeMap}
+                <Puzzle size={16} />
+                Conectores
               </button>
           </div>
 
@@ -200,27 +292,106 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
             {mainTab === 'plugin' && isCompleted && skillData.skillPackage && skillData.skillPackage.root && (
               <Card glass className={styles.markdownCard}>
                 <div className={styles.markdownContentWrapper}>
-                  <div className={styles.markdownContent}>
-                    {(() => {
-                      let content = '';
-                      let ext = '';
-                      if (activeSha && skillData.skillPackage?.blobs[activeSha]) {
-                        content = skillData.skillPackage.blobs[activeSha].content;
-                        ext = activePath || '';
-                      } else {
-                        const firstFile = skillData.skillPackage?.root.children?.find(c => c.type === 'file');
-                        if (firstFile && firstFile.sha) {
-                          content = skillData.skillPackage.blobs[firstFile.sha].content;
-                          ext = firstFile.name;
+                  <div className={styles.floatingEditorToolbar}>
+                    {editorMode === 'code' && (
+                      <Button
+                        variant="primary"
+                        className={styles.editorSaveBtn}
+                        disabled={isSaving}
+                        onClick={async () => {
+                          const filePath = activePath || (() => {
+                            const firstFile = skillData.skillPackage?.root.children?.find(c => c.type === 'file');
+                            return firstFile?.name || '';
+                          })();
+                          if (!filePath) return;
+                          setIsSaving(true);
+                          setSaveStatus('idle');
+                          try {
+                            const res = await fetch(`${BASE_URL}/api/skills/${skillId}/file`, {
+                              credentials: 'include',
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ path: filePath, content: editContent }),
+                            });
+                            if (!res.ok) throw new Error('Failed to save');
+                            setSaveStatus('saved');
+                            mutate();
+                            setTimeout(() => setSaveStatus('idle'), 2000);
+                          } catch {
+                            setSaveStatus('error');
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }}
+                      >
+                        {isSaving ? <Loader2 size={14} className={styles.spinning} /> : <Save size={14} />}
+                        <span style={{ marginLeft: '0.4rem' }}>
+                          {saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Error' : 'Save'}
+                        </span>
+                      </Button>
+                    )}
+                    <button
+                      className={`${styles.editorToggleBtn} ${editorMode === 'preview' ? styles.editorToggleBtnActive : ''}`}
+                      onClick={() => setEditorMode('preview')}
+                      title="Preview"
+                    >
+                      <Eye size={15} />
+                    </button>
+                    <button
+                      className={`${styles.editorToggleBtn} ${editorMode === 'code' ? styles.editorToggleBtnActive : ''}`}
+                      onClick={() => {
+                        if (editorMode !== 'code') {
+                          // Populate editContent with the current file content
+                          let content = '';
+                          if (activeSha && skillData.skillPackage?.blobs[activeSha]) {
+                            content = skillData.skillPackage.blobs[activeSha].content;
+                          } else {
+                            const firstFile = skillData.skillPackage?.root.children?.find(c => c.type === 'file');
+                            if (firstFile?.sha) content = skillData.skillPackage!.blobs[firstFile.sha].content;
+                          }
+                          setEditContent(content);
                         }
-                      }
-                      
-                      if (ext.endsWith('.json')) {
-                        return <pre><code>{content}</code></pre>;
-                      }
-                      return <ReactMarkdown>{content}</ReactMarkdown>;
-                    })()}
+                        setEditorMode('code');
+                      }}
+                      title="Edit (Code)"
+                    >
+                      <Pencil size={15} />
+                    </button>
                   </div>
+
+                  {editorMode === 'code' ? (
+                    <CodeEditor
+                      value={editContent}
+                      language={activePath || 'markdown'}
+                      onChange={setEditContent}
+                    />
+                  ) : (
+                    <div className={styles.markdownContent}>
+                      {(() => {
+                        let content = '';
+                        let ext = '';
+                        if (activeSha && skillData.skillPackage?.blobs[activeSha]) {
+                          content = skillData.skillPackage.blobs[activeSha].content;
+                          ext = activePath || '';
+                        } else {
+                          const firstFile = skillData.skillPackage?.root.children?.find(c => c.type === 'file');
+                          if (firstFile && firstFile.sha) {
+                            content = skillData.skillPackage.blobs[firstFile.sha].content;
+                            ext = firstFile.name;
+                          }
+                        }
+                        
+                        if (ext.endsWith('.json')) {
+                          return <pre><code>{content}</code></pre>;
+                        }
+                        if (ext.match(/\.(png|jpe?g|gif|webp)$/i)) {
+                          const mime = ext.toLowerCase().endsWith('png') ? 'image/png' : ext.toLowerCase().endsWith('webp') ? 'image/webp' : ext.toLowerCase().endsWith('gif') ? 'image/gif' : 'image/jpeg';
+                          return <div style={{display: 'flex', justifyContent: 'center', padding: '2rem'}}><img src={`data:${mime};base64,${content}`} alt={ext} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }} /></div>;
+                        }
+                        return <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>;
+                      })()}
+                    </div>
+                  )}
                 </div>
               </Card>
             )}
@@ -228,9 +399,14 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
             {mainTab === 'plugin' && isCompleted && !skillData.skillPackage && skillData.skillMdContent && (
               <Card glass className={styles.markdownCard}>
                 <CardContent className={styles.markdownContent}>
-                  <ReactMarkdown>{skillData.skillMdContent}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{skillData.skillMdContent}</ReactMarkdown>
                 </CardContent>
               </Card>
+            )}
+
+            {/* CONTEÚDO: NODE MAP OBSIDIAN FORCE GRAPH */}
+            {mainTab === 'nodemap' && isCompleted && (
+              <SkillNodeMap skill={skillData} isVisible={mainTab === 'nodemap'} />
             )}
 
             {/* CONTEÚDO NOVO: HUMAN VIEW */}
@@ -246,12 +422,17 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                     <div className={styles.youtubePlayerContainer}>
                       <iframe 
                         className={styles.youtubeIframe}
-                        src={`https://www.youtube.com/embed/${selectedVideoObj.videoId}?start=${playerTime}&autoplay=${playerTime > 0 ? 1 : 0}`} 
+                        src={`https://www.youtube-nocookie.com/embed/${selectedVideoObj.videoId?.trim()}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}${playerTime > 0 ? `&start=${Math.floor(playerTime)}&autoplay=1` : ''}`} 
                         title="YouTube video player" 
                         frameBorder="0" 
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                         allowFullScreen>
                       </iframe>
+                      <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                        <a href={`https://www.youtube.com/watch?v=${selectedVideoObj.videoId?.trim()}${playerTime > 0 ? `&t=${Math.floor(playerTime)}s` : ''}`} target="_blank" rel="noopener noreferrer" style={{color: 'var(--accent)', fontSize: '14px'}}>
+                          Vídeo não carrega? Clique aqui para assistir no YouTube
+                        </a>
+                      </div>
                     </div>
                     <Card className={styles.transcriptCard}>
                       <CardHeader className={styles.transcriptHeader}>
@@ -260,26 +441,63 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                       <CardContent className={styles.transcriptContentBlock}>
                         <div className={styles.transcriptScrollArea}>
                           {(() => {
-                            const txt = selectedVideoObj.transcriptContent;
-                            if (!txt) return <pre className={styles.transcriptText}>{dict.skillClient.transcript.notAvailable}</pre>;
+                            const paragraphs = selectedVideoObj.extractedCard?.transcriptParagraphs;
                             
-                            return txt.split('\n').map((line, idx) => {
-                              const match = line.match(/^\[(\d+)s\]\s(.*)/);
-                              if (match) {
-                                const seconds = parseInt(match[1]);
-                                const textContent = match[2];
-                                const displayTime = new Date(seconds * 1000).toISOString().substring(14, 19); 
-                                
-                                return (
-                                  <div key={idx} className={styles.transcriptLine}>
-                                    <button className={styles.timeBadge} onClick={() => setPlayerTime(seconds)}>
+                            // Fallback to old raw transcript format if LLM hasn't processed paragraphs yet
+                            if (!paragraphs || paragraphs.length === 0) {
+                              const txt = selectedVideoObj.transcriptContent;
+                              if (!txt) return <pre className={styles.transcriptText}>{dict.skillClient.transcript.notAvailable}</pre>;
+                              
+                              return txt.split('\n').map((line, idx) => {
+                                const match = line.match(/^\[(\d+)s\]\s(.*)/);
+                                if (match) {
+                                  const seconds = parseInt(match[1]);
+                                  const textContent = match[2];
+                                  const displayTime = new Date(seconds * 1000).toISOString().substring(14, 19); 
+                                  return (
+                                    <div key={idx} className={styles.transcriptLine} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0, width: '120px' }}>
+                                        <button className={styles.timeBadge} onClick={() => setPlayerTime(seconds)} style={{ width: 'fit-content' }}>
+                                          {displayTime}
+                                        </button>
+                                      </div>
+                                      <span className={styles.transcriptTextItem} style={{ flex: 1, marginTop: '0.2rem', lineHeight: 1.6 }}>{textContent}</span>
+                                    </div>
+                                  );
+                                }
+                                return <div key={idx} className={styles.transcriptLine}>{line}</div>;
+                              });
+                            }
+                            
+                            // Render intelligent paragraphs
+                            return paragraphs.map((p: NonNullable<NonNullable<typeof selectedVideoObj.extractedCard>['transcriptParagraphs']>[number], idx: number) => {
+                              const seconds = p.startTime;
+                              const displayTime = new Date(seconds * 1000).toISOString().substring(14, 19); 
+                              
+                              return (
+                                <div key={idx} className={styles.transcriptLine} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0, width: '120px' }}>
+                                    <button className={styles.timeBadge} onClick={() => setPlayerTime(seconds)} style={{ width: 'fit-content' }}>
                                       {displayTime}
                                     </button>
-                                    <span className={styles.transcriptTextItem}>{textContent}</span>
+                                    
+                                    {p.isImportant && (
+                                      <div style={{ 
+                                        width: '120px', 
+                                        height: '68px', 
+                                        borderRadius: '6px', 
+                                        overflow: 'hidden', 
+                                        backgroundImage: `url(https://img.youtube.com/vi/${selectedVideoObj.videoId}/mqdefault.jpg)`, 
+                                        backgroundSize: 'cover', 
+                                        backgroundPosition: 'center', 
+                                        border: '1px solid var(--border-light)',
+                                        cursor: 'pointer'
+                                      }} onClick={() => setPlayerTime(seconds)} title="Ir para este momento no vídeo" />
+                                    )}
                                   </div>
-                                );
-                              }
-                              return <p key={idx} className={styles.transcriptText}>{line}</p>;
+                                  <span className={styles.transcriptTextItem} style={{ flex: 1, marginTop: '0.2rem', lineHeight: 1.6 }}>{p.text}</span>
+                                </div>
+                              );
                             });
                           })()}
                         </div>
@@ -292,179 +510,12 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
               </div>
             )}
 
-            {/* CONTEÚDO 3: INDICE (NODE MAP) */}
-            <div className={styles.nodeMapCard} style={{ position: 'relative', display: mainTab === 'indice' ? 'flex' : 'none', overflow: 'hidden' }}>
-              <div style={{ flex: 1, position: 'relative' }}>
-                <SkillNodeMap 
-                  skill={skillData} 
-                  focusedNodeId={focusedNodeId}
-                  onNodeFocus={setFocusedNodeId}
-                  isVisible={mainTab === 'indice'}
-                />
-              </div>
-              
-              {/* FLOATING READING PANEL */}
-              {focusedNodeId && (
-                <div className={styles.readingPanel} style={{
-                  position: 'absolute',
-                  right: 20,
-                  top: 20,
-                  bottom: 20,
-                  width: '400px',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  overflowY: 'auto',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-                  zIndex: 10,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  animation: 'slideIn 0.3s ease-out'
-                }}>
-                  <button 
-                    onClick={() => setFocusedNodeId(null)}
-                    style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <X size={20} />
-                  </button>
-                  {(() => {
-                    if (focusedNodeId === 'root') {
-                      return (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '1rem', paddingRight: '2rem' }}>
-                            <BrainCircuit size={20} className="text-primary" /> 
-                            {skillData.playlistTitle || skillData.name || 'Core Skill'}
-                          </h3>
-                          <strong style={{ color: '#93c5fd', display: 'block', marginBottom: '0.5rem' }}>Visão Geral</strong>
-                          <p style={{ color: '#cbd5e1' }}>Esta é a raiz do conhecimento consolidado.</p>
-                          <p style={{ color: '#cbd5e1', marginTop: '1rem' }}>Formato Alvo: <strong>{skillData.targetFormat}</strong></p>
-                        </div>
-                      );
-                    }
-
-                    if (focusedNodeId === 'artifacts' || focusedNodeId.startsWith('pkg_')) {
-                      return (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#f59e0b', marginBottom: '1rem', paddingRight: '2rem' }}>
-                            <Box size={20} />
-                            Arquivo Gerado (Plugin)
-                          </h3>
-                          <p style={{ color: 'var(--text-secondary)' }}>Este nó representa a saída de código/arquivos gerada pela IA após compreender toda a base de conhecimento.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', marginBottom: '1.5rem' }}>Vá para a aba <strong>Plugin Source</strong> para ver o código fonte completo!</p>
-                          
-                          {skillData.videos.map(v => v.extractedCard?.reasoning ? (
-                            <div key={v.id} style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Raciocínio (Fonte: {v.title || 'Vídeo'})
-                              </strong>
-                              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', fontStyle: 'italic' }}>
-                                "{v.extractedCard.reasoning}"
-                              </p>
-                            </div>
-                          ) : null)}
-                        </div>
-                      );
-                    }
-
-                    if (focusedNodeId.startsWith('concept_')) {
-                      return (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#a78bfa', marginBottom: '1rem', paddingRight: '2rem' }}>
-                            <Lightbulb size={20} />
-                            Conceito Chave
-                          </h3>
-                          <p style={{ color: 'var(--text-secondary)' }}>A IA identificou este conceito de forma autônoma a partir da fonte de conhecimento.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', marginBottom: '1.5rem' }}>No futuro, a IA poderá expandir este conceito iterativamente ao ler mais fontes e cruzar referências.</p>
-                          
-                          {skillData.videos.map(v => v.extractedCard?.reasoning ? (
-                            <div key={v.id} style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                              <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Raciocínio (Fonte: {v.title || 'Vídeo'})
-                              </strong>
-                              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', fontStyle: 'italic' }}>
-                                "{v.extractedCard.reasoning}"
-                              </p>
-                            </div>
-                          ) : null)}
-                        </div>
-                      );
-                    }
-
-                    if (focusedNodeId.startsWith('goal_')) {
-                      return (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#10b981', marginBottom: '1rem', paddingRight: '2rem' }}>
-                            <Target size={20} />
-                            Objetivo Principal
-                          </h3>
-                          <p style={{ color: 'var(--text-secondary)' }}>A IA inferiu que este é o propósito central do conteúdo analisado.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>Todas as ferramentas e configurações extraídas são voltadas para atingir este alvo.</p>
-                        </div>
-                      );
-                    }
-
-                    if (focusedNodeId.startsWith('reasoning_')) {
-                      return (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#8b5cf6', marginBottom: '1rem', paddingRight: '2rem' }}>
-                            <BrainCircuit size={20} />
-                            Raciocínio Abstrato
-                          </h3>
-                          <p style={{ color: 'var(--text-secondary)' }}>Este nó representa a linha de pensamento puro da IA.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>É aqui que ela justifica o motivo de ter derivado as ferramentas, mostrando como conectou os pontos do tutorial.</p>
-                        </div>
-                      );
-                    }
-
-                    if (focusedNodeId.startsWith('setup_') || focusedNodeId.startsWith('req_')) {
-                      return (
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: '#f59e0b', marginBottom: '1rem', paddingRight: '2rem' }}>
-                            <Settings size={20} />
-                            Requisitos de Configuração
-                          </h3>
-                          <p style={{ color: 'var(--text-secondary)' }}>Passos preparatórios identificados pela IA.</p>
-                          <p style={{ color: 'var(--text-secondary)', marginTop: '1rem' }}>A IA notou que sem essas dependências (chaves de API, contas, pacotes), a skill falharia no mundo real.</p>
-                        </div>
-                      );
-                    }
-
-                    // Caso seja um vídeo
-                    const vidId = focusedNodeId.replace('vid_', '');
-                    const video = skillData.videos?.find(v => v.id === vidId);
-                    
-                    if (!video) return <p style={{ color: 'var(--text-muted)' }}>Nó desconhecido.</p>;
-                    
-                    return (
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '1rem', paddingRight: '2rem' }}>
-                          <Youtube size={20} className="text-red-500" />
-                          {video.title}
-                        </h3>
-                        {video.extractedCard?.summary && (
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.5rem' }}>Resumo</strong>
-                            <p>{video.extractedCard.summary}</p>
-                          </div>
-                        )}
-                        {video.extractedCard?.keyConcepts && video.extractedCard.keyConcepts.length > 0 && (
-                          <div>
-                            <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.5rem' }}>Conceitos Chave Derivados</strong>
-                            <ul style={{ paddingLeft: '1.2rem' }}>
-                              {video.extractedCard.keyConcepts.map((kc, idx) => (
-                                <li key={idx} style={{ marginBottom: '0.5rem' }}>{kc}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
+            {mainTab === 'conexoes' && (
+              <SkillConnectors 
+                connectors={skillData.skillDocument?.connectors || []} 
+                skillName={skillData.skillDocument?.title || 'Skill'}
+              />
+            )}
           </div>
         </div>
 
@@ -486,18 +537,37 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
 
             {isCompleted && (
               <div className={styles.sidebarGlobalActions}>
-                <Button onClick={() => setIsModalOpen(true)} variant="secondary" className={styles.fullBtn}>
+                <Button onClick={() => router.push(`/${lang}/dashboard?editSkillId=${skillId}`)} variant="secondary" className={styles.fullBtn}>
                   {dict.skillClient.sidebar.addSource}
                 </Button>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <Button onClick={handleCopyInstallCommand} variant="secondary" className={styles.fullBtn}>
                     {copiedInstall ? <Check size={16} /> : <Copy size={16} />}
                   </Button>
-                  <Button onClick={handleDownload} variant="primary" className={styles.fullBtn}>
+                  <Button onClick={() => handleDownload()} variant="primary" className={styles.fullBtn} disabled={baixando}>
                     <Download size={16} />
-                    {dict.skillClient.sidebar.download}
+                    {baixando ? '…' : dict.skillClient.sidebar.download}
                   </Button>
                 </div>
+
+                {/* A escolha do formato mora aqui, e não na geração: renderizar
+                    é função pura sobre o documento estruturado, então trocar
+                    não custa uma nova geração. */}
+                <select
+                  value={formatoDownload}
+                  onChange={(e) => { setFormatoDownload(e.target.value); setErroDownload(null); }}
+                  className={styles.seletorFormato}
+                  aria-label="Formato do download"
+                >
+                  <option value="generic">AGENTS.md (universal)</option>
+                  <option value="claude">Claude Code</option>
+                  <option value="cursor">Cursor</option>
+                  <option value="copilot">GitHub Copilot</option>
+                  <option value="gemini">Gemini / Antigravity</option>
+                  <option value="mcp">Servidor MCP</option>
+                </select>
+
+                {erroDownload && <p className={styles.erroDownload}>{erroDownload}</p>}
               </div>
             )}
           </header>
@@ -511,7 +581,12 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                 <CardContent style={{ padding: '1rem', paddingTop: 0 }}>
                   <div className={styles.progressWrapper}>
                     <div className={styles.progressLabels}>
-                      <span>{dict.skill.extracting}</span>
+                      <span>{
+                        progress < 20 ? 'Iniciando processamento...' : 
+                        progress < 85 ? dict.skill.extracting : 
+                        progress < 100 ? 'Sintetizando a Skill com IA...' : 
+                        'Finalizando pacote...'
+                      }</span>
                       <span>{progress}%</span>
                     </div>
                     <Progress value={progress} />
@@ -538,12 +613,50 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
 
           <div className={styles.sidebarDynamicContent}>
             
+            {/* SE O MAIN É "HUMAN" -> MOSTRA AUDIO OVERVIEW E CHAT */}
+            {mainTab === 'human' && (
+              <div className={humanStyles.toolsPane} style={{ padding: '0 1rem', width: '100%', maxWidth: 'none', borderLeft: 'none' }}>
+                {/* AUDIO OVERVIEW MOCK */}
+                <Card className={humanStyles.audioCard} glass>
+                  <div className={humanStyles.audioHeader}>
+                    <h3 className={humanStyles.audioTitle}>Audio Overview</h3>
+                    <span className={humanStyles.betaBadge}>BETA</span>
+                  </div>
+                  <p className={humanStyles.audioDesc}>Ouça um podcast gerado por IA debatendo os principais conceitos deste conteúdo.</p>
+                  <button className={humanStyles.audioPlayBtn}>
+                    <Play size={18} fill="currentColor" />
+                    <span>Gerar e Ouvir (Mock)</span>
+                  </button>
+                </Card>
+
+                {/* EDIT SKILL GUIDE MOCK */}
+                <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-light)', borderRadius: '12px', padding: '1.25rem', marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                    <Settings size={18} />
+                    <span style={{ fontWeight: 600 }}>Como alterar sua Skill</span>
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '1rem' }}>
+                    A IA já programou os passos corretos. Para modificar o comportamento ou incluir regras da sua empresa, basta editar as instruções do plugin.
+                  </p>
+                  <ul style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <li>Acesse a aba <strong>Plugin Source</strong>.</li>
+                    <li>Edite os passos diretamente na seção <code>commands</code>.</li>
+                    <li>Restrinja comportamentos ajustando os <code>principles</code>.</li>
+                  </ul>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1rem', fontStyle: 'italic' }}>
+                    * O editor visual de steps (no-code) chegará em breve.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            
             {/* SE O MAIN É "PLUGIN" -> MOSTRA FILE TREE */}
             {mainTab === 'plugin' && isCompleted && skillData.skillPackage && skillData.skillPackage.root && (
               <div className={styles.fileTreeContainer}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                   <h3 className={styles.sidebarSectionTitle} style={{ margin: 0 }}>{dict.skillClient.sidebar.pluginFiles}</h3>
-                  <Button variant="secondary" onClick={handleDownload}>
+                  <Button variant="secondary" onClick={() => handleDownload()} disabled={baixando}>
                     <Download size={14} style={{ marginRight: '0.5rem' }} />
                     Download .zip
                   </Button>
@@ -598,51 +711,6 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
               </div>
             )}
 
-            {/* SE O MAIN É "INDICE" -> MOSTRA O INDICE COMO LISTA DE TÓPICOS */}
-            {mainTab === 'indice' && (
-              <div className={styles.indiceToolsContainer}>
-                 <h3 className={styles.sidebarSectionTitle}>{dict.skillClient.sidebar.visualization || 'Índice de Conhecimento'}</h3>
-                 <p className={styles.sidebarHelpText} style={{ marginBottom: '1rem' }}>
-                   Navegue pelos nós do grafo clicando nos tópicos abaixo.
-                 </p>
-                 <div className={styles.tableOfContents}>
-                   <div 
-                     className={`${styles.tocItem} ${focusedNodeId === 'root' ? styles.tocItemActive : ''}`}
-                     onClick={() => setFocusedNodeId('root')}
-                     style={{ cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', background: focusedNodeId === 'root' ? 'var(--bg-secondary)' : 'transparent', marginBottom: '0.5rem', borderLeft: focusedNodeId === 'root' ? '2px solid var(--primary)' : '2px solid transparent' }}
-                   >
-                     <strong>{skillData.playlistTitle || skillData.name || 'Core Skill'}</strong>
-                   </div>
-
-                   {skillData.videos && skillData.videos.length > 0 && (
-                     <div style={{ paddingLeft: '1rem', borderLeft: '1px solid var(--border)', marginLeft: '0.5rem' }}>
-                       {skillData.videos.map((v, idx) => {
-                         const vidId = `vid_${v.id}`;
-                         const isFocused = focusedNodeId === vidId;
-                         return (
-                           <div key={v.id} style={{ marginBottom: '0.75rem' }}>
-                             <div 
-                               className={`${styles.tocItem} ${isFocused ? styles.tocItemActive : ''}`}
-                               onClick={() => setFocusedNodeId(vidId)}
-                               style={{ cursor: 'pointer', padding: '0.4rem', borderRadius: '4px', background: isFocused ? 'var(--bg-secondary)' : 'transparent', fontSize: '0.9rem', color: isFocused ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                             >
-                               {idx + 1}. {v.title || `Vídeo ${idx + 1}`}
-                             </div>
-                             {v.extractedCard?.keyConcepts && v.extractedCard.keyConcepts.length > 0 && (
-                               <ul style={{ paddingLeft: '1.5rem', margin: '0.25rem 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                 {v.extractedCard.keyConcepts.slice(0, 3).map((kc, i) => (
-                                   <li key={i} style={{ marginBottom: '0.1rem' }}>{kc}</li>
-                                 ))}
-                               </ul>
-                             )}
-                           </div>
-                         );
-                       })}
-                     </div>
-                   )}
-                 </div>
-              </div>
-            )}
 
           </div>
 
@@ -650,28 +718,7 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
 
       </div>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)}
-        title={dict.skillClient.modal.addSourceTitle}
-      >
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
-          {dict.skillClient.modal.addSourceDesc}
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input 
-            type="url" 
-            placeholder={dict.skillClient.modal.inputPlaceholder} 
-            value={appendUrl}
-            onChange={e => setAppendUrl(e.target.value)}
-            className={styles.urlInput}
-            style={{ width: '100%' }}
-          />
-          <Button onClick={handleAppend} disabled={isAppending || !appendUrl} style={{ width: '100%' }}>
-            {isAppending ? <Loader2 size={16} className={styles.spinner} /> : dict.skillClient.modal.processBtn}
-          </Button>
-        </div>
-      </Modal>
+
     </main>
   );
 }

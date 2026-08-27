@@ -11,6 +11,8 @@ export default async function WatchPage(props: {
   
   const v = searchParams?.v;
   const videoId = typeof v === 'string' ? v : undefined;
+  const editSkillId = searchParams?.editSkillId;
+  const finalEditSkillId = typeof editSkillId === 'string' ? editSkillId : undefined;
   
   if (!videoId) {
     return (
@@ -20,5 +22,5 @@ export default async function WatchPage(props: {
     );
   }
   
-  return <WatchClient dict={dict} lang={lang} videoId={videoId} />;
+  return <WatchClient dict={dict} lang={lang} videoId={videoId} editSkillId={finalEditSkillId} />;
 }

@@ -4,12 +4,17 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card/Card';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
+import { useSession } from '@/lib/session';
 type DictionaryType = Record<string, unknown> & {
   verify?: Record<string, string>;
   common?: Record<string, string>;
 };
 
 export default function VerifyClient({ lang, dict }: { lang: string, dict: DictionaryType }) {
+  // Qual conta esta autorizando. O backend passou a exigir isto explicitamente:
+  // antes ele vinculava o dispositivo ao PRIMEIRO usuario da tabela, emitindo um
+  // token de longa duracao para uma conta arbitraria.
+  const { userId, pronto: sessaoPronta } = useSession();
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -18,13 +23,23 @@ export default function VerifyClient({ lang, dict }: { lang: string, dict: Dicti
     e.preventDefault();
     if (!code || code.length < 8) return;
 
+    if (!userId) {
+      setStatus('error');
+      setMessage(
+        lang === 'pt'
+          ? 'Escolha uma conta no painel antes de autorizar o dispositivo.'
+          : 'Pick an account in the dashboard before authorizing this device.'
+      );
+      return;
+    }
+
     setStatus('loading');
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(`${baseUrl}/api/oauth/device/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userCode: code.toUpperCase() })
+        body: JSON.stringify({ userCode: code.toUpperCase(), userId })
       });
       
       const data = await res.json();
@@ -33,7 +48,9 @@ export default function VerifyClient({ lang, dict }: { lang: string, dict: Dicti
         setMessage('Device authorized successfully! You can close this window and return to your terminal.');
       } else {
         setStatus('error');
-        setMessage(data.error || 'Failed to authorize device.');
+        // `data.message` primeiro: `data.error` e o codigo interno
+        // (`plan_required`, `user_required`), inutil para quem esta lendo.
+        setMessage(data.message || data.error || 'Failed to authorize device.');
       }
     } catch (err) {
       setStatus('error');
@@ -62,7 +79,7 @@ export default function VerifyClient({ lang, dict }: { lang: string, dict: Dicti
                 style={{ textAlign: 'center', letterSpacing: '0.2em', fontSize: '1.2rem', textTransform: 'uppercase' }}
               />
               
-              <Button type="submit" disabled={status === 'loading' || code.length < 8} style={{ width: '100%' }}>
+              <Button type="submit" disabled={status === 'loading' || code.length < 8 || !sessaoPronta} style={{ width: '100%' }}>
                 {status === 'loading' ? 'Verifying...' : 'Authorize Device'}
               </Button>
             </div>

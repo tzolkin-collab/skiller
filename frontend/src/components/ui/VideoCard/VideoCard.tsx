@@ -1,5 +1,5 @@
-import { useRouter, useParams } from 'next/navigation';
-import { Play, Plus, Check } from 'lucide-react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { Play, Plus, Check, ThumbsUp, MessageCircle, TrendingUp } from 'lucide-react';
 import styles from './VideoCard.module.css';
 
 interface VideoCardProps {
@@ -7,31 +7,45 @@ interface VideoCardProps {
   title: string;
   channel: string;
   channelAvatar?: string;
+  subscribers?: string;
   views: string;
   timeAgo: string;
   duration: string;
+  likes?: string;
+  comments?: string;
+  engagement?: number;
   onClick: (videoId: string) => void;
   isSubmitting?: boolean;
   isSelected?: boolean;
 }
 
-export function VideoCard({ videoId, title, channel, channelAvatar, views, timeAgo, duration, onClick, isSubmitting, isSelected }: VideoCardProps) {
+export function VideoCard({ videoId, title, channel, channelAvatar, subscribers, views, timeAgo, duration, likes, comments, engagement, onClick, isSubmitting, isSelected }: VideoCardProps) {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const lang = params.lang || 'en';
+  
+  const editSkillId = searchParams.get('editSkillId');
 
-  // Use hqdefault instead of maxresdefault to ensure the image always exists
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (isSubmitting) return;
-    router.push(`/${lang}/dashboard/watch?v=${videoId}`);
+    const url = `/${lang}/dashboard/watch?v=${videoId}${editSkillId ? `&editSkillId=${editSkillId}` : ''}`;
+    router.push(url);
   };
 
   const handleSelectClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isSubmitting) onClick(videoId);
   };
+
+  // Color the engagement badge based on rate
+  const engagementColor = engagement && engagement >= 5
+    ? 'var(--success, #22c55e)'
+    : engagement && engagement >= 2
+      ? 'var(--accent-primary, #3b82f6)'
+      : 'var(--text-secondary, #aaa)';
 
   return (
     <div className={`${styles.card} ${isSubmitting ? styles.submitting : ''} ${isSelected ? styles.selected : ''}`} onClick={handleCardClick}>
@@ -47,6 +61,30 @@ export function VideoCard({ videoId, title, channel, channelAvatar, views, timeA
           {isSelected ? <Check size={16} strokeWidth={3} /> : <Plus size={16} strokeWidth={3} />}
         </button>
 
+        {/* Engagement overlay on hover */}
+        {(likes || comments) && (
+          <div className={styles.engagementBar}>
+            {likes && (
+              <span className={styles.engagementItem}>
+                <ThumbsUp size={12} />
+                {likes}
+              </span>
+            )}
+            {comments && (
+              <span className={styles.engagementItem}>
+                <MessageCircle size={12} />
+                {comments}
+              </span>
+            )}
+            {engagement !== undefined && engagement > 0 && (
+              <span className={styles.engagementItem} style={{ color: engagementColor }}>
+                <TrendingUp size={12} />
+                {engagement}%
+              </span>
+            )}
+          </div>
+        )}
+
         <div className={styles.overlay}>
           <div className={styles.overlayPlay}>
             <Play fill="white" size={24} />
@@ -55,16 +93,20 @@ export function VideoCard({ videoId, title, channel, channelAvatar, views, timeA
       </div>
       <div className={styles.info}>
         {channelAvatar ? (
-          <img src={channelAvatar} alt={channel} className={styles.avatarImg} />
+          <img src={channelAvatar} alt={channel} className={styles.avatarImg} referrerPolicy="no-referrer" />
         ) : (
           <div className={styles.avatar}>{channel.charAt(0)}</div>
         )}
         <div className={styles.meta}>
           <h3 className={styles.title} title={title}>{title}</h3>
-          <p className={styles.channel}>{channel}</p>
+          <p className={styles.channel}>
+            {channel}
+            {subscribers && <span className={styles.subs}> · {subscribers}</span>}
+          </p>
           <p className={styles.stats}>{views} • {timeAgo}</p>
         </div>
       </div>
     </div>
   );
 }
+

@@ -1,3 +1,24 @@
+/*
+ * Configurações.
+ *
+ * Este arquivo tinha 24 tamanhos de fonte e 35 valores de espaçamento — vários
+ * separados por 0,01rem, que é 0,16 pixel. Diferença nesse tamanho não é lida
+ * como hierarquia, é lida como desalinho: dá para sentir que algo está errado
+ * sem conseguir apontar o quê. Era esse o incômodo.
+ *
+ * Agora tudo está encaixado em duas escalas. Ao acrescentar regra aqui, use um
+ * degrau que já existe em vez de um valor novo — o ganho não é estético, é que
+ * as coisas passam a se alinhar sozinhas.
+ *
+ *   Tipo    11 · 12 · 13 · 14 · 15 · 16 · 18 · 22 · 26   (px)
+ *   Espaço  2 · 4 · 6 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48   (px, base 4)
+ *   Raio    var(--radius-sm) e var(--radius-lg); pill só em selo
+ *   Peso    400 corpo · 500 rótulo · 600 destaque
+ *
+ * A moldura da página (cabeçalho, largura) vive em
+ * `app/[lang]/dashboard/settings/page.module.css`.
+ */
+
 .settingsBtn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -17,77 +38,216 @@
   color: var(--text-primary);
 }
 
+.activeTab::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3px;
+  background-color: var(--text-primary);
+  border-radius: 0 4px 4px 0;
+}
+
 .container {
-  display: flex;
-  flex-direction: row;
-  min-height: 400px;
-  gap: 2rem;
+  display: grid;
+  /* Grid em vez de flex: a coluna da esquerda tem largura fixa e a direita
+     recebe o resto. Com flex, conteúdo largo no miolo empurrava a barra. */
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+  max-width: 1120px;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  width: 200px;
-  border-right: 1px solid var(--border-light);
-  padding-right: 1.5rem;
-  gap: 0.5rem;
+  gap: 2px;
+  position: sticky;
+  top: 24px;
 }
 
 .tabBtn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 8px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  border-left: 2px solid transparent;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 14px;
   font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.tabBtn svg {
+  flex: none;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
 }
 
 .tabBtn:hover {
-  background: rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
 }
 
+.tabBtn:hover svg { opacity: 1; }
+
+/*
+ * A aba ativa é marcada por um filete na borda, não por um fundo cinza.
+ * O fundo lavado dizia "selecionado" com a mesma força que o hover, e as duas
+ * se confundiam; o filete na cor da marca não tem esse problema.
+ */
 .activeTab {
-  background: rgba(var(--accent-primary-rgb), 0.1);
-  color: var(--accent-primary);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.045);
+  border-left-color: var(--accent-primary);
   font-weight: 600;
 }
 
-.activeTab:hover {
-  background: rgba(var(--accent-primary-rgb), 0.15);
+.activeTab svg {
+  opacity: 1;
   color: var(--accent-primary);
+}
+
+.activeTab:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 860px) {
+  .container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* No estreito vira uma faixa horizontal rolável: barra lateral empilhada
+     ocuparia meia tela antes do conteúdo. */
+  .sidebar {
+    position: static;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+    scrollbar-width: none;
+  }
+
+  .sidebar::-webkit-scrollbar { display: none; }
+
+  .tabBtn {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    white-space: nowrap;
+  }
+
+  .activeTab {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent-primary);
+  }
 }
 
 .content {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/*
+ * Seção, não cartão.
+ *
+ * Isto era uma caixa com borda e fundo, e dentro dela vinham outras caixas com
+ * borda e fundo — o card do plano, o alternador de período, cada cartão da
+ * grade. Três níveis de contorno, cada um dizendo "eu sou um bloco". O efeito
+ * é burocrático: a tela vira uma pilha de molduras, e o conteúdo some no meio.
+ *
+ * Agora é uma seção achatada: título, régua fina, conteúdo. A borda fica
+ * reservada para o que É um objeto — o plano em vigor e os cartões da grade.
+ * Um nível de contorno em vez de três.
+ */
+.card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.cardHeader {
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cardDesc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.cardBody {
+  padding: 12px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .tabContent {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 32px;
 }
 
 .sectionTitle {
-  font-size: 1.25rem;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 0.5rem;
+  margin-bottom: 8px;
 }
 
+.sectionSubtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* CARDS */
+
+.cardFooter {
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+/* PROFILE OVERRIDES */
 .profileSection {
   display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
+  gap: 24px;
+  align-items: center;
 }
 
 .avatarLarge {
@@ -96,8 +256,8 @@
   border-radius: 50%;
   background: var(--accent-primary);
   color: var(--bg-primary);
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,44 +267,69 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 4px;
+}
+
+.profileDetails strong {
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.profileDetails span {
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .fieldGroup label {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .input {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
-  padding: 0.75rem;
+  padding: 12px 16px;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 14px;
   width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--text-secondary);
+  box-shadow: 0 0 0 1px var(--text-secondary);
 }
 
 .input:read-only {
   opacity: 0.7;
   cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .infoRow {
   display: flex;
   justify-content: space-between;
-  padding: 1rem;
-  background: rgba(255,255,255,0.02);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  font-size: 0.9rem;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 14px;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .infoRow span {
@@ -156,17 +341,17 @@
 }
 
 .helpText {
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
 .themeOptions {
   display: flex;
-  gap: 1rem;
+  gap: 16px;
 }
 
 .themeBtn {
-  padding: 0.75rem 1.5rem;
+  padding: 12px 24px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
@@ -188,62 +373,70 @@
 
 /* PLAN CSS */
 .currentPlanCard {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0 4px 16px;
+  border-left: 2px solid var(--accent-primary);
 }
 
 .planHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .planBadge {
-  background: rgba(var(--accent-primary-rgb), 0.15);
-  color: var(--accent-primary);
-  padding: 0.25rem 0.75rem;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0;
   border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  border: none;
 }
 
 .planPrice {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 600;
   color: var(--text-primary);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-heading);
+  letter-spacing: -0.025em;
 }
 
 .planPrice span {
-  font-size: 0.85rem;
+  font-size: 14px;
   color: var(--text-muted);
   font-weight: 400;
 }
 
 .planDesc {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 14px;
   line-height: 1.5;
-  margin: 0;
+  margin: 8px 0 0;
 }
 
 .upsellCard {
   background: linear-gradient(135deg, rgba(var(--accent-primary-rgb), 0.1), rgba(var(--accent-primary-rgb), 0.02));
   border: 1px solid rgba(var(--accent-primary-rgb), 0.3);
   border-radius: var(--radius-md);
-  padding: 1.5rem;
-  margin-top: 1rem;
+  padding: 24px;
+  margin-top: 16px;
 }
 
 .upsellHeader {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .upsellIcon {
@@ -252,7 +445,7 @@
 
 .upsellHeader h4 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -260,18 +453,18 @@
 .benefitsList {
   list-style: none;
   padding: 0;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 24px 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .benefitsList li {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .checkIcon {
@@ -284,13 +477,835 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 0.75rem;
+  padding: 12px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 15px;
   cursor: pointer;
   transition: opacity 0.2s;
 }
 
 .upgradeBtn:hover {
   opacity: 0.9;
+}
+
+/* ---------- confirmação de pagamento ---------- */
+
+/* Fica acima das abas, para ser vista independentemente de qual abrir. */
+.confirmacao {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.07);
+}
+
+/* Enquanto o webhook não chegou, o mesmo bloco fica neutro: o dinheiro entrou,
+   mas ainda não é verdade dizer que o recurso está liberado. */
+.confirmacaoPendente {
+  border-color: var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.confirmacaoFalhou {
+  border-color: rgba(var(--accent-primary-rgb), 0.4);
+  background: rgba(var(--accent-primary-rgb), 0.06);
+}
+
+.confirmacaoIcone {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--success);
+}
+.confirmacaoPendente .confirmacaoIcone { color: var(--text-muted); }
+.confirmacaoFalhou .confirmacaoIcone { color: var(--accent-primary); }
+
+.confirmacaoCorpo { min-width: 0; flex: 1; }
+
+.confirmacaoTitulo {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.confirmacaoLinhas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.confirmacaoLinhas strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.confirmacaoAcoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.confirmacaoLink {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+.confirmacaoLink:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+/* ── MCP Devices Tab ─────────────────────────────────────────────────────── */
+
+.devicesHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+  color: var(--text-secondary);
+}
+
+.devicesHeader .sectionTitle {
+  margin: 0 0 4px;
+}
+
+.devicesSubtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.devicesLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+.devicesErrMsg {
+  font-size: 13px;
+  color: var(--error);
+  padding: 8px 0;
+}
+
+.devicesEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.devicesEmpty p {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.devicesEmpty span {
+  font-size: 13px;
+}
+
+.devicesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.deviceItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+
+.deviceItem.deviceActive {
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.deviceItem.deviceExpired {
+  opacity: 0.55;
+}
+
+.deviceIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.deviceActive .deviceIcon {
+  color: var(--success);
+}
+
+.deviceInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.deviceRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deviceCode {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.03em;
+}
+
+.deviceStatus {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.deviceStatus.deviceActive {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.deviceStatus.devicePending {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+  color: var(--accent-primary);
+}
+
+.deviceStatus.deviceExpired {
+  background: var(--border-light);
+  color: var(--text-muted);
+}
+
+.deviceMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tokenPreview {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.deviceDates {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.deviceDates span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.revokeBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.revokeBtn:hover:not(:disabled) {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.revokeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Filtros na Library (page.module.css não pode ter animation, então aqui fica o shared spin) */
+
+/* ---------- grade de planos ---------- */
+
+/* O período é uma escolha, não um plano: fica acima da grade e vale para todos. */
+.periodoToggle {
+  display: inline-flex;
+  gap: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+.periodoBtn {
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0 0 4px;
+  border-radius: 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.periodoBtn:hover {
+  color: var(--text-primary);
+}
+
+.periodoAtivo {
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--accent-primary);
+}
+
+.economia {
+  margin-left: 6px;
+  color: var(--success);
+  font-size: 11px;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.planoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+/* O plano em uso não é uma oferta: recebe a borda de destaque e nenhum botão. */
+.planoAtual {
+  border-color: var(--accent-primary);
+  background: rgba(var(--accent-primary-rgb), 0.04);
+}
+
+.planoNome {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.planoAtualTag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.4);
+  border-radius: 3px;
+  padding: 0px 4px;
+  white-space: nowrap;
+}
+
+.planoValor {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.planoValor small {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+
+.planoCreditos {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.planoCaps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.planoCaps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* O que este plano acrescenta em relação ao anterior fica em destaque. */
+.capNova { color: var(--text-primary); }
+
+.planoBtn {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.planoBtn:hover:not(:disabled) { border-color: var(--border-hover); }
+.planoBtn:disabled { opacity: 0.45; cursor: default; }
+
+.planoBtnPrimario {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+.planoBtnPrimario:hover:not(:disabled) { filter: brightness(1.1); }
+
+.semConta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-lg);
+}
+.semConta strong { color: var(--text-secondary); font-size: 15px; }
+.semConta span { font-size: 13px; max-width: 40ch; }
+
+/* ---------- listas de itens (vínculos, sessões, cartões) ---------- */
+
+.listaSimples {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.linhaItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+.linhaItem:last-child { border-bottom: 0; }
+
+.linhaVazia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-card);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.iconeItem { color: var(--text-muted); flex-shrink: 0; }
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.itemInfo strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.itemInfo span {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btnDiscreto {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.btnDiscreto:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+.acoesInline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.acoesInline .planoBtn { width: auto; padding: 8px 12px; }
+
+/* ---------- zona de perigo ---------- */
+
+/* Separada e vermelha porque a ação é irreversível depois do prazo. Misturar
+   com o resto do formulário convida ao clique distraído. */
+.zonaPerigo {
+  margin-top: 32px;
+  padding: 16px 20px;
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.35);
+  border-radius: var(--radius-lg);
+  background: rgba(var(--accent-primary-rgb), 0.04);
+}
+
+.zonaPerigoTopo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--accent-primary);
+  font-size: 14px;
+}
+
+.btnPerigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #fff;
+  background: var(--accent-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.btnPerigo:hover:not(:disabled) { filter: brightness(1.1); }
+.btnPerigo:disabled { opacity: 0.4; cursor: default; }
+
+.girando { animation: girarConfig 0.9s linear infinite; }
+@keyframes girarConfig { to { transform: rotate(360deg); } }
+
+/* Selo de período de teste, ao lado do nome do plano em vigor. */
+.seloTeste {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  background: rgba(var(--accent-primary-rgb), 0.14);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.35);
+  color: var(--accent-primary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- refinos */
+
+/*
+ * O card do plano em vigor é a informação que a pessoa vem ver primeiro.
+ * Antes tinha o mesmo peso visual de qualquer outro bloco da página.
+ */
+
+/* Alinhado à direita mesmo com o selo de teste no meio da linha. */
+
+/* Grade de planos: cartões de altura igual, para os botões ficarem na mesma
+   linha em vez de escadinha conforme o número de capacidades. */
+
+/* Números tabulares onde há coluna de valores: crédito, preço, contagem. */
+.planoValor,
+.planoCreditos,
+.infoRow span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------- composição, não contorno */
+
+/*
+ * O plano em vigor deixa de ser cartão e vira o cabeçalho da seção.
+ *
+ * Ele estava numa caixa com borda e gradiente, dentro de outra caixa, acima de
+ * uma grade de caixas. Como é a informação principal — e única —, não precisa
+ * de moldura para se distinguir: precisa de tamanho. Um filete à esquerda na
+ * cor da marca marca a origem sem desenhar um retângulo em volta.
+ */
+
+/* O valor é o que a pessoa procura: ganha o maior corpo da seção. */
+
+/*
+ * Alternador de período: virou um par de links, não um controle segmentado
+ * com moldura própria. Duas opções não justificam uma caixa.
+ */
+
+/* Os cartões da grade continuam cartões — eles SÃO objetos escolhíveis, e é o
+   único lugar da tela onde o contorno carrega significado. */
+
+.planoCard:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+
+/* ------------------------------------------------- esqueleto de carregamento */
+
+/*
+ * O que aparece enquanto a sessão resolve.
+ *
+ * Antes, esse instante mostrava "Nenhuma conta conectada — entre na sua conta",
+ * porque a tela lia `usuario` sem olhar `carregado`. Quem já estava logado via
+ * a própria tela dizer que não estava, e só depois o conteúdo aparecia. Um erro
+ * piscando a cada carregamento faz a tela inteira parecer quebrada — nenhum
+ * ajuste de espaçamento conserta isso.
+ *
+ * O esqueleto tem a FORMA do conteúdo que vem: mesma altura, mesmo ritmo. Assim
+ * nada salta quando os dados chegam.
+ */
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.esqLinha {
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+
+.esqTitulo { height: 16px; width: 180px; }
+.esqBloco  { height: 64px; }
+.esqCurta  { width: 60%; }
+.esqMedia  { width: 80%; }
+
+@keyframes pulsar {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqLinha { animation: none; }
+}
+
+/* ------------------------------------------------- utilitários do AccountTab */
+
+/*
+ * Estes existem porque o `AccountTab.tsx` carregava 48 estilos inline, com
+ * valores como `0.6rem` e `1.2rem` que não pertencem a escala nenhuma. O
+ * stylesheet estava numa grade e o componente escrevia fora dela — as duas
+ * coisas brigando é parte do que fazia a tela parecer desalinhada.
+ *
+ * São poucos e nomeados pelo papel, não pelo valor: `.campoEstreito`, e não
+ * `.max400`. Assim mudar a largura não obriga a renomear a classe.
+ */
+.campoEstreito { max-width: 400px; }
+
+.empurraDireita { margin-right: auto; }
+
+.textoDestaque { color: var(--accent-primary); }
+
+.textoCorpo { font-size: 15px; }
+
+.blocoTexto { display: block; font-size: 15px; }
+
+/* Botão que não ocupa a linha inteira — ação secundária dentro de uma seção. */
+.botaoCompacto {
+  width: auto;
+  padding: 8px 20px;
+  margin: 0;
+}
+
+/* Linha de informação sem régua: a última de um grupo, ou grupo de uma só. */
+.linhaSemRegua {
+  border-bottom: none;
+  padding: 0;
+}
+
+.semMoldura {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+.semRecuo { padding: 0; }
+
+.recuoSecao { padding: 24px; }
+
+.recuoLinha { padding: 16px 24px; }
+
+.avatarImagem {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.caixaSelecao {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Últimos utilitários do AccountTab — mesma razão dos de cima. */
+.semBorda { border: none; }
+
+.textoForte { color: var(--text-primary); }
+
+.tituloLinha { font-size: 16px; }
+
+.linhaCentro {
+  display: flex;
+  align-items: center;
+}
+
+.linhaEspacada {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.colunaGap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blocoLargo {
+  display: block;
+  max-width: 500px;
+  margin-top: 8px;
+}
+
+/* Os últimos do AccountTab. Depois destes, nada mais escreve estilo à mão lá. */
+.avatarImagemCheia {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.colunaMedia {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.avisoSucesso {
+  padding: 16px;
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border-radius: var(--radius-sm);
+}
+
+.iconeInline {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.acaoDireita {
+  margin: 0;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.linhaLarga {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.reguaDestaque { border-bottom-color: rgba(var(--accent-primary-rgb), 0.2); }
+
+.campoCurto {
+  max-width: 180px;
+  border-color: rgba(var(--accent-primary-rgb), 0.5);
+  background: transparent;
+}
+
+.destaqueSemMargem {
+  margin: 0;
+  color: var(--accent-primary);
 }

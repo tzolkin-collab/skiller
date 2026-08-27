@@ -13,5 +13,10 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  // `services/renderer.ts` é trabalho em curso: importa `youtube-dl-exec` e
+  // `ffmpeg-static`, que não estão no package.json, e ninguém o importa. Fica
+  // fora do compile para o `tsc` do projeto passar — o arquivo continua aqui.
+  // Para retomar: instale as duas dependências e remova esta linha.
+  "exclude": ["src/services/renderer.ts"]
 }

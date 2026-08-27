@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import styles from './SearchAutocomplete.module.css';
 
@@ -12,6 +12,7 @@ export function SearchAutocomplete({ language = 'en' }: { language?: string }) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -56,7 +57,8 @@ export function SearchAutocomplete({ language = 'en' }: { language?: string }) {
     }
     
     setShowDropdown(false);
-    router.push(`/${language}/dashboard?q=${encodeURIComponent(finalQuery)}`);
+    const editSkillId = searchParams.get('editSkillId');
+    router.push(`/${language}/dashboard?q=${encodeURIComponent(finalQuery)}${editSkillId ? `&editSkillId=${editSkillId}` : ''}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

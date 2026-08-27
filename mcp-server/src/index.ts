@@ -16,6 +16,41 @@ if (!API_BASE_URL) {
   throw new Error("SKILLER_API_URL is required in the environment variables.");
 }
 
+// ---------------------------------------------------------------------------
+// Tipos do skillPackage retornado pela API
+// ---------------------------------------------------------------------------
+
+interface BlobEntry {
+  content: string;
+}
+
+interface TreeNode {
+  name: string;
+  type: "file" | "directory";
+  sha?: string;
+  children?: TreeNode[];
+}
+
+interface SkillPackage {
+  root: TreeNode;
+  blobs: Record<string, BlobEntry>;
+}
+
+interface SkillData {
+  id: string;
+  name?: string;
+  description?: string;
+  skillPackage?: SkillPackage;
+}
+
+interface SkillSummary {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+// ---------------------------------------------------------------------------
+
 const server = new Server(
   {
     name: "skiller-mcp-server",
@@ -58,7 +93,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             target_dir: {
               type: "string",
-              description: "Optional custom directory to extract the skill (defaults to ~/.agents/skills or ~/.claude/skills depending on context)",
+              description: "Optional custom directory to extract the skill (defaults to ~/.agents/skills)",
             },
           },
           required: ["skill_id"],
@@ -68,99 +103,132 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+// ---------------------------------------------------------------------------
+// Proteção contra path traversal — AGENTS.md: skill é entrada não confiável.
+//
+// Um `node.name` vindo da API pode ser "../../../.bashrc" ou "/etc/passwd".
+// Resolvemos o caminho completo e comparamos com `finalDir` antes de criar
+// qualquer arquivo. Se o caminho resolvido não começar com `finalDir/`, a
+// árvore inteira é abortada com erro visível no log do cliente.
+// ---------------------------------------------------------------------------
+
+function assertSafePath(resolved: string, sandbox: string): void {
+  const safeBase = path.resolve(sandbox) + path.sep;
+  if (!resolved.startsWith(safeBase)) {
+    throw new Error(
+      `Path traversal bloqueado: "${resolved}" está fora do sandbox "${sandbox}"`
+    );
+  }
+}
+
+function traverseTree(
+  node: TreeNode,
+  currentPath: string,
+  sandbox: string,
+  pkg: SkillPackage,
+  counter: { files: number }
+): void {
+  // Rejeitar nomes absolutos ou que contenham separadores suspeitos antes mesmo
+  // de montar o caminho — defesa em profundidade além do `assertSafePath`.
+  if (
+    path.isAbsolute(node.name) ||
+    node.name.includes("..") ||
+    node.name.includes(".git") ||
+    node.name.startsWith("~")
+  ) {
+    throw new Error(`Nome de arquivo inválido recebido da skill: "${node.name}"`);
+  }
+
+  const fullPath = path.resolve(currentPath, node.name);
+  assertSafePath(fullPath, sandbox);
+
+  if (node.type === "directory") {
+    fs.mkdirSync(fullPath, { recursive: true });
+    for (const child of node.children ?? []) {
+      traverseTree(child, fullPath, sandbox, pkg, counter);
+    }
+  } else if (node.type === "file" && node.sha) {
+    const blob = pkg.blobs[node.sha];
+    if (blob?.content) {
+      fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+      fs.writeFileSync(fullPath, blob.content, "utf-8");
+      counter.files++;
+    }
+  }
+}
+
 // Handle tool execution
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
     if (name === "search_skills") {
-      const query = String(args?.query || "");
+      const query = String(args?.query ?? "");
       const response = await fetch(`${API_BASE_URL}/skills?q=${encodeURIComponent(query)}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch skills: ${response.statusText}`);
       }
-      
-      const skills = await response.json();
-      
-      // Basic fallback if API doesn't filter
-      const filtered = Array.isArray(skills) 
-        ? skills.filter((s: any) => 
-            (s.name && s.name.toLowerCase().includes(query.toLowerCase())) ||
-            (s.description && s.description.toLowerCase().includes(query.toLowerCase()))
-          )
-        : [];
-        
+
+      const raw = await response.json();
+      const skills = Array.isArray(raw) ? (raw as SkillSummary[]) : [];
+
+      // Fallback client-side filter caso a API não filtre por query
+      const filtered = skills.filter(s =>
+        (s.name?.toLowerCase().includes(query.toLowerCase())) ||
+        (s.description?.toLowerCase().includes(query.toLowerCase()))
+      );
+
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(filtered.slice(0, 5), null, 2),
           },
         ],
       };
-    } 
-    
-    else if (name === "install_skill") {
-      const skillId = String(args?.skill_id);
-      let targetDir = args?.target_dir ? String(args.target_dir) : null;
-      
-      if (!targetDir) {
-        // Default to ~/.agents/skills if not specified
-        targetDir = path.join(os.homedir(), ".agents", "skills");
-      }
-      
+    }
+
+    if (name === "install_skill") {
+      const skillId = String(args?.skill_id ?? "");
+      if (!skillId) throw new Error("skill_id is required");
+
+      const baseDir = args?.target_dir
+        ? String(args.target_dir)
+        : path.join(os.homedir(), ".agents", "skills");
+
       const response = await fetch(`${API_BASE_URL}/skills/${skillId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch skill details: ${response.statusText}`);
       }
-      
-      const skillData: any = await response.json();
+
+      const skillData = await response.json() as SkillData;
       const skillPackage = skillData.skillPackage;
-      
-      if (!skillPackage || !skillPackage.root || !skillPackage.blobs) {
+
+      if (!skillPackage?.root || !skillPackage.blobs) {
         throw new Error(`Skill ${skillId} does not have a valid skillPackage.`);
       }
 
-      // Create base target directory
-      // E.g., ~/.agents/skills/{skillName}
-      // sanitize skill name for folder
-      const safeSkillName = (skillData.name || skillId).replace(/[^a-z0-9_.-]/gi, '_').toLowerCase();
-      const finalDir = path.join(targetDir, safeSkillName);
-      
+      // Sanitiza o nome da skill para uso como nome de diretório
+      const safeSkillName = (skillData.name ?? skillId)
+        .replace(/[^a-z0-9_.-]/gi, "_")
+        .toLowerCase();
+      const finalDir = path.resolve(baseDir, safeSkillName);
+
       fs.mkdirSync(finalDir, { recursive: true });
 
-      let filesWritten = 0;
+      const counter = { files: 0 };
 
-      const traverseTree = (node: any, currentPath: string) => {
-        const fullPath = path.join(currentPath, node.name);
-        
-        if (node.type === "directory") {
-          fs.mkdirSync(fullPath, { recursive: true });
-          if (node.children) {
-            node.children.forEach((child: any) => traverseTree(child, fullPath));
-          }
-        } else if (node.type === "file" && node.sha) {
-          const blob = skillPackage.blobs[node.sha];
-          if (blob && blob.content) {
-            // ensure parent directory exists
-            fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-            fs.writeFileSync(fullPath, blob.content, "utf-8");
-            filesWritten++;
-          }
-        }
-      };
-
-      // Traverse children of root so we don't create a 'plugin' root folder inside the target dir
-      if (skillPackage.root.children) {
-        skillPackage.root.children.forEach((child: any) => traverseTree(child, finalDir));
+      // Itera os filhos do root diretamente — evita criar pasta "root" dentro de finalDir
+      for (const child of skillPackage.root.children ?? []) {
+        traverseTree(child, finalDir, finalDir, skillPackage, counter);
       }
 
       return {
         content: [
           {
-            type: "text",
-            text: `Successfully installed skill '${skillData.name}' to ${finalDir}.\n${filesWritten} files written.`,
+            type: "text" as const,
+            text: `Skill '${skillData.name ?? skillId}' instalada em ${finalDir}.\n${counter.files} arquivo(s) escritos.`,
           },
         ],
       };
@@ -173,7 +241,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       isError: true,
       content: [
         {
-          type: "text",
+          type: "text" as const,
           text: `Error: ${message}`,
         },
       ],
@@ -187,7 +255,8 @@ async function main() {
   console.error("Skiller MCP Server running on stdio");
 }
 
-main().catch((error) => {
-  console.error("Fatal error running MCP server:", error);
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("Fatal error running MCP server:", message);
   process.exit(1);
 });

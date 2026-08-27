@@ -1,0 +1,179 @@
+.pagina {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-bottom: 4rem;
+}
+
+/* ---------- topo ---------- */
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.marca {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.abas {
+  display: flex;
+  gap: 1.1rem;
+  font-size: 0.82rem;
+}
+.abas a { color: var(--text-muted); text-decoration: none; }
+.abas a:hover { color: var(--text-primary); }
+
+/* ---------- documento ---------- */
+
+.documento {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2.25rem 1.5rem 0;
+  color: var(--text-secondary);
+  /* Documento legal se lê inteiro: linha um pouco mais alta e corpo maior que
+     o resto do app, porque aqui a leitura é longa e não escaneada. */
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.documento h1 {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  margin: 0 0 0.4rem;
+}
+
+.documento h2 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin: 2.4rem 0 0.8rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.documento h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 1.5rem 0 0.5rem;
+}
+
+.documento p { margin: 0 0 1rem; }
+
+.documento ul {
+  margin: 0 0 1.1rem;
+  padding-left: 1.15rem;
+}
+.documento li { margin-bottom: 0.5rem; }
+
+.documento strong { color: var(--text-primary); font-weight: 600; }
+
+.documento a { color: var(--accent-primary); }
+
+.documento code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  padding: 0.08em 0.32em;
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 0 0 2rem !important;
+}
+
+/* ---------- tabela ---------- */
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.3rem;
+  font-size: 0.86rem;
+}
+
+.tabela th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tabela td {
+  padding: 0.55rem 0.75rem 0.55rem 0;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+/* ---------- pendências ---------- */
+
+/* Impossível de ignorar de propósito: um marcador discreto vira produção. */
+.pendente {
+  background: rgba(var(--accent-primary-rgb), 0.15);
+  color: var(--accent-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  font-weight: 600;
+  padding: 0.1em 0.4em;
+  border: 1px dashed var(--accent-primary);
+  border-radius: 3px;
+}
+
+.aviso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0 0 2.5rem;
+  padding: 1rem 1.15rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: rgba(var(--accent-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.35);
+  border-radius: var(--radius-md);
+}
+.aviso strong { color: var(--accent-primary); }
+
+/* ---------- rodapé ---------- */
+
+.rodape {
+  max-width: 680px;
+  margin: 3rem auto 0;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.84rem;
+}
+.rodape a { color: var(--text-muted); text-decoration: none; }
+.rodape a:hover { color: var(--text-primary); }
+
+@media (max-width: 620px) {
+  .topo { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .tabela { font-size: 0.8rem; }
+}

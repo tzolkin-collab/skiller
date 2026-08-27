@@ -1,203 +1,244 @@
-"use client";
+'use client';
 
-import React, { useRef, useMemo, useEffect, useState } from 'react';
-import { SkillDetail, SkillVideo, TreeNode } from '@/types/api';
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { ZoomIn, ZoomOut, Maximize2, Layers, Play, Pause, X, Terminal, Cpu, FileCode, CheckCircle, ShieldCheck } from 'lucide-react';
+import type { SkillDetail, TreeNode } from '@/types/api';
+import styles from './nodeMap.module.css';
 
-type NodeCustomProps = {
+type NodeCategory = 'core' | 'module' | 'command' | 'principle' | 'connector' | 'file';
+
+interface FGNode {
   id: string;
   name: string;
+  category: NodeCategory;
   val: number;
-  color: string;
-  textColor: string;
-};
-type FGNode = NodeCustomProps & { x?: number; y?: number; fx?: number; fy?: number };
+  markdown: string;
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+}
 
 interface SkillNodeMapProps {
   skill: SkillDetail;
-  focusedNodeId?: string | null;
-  onNodeFocus?: (id: string) => void;
   isVisible?: boolean;
 }
 
-type ForceGraphInstance = {
+interface ForceGraphInstance {
   graphData: (data: unknown) => ForceGraphInstance;
   nodeRelSize: (size: number) => ForceGraphInstance;
   nodeColor: (color: string) => ForceGraphInstance;
   nodeVal: (val: string) => ForceGraphInstance;
-  linkColor: (color: string) => ForceGraphInstance;
-  linkWidth: {
-    (fn: (link: unknown) => number): ForceGraphInstance;
-    (): (link: unknown) => number;
-  };
+  linkColor: (fnOrColor: string | ((link: unknown) => string)) => ForceGraphInstance;
+  linkWidth: (fn: (link: unknown) => number) => ForceGraphInstance;
   enableNodeDrag: (enable: boolean) => ForceGraphInstance;
+  enableZoomInteraction: (enable: boolean) => ForceGraphInstance;
+  enablePanInteraction: (enable: boolean) => ForceGraphInstance;
   cooldownTicks: (ticks: number) => ForceGraphInstance;
   onEngineStop: (fn: () => void) => ForceGraphInstance;
   onNodeClick: (fn: (node: unknown) => void) => ForceGraphInstance;
   onNodeHover: (fn: (node: unknown) => void) => ForceGraphInstance;
   nodeCanvasObject: (fn: (nodeObj: unknown, ctx: CanvasRenderingContext2D, globalScale: number) => void) => ForceGraphInstance;
+  nodePointerAreaPaint: (fn: (nodeObj: unknown, color: string, ctx: CanvasRenderingContext2D) => void) => ForceGraphInstance;
   zoomToFit: (duration: number, padding: number) => void;
   centerAt: (x: number, y: number, duration: number) => void;
-  zoom: (scale: number, duration: number) => void;
+  zoom: {
+    (): number;
+    (scale: number, duration?: number): ForceGraphInstance;
+  };
+  pauseAnimation: () => void;
+  resumeAnimation: () => void;
   _destructor: () => void;
   width: (w: number) => void;
   height: (h: number) => void;
-};
+}
 
-export function SkillNodeMap({ skill, focusedNodeId, onNodeFocus, isVisible = true }: SkillNodeMapProps) {
+export function SkillNodeMap({ skill, isVisible = true }: SkillNodeMapProps) {
   const fgRef = useRef<ForceGraphInstance | null>(null);
-  const currentFocusRef = useRef<string | null | undefined>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hoverNodeRef = useRef<FGNode | null>(null);
+  const selectedNodeRef = useRef<FGNode | null>(null);
+
+  const [selectedNode, setSelectedNode] = useState<FGNode | null>(null);
+  const [filter, setFilter] = useState<string>('all');
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    currentFocusRef.current = focusedNodeId;
-  }, [focusedNodeId]);
+    selectedNodeRef.current = selectedNode;
+  }, [selectedNode]);
 
+  const doc = skill.skillDocument;
+
+  // Monta a estrutura de nós com Markdown para cada nó
   const graphData = useMemo(() => {
     const nodes: FGNode[] = [];
-    const links: Record<string, unknown>[] = [];
-    
-    // Configurações Globais Obsidian
-    const LINK_COLOR = 'rgba(255, 255, 255, 0.15)';
-    const CORE_COLOR = '#f8fafc';
-    const SECTION_COLOR = '#94a3b8';
-    const ITEM_COLOR = '#475569';
-    const TEXT_COLOR = '#e2e8f0';
+    const links: { source: string; target: string }[] = [];
 
-    const rootId = 'root';
-    nodes.push({ 
-      id: rootId, 
-      name: skill.playlistTitle || skill.name || 'Core Skill', 
-      val: 18, 
-      color: CORE_COLOR,
-      textColor: TEXT_COLOR
+    // 1. Nó Raiz (Core Skill)
+    const rootId = 'root_skill';
+    const goalText = doc?.goal ? `### Objetivo Principal\n\n${doc.goal}\n\n` : '';
+    const descText = doc?.description ? `### Descrição\n\n${doc.description}\n\n` : '';
+    const guideText = doc?.humanGuide?.summary ? `### Guia Rápido\n\n${doc.humanGuide.summary}` : '';
+
+    nodes.push({
+      id: rootId,
+      name: doc?.title || skill.name || skill.playlistTitle || 'Core Skill',
+      category: 'core',
+      val: 18,
+      markdown: `# ${doc?.title || skill.name || 'Core Skill'}\n\n${goalText}${descText}${guideText}`,
     });
 
-    if (skill.videos && skill.videos.length > 0) {
-      let previousVidId = rootId;
+    // 2. Módulos & Arquitetura
+    if (doc?.modules && doc.modules.length > 0) {
+      doc.modules.forEach((mod, i) => {
+        const modId = `mod_${i}`;
+        const secMarkdown = mod.sections
+          .map((s) => `### ${s.heading}\n\n${s.body}`)
+          .join('\n\n');
 
-      skill.videos.forEach((v: SkillVideo, index: number) => {
-         const vidId = `vid_${v.id}`;
-         nodes.push({ 
-           id: vidId, 
-           name: `${index + 1}. ${v.title || 'Video'}`, 
-           val: 10, 
-           color: SECTION_COLOR,
-           textColor: '#cbd5e1'
-         });
-         
-         links.push({ source: previousVidId, target: vidId, color: LINK_COLOR });
-         previousVidId = vidId;
-
-         if (v.extractedCard) {
-           const card = v.extractedCard;
-
-           // If there is a GOAL, attach it explicitly
-           if (card.goal) {
-             const goalId = `goal_${v.id}`;
-             nodes.push({
-               id: goalId,
-               name: `🎯 Goal: ${card.goal}`,
-               val: 8,
-               color: '#10b981', // Emerald green for goals
-               textColor: '#ecfdf5'
-             });
-             links.push({ source: vidId, target: goalId, color: 'rgba(16, 185, 129, 0.4)' });
-
-             // Attach reasoning to the goal
-             if (card.reasoning) {
-               const reasoningId = `reasoning_${v.id}`;
-               nodes.push({
-                 id: reasoningId,
-                 name: `🧠 Reasoning: ${card.reasoning}`,
-                 val: 6,
-                 color: '#8b5cf6', // Purple for reasoning
-                 textColor: '#f5f3ff'
-               });
-               links.push({ source: goalId, target: reasoningId, color: 'rgba(139, 92, 246, 0.4)' });
-             }
-           }
-
-           // Attach setup requirements
-           if (card.setupRequirements && card.setupRequirements.length > 0) {
-              const setupRootId = `setup_${v.id}`;
-              nodes.push({
-                id: setupRootId,
-                name: `⚙️ Setup Requirements`,
-                val: 6,
-                color: '#f59e0b', // Amber
-                textColor: '#fffbeb'
-              });
-              links.push({ source: card.goal ? `goal_${v.id}` : vidId, target: setupRootId, color: 'rgba(245, 158, 11, 0.4)' });
-
-              card.setupRequirements.forEach((req: string, i: number) => {
-                 const reqId = `req_${v.id}_${i}`;
-                 nodes.push({ id: reqId, name: req, val: 4, color: ITEM_COLOR, textColor: '#cbd5e1' });
-                 links.push({ source: setupRootId, target: reqId, color: LINK_COLOR });
-              });
-           }
-
-           // Attach key concepts
-           if (card.keyConcepts && card.keyConcepts.length > 0) {
-             // Attach to reasoning if exists, otherwise goal, otherwise video directly
-             const parentId = card.reasoning ? `reasoning_${v.id}` : (card.goal ? `goal_${v.id}` : vidId);
-
-             card.keyConcepts.slice(0, 5).forEach((kc, kcIndex) => {
-               const conceptId = `concept_${v.id}_${kcIndex}`;
-               nodes.push({
-                 id: conceptId,
-                 name: kc,
-                 val: 4,
-                 color: ITEM_COLOR,
-                 textColor: '#94a3b8'
-               });
-               links.push({ source: parentId, target: conceptId, color: LINK_COLOR });
-             });
-           }
-         }
+        nodes.push({
+          id: modId,
+          name: mod.title,
+          category: 'module',
+          val: 11,
+          markdown: `# Módulo: ${mod.title}\n\n**Visão Geral:**\n${mod.summary}\n\n${secMarkdown}`,
+        });
+        links.push({ source: rootId, target: modId });
       });
     }
 
-    const artifactsId = 'artifacts';
-    if (skill.skillPackage && skill.skillPackage.root) {
-      nodes.push({ id: artifactsId, name: 'Generated Plugin', val: 14, color: SECTION_COLOR, textColor: TEXT_COLOR });
-      links.push({ source: rootId, target: artifactsId, color: LINK_COLOR });
+    // 3. Comandos & Workflows Operacionais
+    if (doc?.commands && doc.commands.length > 0) {
+      const hubCmdId = 'hub_commands';
+      nodes.push({
+        id: hubCmdId,
+        name: 'Workflows & Comandos',
+        category: 'command',
+        val: 13,
+        markdown: `# Workflows & Comandos do Agente\n\nEste grupo reúne todos os comandos e procedimentos operacionais padronizados (SOPs) que o agente pode executar utilizando esta skill.`,
+      });
+      links.push({ source: rootId, target: hubCmdId });
 
-      const mapTree = (node: TreeNode, parentId: string) => {
-         const nodeId = `pkg_${Math.random().toString(36).substring(2, 9)}`;
-         nodes.push({ 
-           id: nodeId, 
-           name: node.name, 
-           val: node.type === 'directory' ? 6 : 4, 
-           color: ITEM_COLOR, 
-           textColor: '#cbd5e1' 
-         });
-         links.push({ source: parentId, target: nodeId, color: LINK_COLOR });
-         
-         if (node.children) {
-            node.children.forEach((child: TreeNode) => mapTree(child, nodeId));
-         }
+      doc.commands.forEach((cmd, i) => {
+        const cmdId = `cmd_${i}`;
+        const stepsMarkdown = cmd.steps.map((st, sIdx) => `${sIdx + 1}. ${st}`).join('\n');
+        nodes.push({
+          id: cmdId,
+          name: `/${cmd.name}`,
+          category: 'command',
+          val: 8,
+          markdown: `# Comando: /${cmd.name}\n\n**Descrição:** ${cmd.description}\n\n### Passos de Execução:\n\n${stepsMarkdown}`,
+        });
+        links.push({ source: hubCmdId, target: cmdId });
+      });
+    }
+
+    // 4. Princípios & Regras (ADRs)
+    if (doc?.principles && doc.principles.length > 0) {
+      const hubPrincId = 'hub_principles';
+      nodes.push({
+        id: hubPrincId,
+        name: 'Regras & Princípios',
+        category: 'principle',
+        val: 12,
+        markdown: `# Regras & Princípios Técnicos (ADRs)\n\nPadrões arquiteturais e restrições mandatórias que o agente deve seguir rigorosamente.`,
+      });
+      links.push({ source: rootId, target: hubPrincId });
+
+      doc.principles.forEach((pr, i) => {
+        const prId = `princ_${i}`;
+        nodes.push({
+          id: prId,
+          name: pr.title,
+          category: 'principle',
+          val: 7,
+          markdown: `# ADR-${String(i + 1).padStart(3, '0')}: ${pr.title}\n\n### Regra Obrigatória\n\n${pr.rule}`,
+        });
+        links.push({ source: hubPrincId, target: prId });
+      });
+    }
+
+    // 5. Conectores & MCP
+    if (doc?.connectors && doc.connectors.length > 0) {
+      const hubMcpId = 'hub_connectors';
+      nodes.push({
+        id: hubMcpId,
+        name: 'Conectores & MCP',
+        category: 'connector',
+        val: 12,
+        markdown: `# Conectores de Ambiente & MCP\n\nFerramentas externas e APIs que o agente necessita para operar em capacidade máxima.`,
+      });
+      links.push({ source: rootId, target: hubMcpId });
+
+      doc.connectors.forEach((conn, i) => {
+        const connId = `conn_${i}`;
+        nodes.push({
+          id: connId,
+          name: conn.id,
+          category: 'connector',
+          val: 7,
+          markdown: `# Conector: ${conn.id}\n\n- **Obrigatório:** ${conn.required ? 'Sim' : 'Opcional'}\n- **Motivo de Uso:** ${conn.reason}`,
+        });
+        links.push({ source: hubMcpId, target: connId });
+      });
+    }
+
+    // 6. Arquivos do Pacote
+    if (skill.skillPackage?.root) {
+      const hubPkgId = 'hub_package';
+      nodes.push({
+        id: hubPkgId,
+        name: 'Arquivos do Pacote',
+        category: 'file',
+        val: 11,
+        markdown: `# Arquivos do Pacote de Skill\n\nEstrutura de arquivos gerada e disponibilizada para importação no Claude, Copilot ou Antigravity.`,
+      });
+      links.push({ source: rootId, target: hubPkgId });
+
+      const addFiles = (node: TreeNode, parentId: string) => {
+        const fId = `file_${Math.random().toString(36).slice(2, 8)}`;
+        const blobContent = node.sha && skill.skillPackage?.blobs[node.sha]?.content;
+        const fileMd = blobContent
+          ? `# Arquivo: ${node.name}\n\n\`\`\`markdown\n${blobContent}\n\`\`\``
+          : `# Pasta: ${node.name}\n\nContêiner de arquivos da skill.`;
+
+        nodes.push({
+          id: fId,
+          name: node.name,
+          category: 'file',
+          val: node.type === 'directory' ? 5 : 3.5,
+          markdown: fileMd,
+        });
+        links.push({ source: parentId, target: fId });
+        if (node.children) {
+          node.children.forEach((c) => addFiles(c, fId));
+        }
       };
-      
+
       if (skill.skillPackage.root.children) {
-        skill.skillPackage.root.children.forEach(child => mapTree(child, artifactsId));
-      } else {
-        mapTree(skill.skillPackage.root, artifactsId);
+        skill.skillPackage.root.children.forEach((c) => addFiles(c, hubPkgId));
       }
     }
 
-    return { nodes, links };
-  }, [skill]);
+    // Filtros
+    if (filter !== 'all') {
+      const filteredNodes = nodes.filter((n) => n.category === 'core' || n.category === filter);
+      const nodeIds = new Set(filteredNodes.map((n) => n.id));
+      const filteredLinks = links.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
+      return { nodes: filteredNodes, links: filteredLinks };
+    }
 
-  // Inicializa o ForceGraph vanilla apenas 1 vez e o atualiza via API nativa
+    return { nodes, links };
+  }, [skill, doc, filter]);
+
+  // Inicializa o ForceGraph nativo com suporte a pan, scroll-zoom, anéis brancos com buraco e hover preciso
   useEffect(() => {
     const host = containerRef.current;
     if (!host) return;
 
     let disposed = false;
-    let hoverNode: FGNode | null = null;
 
-    // O React renderiza `host` e nada dentro dele. O grafo recebe um filho
-    // próprio, criado aqui, para que o React nunca encontre um nó que não criou.
     const fgContainer = document.createElement('div');
     fgContainer.style.width = '100%';
     fgContainer.style.height = '100%';
@@ -208,94 +249,107 @@ export function SkillNodeMap({ skill, focusedNodeId, onNodeFocus, isVisible = tr
 
       const ForceGraph = module.default;
       const graph = (ForceGraph as unknown as () => (element: HTMLElement) => unknown)()(fgContainer) as ForceGraphInstance;
-      
-      graph.graphData(graphData)
+
+      graph
+        .graphData(graphData)
         .nodeRelSize(1)
-        .nodeColor('color')
-        .nodeVal('val')
-        .linkColor('color')
+        .enableNodeDrag(true)
+        .enableZoomInteraction(true)
+        .enablePanInteraction(true)
+        .cooldownTicks(120)
+        .linkColor((link: unknown) => {
+          const s = (link as { source: FGNode }).source;
+          const t = (link as { target: FGNode }).target;
+          const activeNode = hoverNodeRef.current || selectedNodeRef.current;
+          const isConnected = activeNode && (activeNode.id === s?.id || activeNode.id === t?.id);
+          return isConnected ? '#ff3333' : 'rgba(255, 255, 255, 0.08)';
+        })
         .linkWidth((link: unknown) => {
           const s = (link as { source: FGNode }).source;
           const t = (link as { target: FGNode }).target;
-          const currentFocus = currentFocusRef.current;
-          const isFocusedOrHovered = (currentFocus === s?.id || currentFocus === t?.id) || 
-                                     (hoverNode && (hoverNode.id === s?.id || hoverNode.id === t?.id));
-          return isFocusedOrHovered ? 2 : 1;
+          const activeNode = hoverNodeRef.current || selectedNodeRef.current;
+          const isConnected = activeNode && (activeNode.id === s?.id || activeNode.id === t?.id);
+          return isConnected ? 2.5 : 1;
         })
-        .enableNodeDrag(true)
-        .cooldownTicks(100)
         .onEngineStop(() => {
-          if (!currentFocusRef.current) graph.zoomToFit(400, 60);
+          if (!selectedNodeRef.current) graph.zoomToFit(500, 70);
         })
         .onNodeClick((node: unknown) => {
           const fgNode = node as FGNode;
-          if (onNodeFocus) onNodeFocus(fgNode.id);
-          else {
-            graph.centerAt(fgNode.x || 0, fgNode.y || 0, 800);
-            graph.zoom(8, 800);
-          }
+          setSelectedNode(fgNode);
+          selectedNodeRef.current = fgNode;
+          graph.centerAt(fgNode.x || 0, fgNode.y || 0, 700);
+          graph.zoom(4.5, 700);
         })
         .onNodeHover((node: unknown) => {
-          hoverNode = node as FGNode;
+          const fgNode = node as FGNode | null;
+          hoverNodeRef.current = fgNode;
           if (containerRef.current) {
-            containerRef.current.style.cursor = node ? 'pointer' : 'default';
+            containerRef.current.style.cursor = fgNode ? 'pointer' : 'grab';
           }
-          // Redraw for hover effects
-          graph.linkWidth(graph.linkWidth() as (link: unknown) => number);
+        })
+        .nodePointerAreaPaint((nodeObj: unknown, color: string, ctx: CanvasRenderingContext2D) => {
+          const node = nodeObj as FGNode;
+          const r = node.category === 'core' ? 14 : node.val;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(node.x || 0, node.y || 0, r * 1.6, 0, 2 * Math.PI, false);
+          ctx.fill();
         })
         .nodeCanvasObject((nodeObj: unknown, ctx: CanvasRenderingContext2D, globalScale: number) => {
           const node = nodeObj as FGNode;
           const label = node.name;
-          const fontSize = Math.max(10 / globalScale, 3);
-          ctx.font = `${fontSize}px Inter, sans-serif`;
-          
-          const currentFocus = currentFocusRef.current;
-          const isHovered = (hoverNode && hoverNode.id === node.id) || (currentFocus === node.id);
-          const isActiveFocus = !!currentFocus || !!hoverNode;
-          const isDimmed = isActiveFocus && !isHovered && node.id !== 'root';
+          const isHovered = hoverNodeRef.current?.id === node.id;
+          const isSelected = selectedNodeRef.current?.id === node.id;
+          const isCore = node.category === 'core';
 
           const nx = node.x || 0;
           const ny = node.y || 0;
-          
-          if (isHovered) {
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#60a5fa';
+          const baseRadius = isCore ? 12 : node.val;
+          const radius = isHovered || isSelected ? baseRadius * 1.25 : baseRadius;
+          const innerRadius = radius * 0.48; // Buraco central suave
+
+          ctx.save();
+
+          // Anel Branco Antisserrilhado com Buraco Central
+          ctx.beginPath();
+          ctx.arc(nx, ny, radius, 0, 2 * Math.PI, false);
+          ctx.arc(nx, ny, innerRadius, 0, 2 * Math.PI, true); // Recorte do buraco
+
+          if (isHovered || isSelected) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#ff3333';
+            ctx.shadowBlur = 18;
+          } else if (isCore) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+            ctx.shadowBlur = 8;
           } else {
+            ctx.fillStyle = '#ffffff';
             ctx.shadowBlur = 0;
           }
-          
-          ctx.beginPath();
-          ctx.arc(nx, ny, isHovered ? node.val * 1.1 : node.val, 0, 2 * Math.PI, false);
-          ctx.fillStyle = isHovered ? '#ffffff' : (isDimmed ? '#1e293b' : node.color);
-          ctx.fill();
-          
-          ctx.shadowBlur = 0;
-          
-          ctx.lineWidth = 1.5 / globalScale;
-          ctx.strokeStyle = isHovered ? '#93c5fd' : (isDimmed ? 'transparent' : 'rgba(255,255,255,0.1)');
-          ctx.stroke();
 
-          if (!isDimmed || globalScale > 1.2 || node.val > 10) {
+          ctx.fill('evenodd');
+          ctx.restore();
+
+          // Rótulo do nó com tipografia limpa
+          if (globalScale > 0.6 || isCore || isSelected || isHovered) {
+            const fontSize = Math.max(10 / globalScale, 3.2);
+            ctx.font = `${isCore ? '600 ' : '400 '}${fontSize}px Inter, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillStyle = isHovered ? '#ffffff' : (isDimmed ? '#475569' : (node.textColor || '#e2e8f0'));
-            
-            if (isHovered || globalScale > 0.6) {
-              const yOffset = isHovered ? node.val * 1.1 : node.val;
-              ctx.fillText(label, nx, ny + yOffset + (4 / globalScale));
-            }
+            ctx.fillStyle = isSelected || isHovered ? '#ffffff' : '#94a3b8';
+
+            const yOffset = radius + 4 / globalScale;
+            ctx.fillText(label, nx, ny + yOffset);
           }
         });
 
-      // O import pode resolver durante a desmontagem; nesse caso o grafo nasce
-      // já órfão e precisa ser destruído aqui, senão vaza.
       if (disposed) {
-        try { graph._destructor(); } catch { /* já desmontado */ }
+        try { graph._destructor(); } catch { /* noop */ }
         return;
       }
 
-      // A medição inicial acontece aqui porque o efeito de resize roda antes
-      // deste import resolver — sem isto o grafo nasce no tamanho padrão.
       if (host.clientWidth > 0 && host.clientHeight > 0) {
         graph.width(host.clientWidth);
         graph.height(host.clientHeight);
@@ -308,28 +362,23 @@ export function SkillNodeMap({ skill, focusedNodeId, onNodeFocus, isVisible = tr
       disposed = true;
       const graph = fgRef.current;
       fgRef.current = null;
-
-      // Desanexa ANTES de destruir. O `_destructor()` do force-graph mexe no
-      // próprio DOM; com o contêiner já fora da árvore, nada que ele faça
-      // alcança nós que o React ainda espera remover — que era a origem do
-      // "Cannot read properties of null (reading 'removeChild')".
       if (fgContainer.parentNode) {
         fgContainer.parentNode.removeChild(fgContainer);
       }
       if (graph) {
-        try { graph._destructor(); } catch { /* já desmontado */ }
+        try { graph._destructor(); } catch { /* noop */ }
       }
     };
-  }, []); // Run once on mount
+  }, []);
 
-  // Sync graph data when it changes
+  // Atualiza grafo se dados/filtros mudarem
   useEffect(() => {
     if (fgRef.current) {
       fgRef.current.graphData(graphData);
     }
   }, [graphData]);
 
-  // Handle external resize
+  // Redimensionamento responsivo
   useEffect(() => {
     const handleResize = () => {
       if (fgRef.current && containerRef.current) {
@@ -340,35 +389,120 @@ export function SkillNodeMap({ skill, focusedNodeId, onNodeFocus, isVisible = tr
         }
       }
     };
-
-    handleResize(); // Trigger immediately
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isVisible]);
 
-  // Handle external focus
-  useEffect(() => {
-    if (fgRef.current) {
-      if (focusedNodeId) {
-        const node = graphData.nodes.find((n: FGNode) => n.id === focusedNodeId);
-        if (node && node.x !== undefined && node.y !== undefined) {
-          fgRef.current.centerAt(node.x, node.y, 1000);
-          fgRef.current.zoom(8, 1000);
-        }
-      }
-      
-      // Update linkWidth to force redraw so our internal state (currentFocusRef) is respected
-      // This forces a visual update without resetting the graph state!
-      fgRef.current.linkWidth(fgRef.current.linkWidth() as (link: unknown) => number);
+  const handleZoomIn = useCallback(() => {
+    if (!fgRef.current) return;
+    const current = fgRef.current.zoom();
+    fgRef.current.zoom(current * 1.5, 300);
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (!fgRef.current) return;
+    const current = fgRef.current.zoom();
+    fgRef.current.zoom(current / 1.5, 300);
+  }, []);
+
+  const handleFit = useCallback(() => {
+    if (fgRef.current) fgRef.current.zoomToFit(500, 70);
+  }, []);
+
+  const togglePause = useCallback(() => {
+    if (!fgRef.current) return;
+    if (isPaused) {
+      fgRef.current.resumeAnimation();
+      setIsPaused(false);
+    } else {
+      fgRef.current.pauseAnimation();
+      setIsPaused(true);
     }
-  }, [focusedNodeId, graphData]);
+  }, [isPaused]);
+
+  const getCategoryIcon = (category: NodeCategory) => {
+    switch (category) {
+      case 'core': return <Cpu size={16} className={styles.iconCore} />;
+      case 'command': return <Terminal size={16} className={styles.iconCommand} />;
+      case 'module': return <Layers size={16} className={styles.iconModule} />;
+      case 'principle': return <ShieldCheck size={16} className={styles.iconPrinciple} />;
+      case 'connector': return <CheckCircle size={16} className={styles.iconConnector} />;
+      case 'file': return <FileCode size={16} className={styles.iconFile} />;
+      default: return <Cpu size={16} />;
+    }
+  };
 
   return (
-    <div style={{ width: '100%', height: '100%', background: 'transparent' }}>
-      <div 
-        ref={containerRef}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <div className={styles.wrapper}>
+      {/* Controles Flutuantes (HUD) */}
+      <div className={styles.hudTopRight}>
+        <div className={styles.filterGroup}>
+          <button
+            className={`${styles.filterBtn} ${filter === 'all' ? styles.filterBtnActive : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            Todos
+          </button>
+          <button
+            className={`${styles.filterBtn} ${filter === 'command' ? styles.filterBtnActive : ''}`}
+            onClick={() => setFilter('command')}
+          >
+            Comandos
+          </button>
+          <button
+            className={`${styles.filterBtn} ${filter === 'module' ? styles.filterBtnActive : ''}`}
+            onClick={() => setFilter('module')}
+          >
+            Módulos
+          </button>
+          <button
+            className={`${styles.filterBtn} ${filter === 'principle' ? styles.filterBtnActive : ''}`}
+            onClick={() => setFilter('principle')}
+          >
+            Regras
+          </button>
+        </div>
+
+        <div className={styles.controlButtons}>
+          <button className={styles.iconBtn} onClick={handleZoomIn} title="Aproximar (+)">
+            <ZoomIn size={16} />
+          </button>
+          <button className={styles.iconBtn} onClick={handleZoomOut} title="Afastar (-)">
+            <ZoomOut size={16} />
+          </button>
+          <button className={styles.iconBtn} onClick={handleFit} title="Centralizar Tudo">
+            <Maximize2 size={16} />
+          </button>
+          <button className={styles.iconBtn} onClick={togglePause} title={isPaused ? 'Retomar Física' : 'Congelar'}>
+            {isPaused ? <Play size={16} /> : <Pause size={16} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Inspetor Lateral com Leitor de Markdown Formatado */}
+      {selectedNode && (
+        <aside className={styles.inspector}>
+          <header className={styles.inspectorHeader}>
+            <div className={styles.inspectorTitleWrap}>
+              {getCategoryIcon(selectedNode.category)}
+              <h3 className={styles.inspectorTitle}>{selectedNode.name}</h3>
+            </div>
+            <button className={styles.closeBtn} onClick={() => setSelectedNode(null)}>
+              <X size={15} />
+            </button>
+          </header>
+
+          <div className={styles.inspectorContent}>
+            <div className={styles.markdownBody}>
+              <ReactMarkdown>{selectedNode.markdown}</ReactMarkdown>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* Canvas do Grafo Interativo */}
+      <div ref={containerRef} className={styles.graphContainer} />
     </div>
   );
 }

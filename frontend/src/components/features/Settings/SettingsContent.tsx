@@ -18,7 +18,16 @@ import type { Dictionary } from '@/types/dictionary';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Conta {
-  plan: { id: string; label: string; priceCents: number | null; monthlyCredits: number };
+  plan: {
+    id: string;
+    label: string;
+    priceCents: number | null;
+    monthlyCredits: number;
+    /** `true` enquanto o teste corre. A franquia é outra, e menor. */
+    trialing?: boolean;
+    /** Contra o que ler o saldo. Cai para `monthlyCredits` em contas antigas. */
+    allowance?: number;
+  };
   credits: number;
   capabilities: string[];
 }
@@ -37,6 +46,26 @@ interface SettingsContentProps {
   dict: Dictionary;
 }
 
+/**
+ * O que ocupa a tela enquanto a sessão resolve.
+ *
+ * Tem a forma do conteúdo que vem — título, bloco, duas linhas — para nada
+ * saltar quando os dados chegam. Antes deste componente, esse instante
+ * mostrava "Nenhuma conta conectada", e quem estava logado via a própria tela
+ * dizer que não estava.
+ */
+function Esqueleto() {
+  return (
+    <div className={styles.esqueleto} aria-hidden="true">
+      <div className={`${styles.esqLinha} ${styles.esqTitulo}`} />
+      <div className={`${styles.esqLinha} ${styles.esqBloco}`} />
+      <div className={styles.esqLinha} />
+      <div className={`${styles.esqLinha} ${styles.esqMedia}`} />
+      <div className={`${styles.esqLinha} ${styles.esqCurta}`} />
+    </div>
+  );
+}
+
 export function SettingsContent({ dict }: SettingsContentProps) {
   const [activeTab, setActiveTab] = useState<'account' | 'plan' | 'preferences' | 'connections'>('account');
 
@@ -46,7 +75,7 @@ export function SettingsContent({ dict }: SettingsContentProps) {
   const lang = typeof params?.lang === 'string' ? params.lang : 'pt';
   // A conta vem da sessao — antes esta tela mandava editar `?userId=` na URL.
   const { userId, pronto: sessaoPronta } = useSession();
-  const { usuario } = useAuth();
+  const { usuario, carregado } = useAuth();
 
   const [conta, setConta] = useState<Conta | null>(null);
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
@@ -172,16 +201,34 @@ export function SettingsContent({ dict }: SettingsContentProps) {
   const proNoCatalogo = catalogo?.plans.find((p) => p.id === 'pro');
   const jaNoTopo = planoAtual === 'pro' || planoAtual === 'enterprise';
 
+  /**
+   * O que mostrar como preço do plano em vigor.
+   *
+   * `free` não é um tier com preço zero — é a ausência de assinatura. Dizer
+   * "Gratuito" aqui reintroduzia, dentro do app, a mesma ideia de plano grátis
+   * que a página de preços deixou de vender.
+   */
   const precoAtual = (): string => {
     if (!conta) return '—';
-    if (doCatalogo?.monthly == null) {
-      return conta.plan.priceCents === 0 ? (lang === 'pt' ? 'Gratuito' : 'Free') : (lang === 'pt' ? 'Sob consulta' : 'Custom');
-    }
+    if (conta.plan.id === 'free') return lang === 'pt' ? 'sem assinatura' : 'no subscription';
+    if (doCatalogo?.monthly == null) return lang === 'pt' ? 'Sob consulta' : 'Custom';
     return (catalogo?.symbol ?? '') + ' ' + formatarValor(doCatalogo.monthly, lang);
   };
 
+  /**
+   * Assinar um plano.
+   *
+   * Quem já tem assinatura NÃO passa por aqui: trocar de plano é alterar a que
+   * existe, pelo portal, com o valor ajustado proporcionalmente. Abrir um
+   * checkout novo criaria uma segunda assinatura e uma segunda cobrança — o
+   * backend recusa com 409, e esta função nem chega a tentar.
+   */
+  /** Já ocupa o lugar: qualquer troca passa pelo portal. */
+  const temAssinatura = Boolean(conta && conta.plan.id !== 'free');
+
   const assinar = async (plan: 'starter' | 'pro') => {
     if (!userId || !catalogo) return;
+    if (temAssinatura) return gerenciar();
     setErro(null);
     setOcupado(true);
     try {
@@ -199,7 +246,7 @@ export function SettingsContent({ dict }: SettingsContentProps) {
     setErro(null);
     setOcupado(true);
     try {
-      window.location.href = await abrirPortal(userId, lang);
+      window.location.href = await abrirPortal(lang);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao abrir o portal.');
       setOcupado(false);
@@ -370,7 +417,9 @@ export function SettingsContent({ dict }: SettingsContentProps) {
 
         {/* ACCOUNT TAB */}
         {activeTab === 'account' && (
-          usuario
+          !carregado
+            ? <div className={styles.tabContent}><Esqueleto /></div>
+            : usuario
             ? <AccountTab lang={lang} usuario={usuario} dict={dict} />
             : (
               <div className={styles.tabContent}>
@@ -390,132 +439,162 @@ export function SettingsContent({ dict }: SettingsContentProps) {
         {/* PLAN TAB */}
         {activeTab === 'plan' && (
           <div className={styles.tabContent}>
-            {!sessaoPronta ? null : !userId ? (
+            {/* Esqueleto enquanto a sessao E a conta resolvem. Antes eram dois
+                estados vazios em sequencia: area em branco, depois 'Carregando…'
+                dentro do card, depois o valor. Tres saltos para uma informacao. */}
+            {!sessaoPronta || (userId && !conta) ? (
+              <Esqueleto />
+            ) : !userId ? (
               <div className={styles.semConta}>
                 <CreditCard size={30} />
-                <strong>{lang === 'pt' ? 'Nenhuma conta selecionada' : 'No account selected'}</strong>
+                <strong>{lang === 'pt' ? 'Nenhuma conta conectada' : 'No account connected'}</strong>
                 <span>
                   {lang === 'pt'
-                    ? 'Escolha uma conta no canto inferior esquerdo para ver o plano dela e assinar.'
-                    : 'Pick an account at the bottom left to see its plan and subscribe.'}
+                    ? 'Entre na sua conta para ver o plano e assinar.'
+                    : 'Sign in to see your plan and subscribe.'}
                 </span>
               </div>
             ) : (
-              <>
-                <h3 className={styles.sectionTitle}>{dict.settings.plan.currentPlan}</h3>
-
-                <div className={styles.currentPlanCard}>
-                  <div className={styles.planHeader}>
-                    <div className={styles.planBadge}>{conta?.plan.label ?? '…'}</div>
-                    <div className={styles.planPrice}>
-                      {precoAtual()}
-                      {doCatalogo?.monthly != null ? <span>/{lang === 'pt' ? 'mês' : 'mo'}</span> : null}
-                    </div>
-                  </div>
-                  <p className={styles.planDesc}>
-                    {conta
-                      ? `${conta.credits} ${lang === 'pt' ? 'de' : 'of'} ${conta.plan.monthlyCredits} ${lang === 'pt' ? 'créditos neste ciclo' : 'credits this cycle'}`
-                      : (lang === 'pt' ? 'Carregando…' : 'Loading…')}
-                  </p>
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <h3 className={styles.cardTitle}>{dict.settings.plan.currentPlan}</h3>
+                  <p className={styles.cardDesc}>{lang === 'pt' ? 'Gerencie sua assinatura e veja os planos disponíveis' : 'Manage your subscription and view available plans'}</p>
                 </div>
-
-                {/* O período vale para a grade inteira; não é atributo de plano. */}
-                <div className={styles.periodoToggle}>
-                  <button
-                    className={`${styles.periodoBtn} ${periodo === 'monthly' ? styles.periodoAtivo : ''}`}
-                    onClick={() => setPeriodo('monthly')}
-                  >
-                    {lang === 'pt' ? 'Mensal' : 'Monthly'}
-                  </button>
-                  <button
-                    className={`${styles.periodoBtn} ${periodo === 'annual' ? styles.periodoAtivo : ''}`}
-                    onClick={() => setPeriodo('annual')}
-                  >
-                    {lang === 'pt' ? 'Anual' : 'Annual'}
-                    {economiaAnual > 0 && <span className={styles.economia}>−{economiaAnual}%</span>}
-                  </button>
-                </div>
-
-                <div className={styles.grade}>
-                  {(catalogo?.plans ?? []).map((p) => {
-                    const atual = p.id === planoAtual;
-                    const novas = capacidadesNovas(p.id);
-                    const cents = periodo === 'annual' ? p.annualPerMonth ?? p.monthly : p.monthly;
-
-                    return (
-                      <div key={p.id} className={`${styles.planoCard} ${atual ? styles.planoAtual : ''}`}>
-                        <div className={styles.planoNome}>
-                          {p.label}
-                          {atual && (
-                            <span className={styles.planoAtualTag}>
-                              {lang === 'pt' ? 'atual' : 'current'}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className={styles.planoValor}>
-                          {cents == null
-                            ? (p.id === 'free'
-                                ? (lang === 'pt' ? 'Grátis' : 'Free')
-                                : (lang === 'pt' ? 'Sob consulta' : 'Custom'))
-                            : (
-                              <>
-                                {catalogo?.symbol} {formatarValor(cents, lang)}
-                                <small>/{lang === 'pt' ? 'mês' : 'mo'}</small>
-                              </>
-                            )}
-                        </div>
-
-                        <div className={styles.planoCreditos}>
-                          {p.monthlyCredits} {lang === 'pt' ? 'créditos/mês' : 'credits/mo'}
-                          {p.members > 1 && ` · ${p.members} ${lang === 'pt' ? 'membros' : 'members'}`}
-                        </div>
-
-                        <ul className={styles.planoCaps}>
-                          {p.capabilities.map((cap) => (
-                            <li key={cap} className={novas.has(cap) ? styles.capNova : ''}>
-                              <Check size={13} className={styles.checkIcon} />
-                              {rotuloCapacidade(cap, lang)}
-                            </li>
-                          ))}
-                        </ul>
-
-                        {atual ? (
-                          conta?.plan.priceCents ? (
-                            <button className={styles.planoBtn} onClick={gerenciar} disabled={ocupado}>
-                              {ocupado ? (lang === 'pt' ? 'Abrindo…' : 'Opening…')
-                                       : (lang === 'pt' ? 'Gerenciar assinatura' : 'Manage subscription')}
-                            </button>
-                          ) : null
-                        ) : p.purchasable ? (
-                          <button
-                            className={`${styles.planoBtn} ${styles.planoBtnPrimario}`}
-                            onClick={() => assinar(p.id as 'starter' | 'pro')}
-                            disabled={ocupado}
-                          >
-                            {ocupado ? (lang === 'pt' ? 'Abrindo…' : 'Opening…')
-                                     : (lang === 'pt' ? `Assinar ${p.label}` : `Subscribe to ${p.label}`)}
-                          </button>
-                        ) : p.id === 'enterprise' ? (
-                          <a href={`/${lang}/contact`} className={styles.planoBtn} style={{ textAlign: 'center', textDecoration: 'none' }}>
-                            {dict.pricing?.contactSales ?? (lang === 'pt' ? 'Falar com vendas' : 'Contact sales')}
-                          </a>
-                        ) : null}
+                <div className={styles.cardBody}>
+                  <div className={styles.currentPlanCard}>
+                    <div className={styles.planHeader}>
+                      <div className={styles.planBadge}>{conta?.plan.label ?? '…'}</div>
+                      {/* Quem está no teste precisa ver isso aqui, e não só no
+                          e-mail: é a informação que decide se vale cancelar
+                          antes da cobrança. */}
+                      {conta?.plan.trialing ? (
+                        <span className={styles.seloTeste}>
+                          {lang === 'pt' ? 'em teste' : 'in trial'}
+                        </span>
+                      ) : null}
+                      <div className={styles.planPrice}>
+                        {precoAtual()}
+                        {doCatalogo?.monthly != null && !conta?.plan.trialing
+                          ? <span>/{lang === 'pt' ? 'mês' : 'mo'}</span>
+                          : null}
                       </div>
-                    );
-                  })}
+                    </div>
+                    <p className={styles.planDesc}>
+                      {conta
+                        ? `${conta.credits} ${lang === 'pt' ? 'de' : 'of'} ${conta.plan.allowance ?? conta.plan.monthlyCredits} ${
+                            conta.plan.trialing
+                              ? (lang === 'pt' ? 'créditos no teste' : 'credits in the trial')
+                              : (lang === 'pt' ? 'créditos neste ciclo' : 'credits this cycle')
+                          }`
+                        : (lang === 'pt' ? 'Carregando…' : 'Loading…')}
+                    </p>
+                  </div>
+
+                  {/* O período vale para a grade inteira; não é atributo de plano. */}
+                  <div className={styles.periodoToggle}>
+                    <button
+                      className={`${styles.periodoBtn} ${periodo === 'monthly' ? styles.periodoAtivo : ''}`}
+                      onClick={() => setPeriodo('monthly')}
+                    >
+                      {lang === 'pt' ? 'Mensal' : 'Monthly'}
+                    </button>
+                    <button
+                      className={`${styles.periodoBtn} ${periodo === 'annual' ? styles.periodoAtivo : ''}`}
+                      onClick={() => setPeriodo('annual')}
+                    >
+                      {lang === 'pt' ? 'Anual' : 'Annual'}
+                      {economiaAnual > 0 && <span className={styles.economia}>−{economiaAnual}%</span>}
+                    </button>
+                  </div>
+
+                  {/*
+                    `free` fora da grade: não é uma opção que alguém escolhe, é
+                    o estado de quem não escolheu nenhuma. Renderizá-lo como
+                    card, ao lado dos pagos, oferecia "ficar sem plano" como
+                    alternativa — e sem botão, porque não há o que assinar.
+                  */}
+                  <div className={styles.grade}>
+                    {(catalogo?.plans ?? []).filter((p) => p.id !== 'free').map((p) => {
+                      const atual = p.id === planoAtual;
+                      const novas = capacidadesNovas(p.id);
+                      const cents = periodo === 'annual' ? p.annualPerMonth ?? p.monthly : p.monthly;
+
+                      return (
+                        <div key={p.id} className={`${styles.planoCard} ${atual ? styles.planoAtual : ''}`}>
+                          <div className={styles.planoNome}>
+                            {p.label}
+                            {atual && (
+                              <span className={styles.planoAtualTag}>
+                                {lang === 'pt' ? 'atual' : 'current'}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className={styles.planoValor}>
+                            {cents == null
+                              ? (lang === 'pt' ? 'Sob consulta' : 'Custom')
+                              : (
+                                <>
+                                  {catalogo?.symbol} {formatarValor(cents, lang)}
+                                  <small>/{lang === 'pt' ? 'mês' : 'mo'}</small>
+                                </>
+                              )}
+                          </div>
+
+                          <div className={styles.planoCreditos}>
+                            {p.monthlyCredits} {lang === 'pt' ? 'créditos/mês' : 'credits/mo'}
+                            {p.members > 1 && ` · ${p.members} ${lang === 'pt' ? 'membros' : 'members'}`}
+                          </div>
+
+                          <ul className={styles.planoCaps}>
+                            {p.capabilities.map((cap) => (
+                              <li key={cap} className={novas.has(cap) ? styles.capNova : ''}>
+                                <Check size={13} className={styles.checkIcon} />
+                                {rotuloCapacidade(cap, lang)}
+                              </li>
+                            ))}
+                          </ul>
+
+                          {atual ? (
+                            conta?.plan.priceCents ? (
+                              <button className={styles.planoBtn} onClick={gerenciar} disabled={ocupado}>
+                                {ocupado ? (lang === 'pt' ? 'Abrindo…' : 'Opening…')
+                                         : (lang === 'pt' ? 'Gerenciar assinatura' : 'Manage subscription')}
+                              </button>
+                            ) : null
+                          ) : p.purchasable ? (
+                            <button
+                              className={`${styles.planoBtn} ${styles.planoBtnPrimario}`}
+                              onClick={() => assinar(p.id as 'starter' | 'pro')}
+                              disabled={ocupado}
+                            >
+                              {ocupado
+                                ? (lang === 'pt' ? 'Abrindo…' : 'Opening…')
+                                : temAssinatura
+                                  ? (lang === 'pt' ? `Trocar para ${p.label}` : `Switch to ${p.label}`)
+                                  : (lang === 'pt' ? `Assinar ${p.label}` : `Subscribe to ${p.label}`)}
+                            </button>
+                          ) : p.id === 'enterprise' ? (
+                            <a href={`/${lang}/contact`} className={styles.planoBtn} style={{ textAlign: 'center', textDecoration: 'none' }}>
+                              {dict.pricing?.contactSales ?? (lang === 'pt' ? 'Falar com vendas' : 'Contact sales')}
+                            </a>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {!catalogo && (
+                    <p className={styles.planDesc}>
+                      {lang === 'pt'
+                        ? 'Cobrança indisponível neste ambiente — falta STRIPE_SECRET_KEY.'
+                        : 'Billing unavailable in this environment — STRIPE_SECRET_KEY is missing.'}
+                    </p>
+                  )}
+
+                  {erro ? <p className={styles.planDesc}>{erro}</p> : null}
                 </div>
-
-                {!catalogo && (
-                  <p className={styles.planDesc}>
-                    {lang === 'pt'
-                      ? 'Cobrança indisponível neste ambiente — falta STRIPE_SECRET_KEY.'
-                      : 'Billing unavailable in this environment — STRIPE_SECRET_KEY is missing.'}
-                  </p>
-                )}
-
-                {erro ? <p className={styles.planDesc}>{erro}</p> : null}
-              </>
+              </div>
             )}
           </div>
         )}
@@ -523,10 +602,17 @@ export function SettingsContent({ dict }: SettingsContentProps) {
         {/* PREFERENCES TAB */}
         {activeTab === 'preferences' && (
           <div className={styles.tabContent}>
-            <h3 className={styles.sectionTitle}>{dict.settings.preferences.theme}</h3>
-            <div className={styles.themeOptions}>
-              <button className={`${styles.themeBtn} ${styles.themeActive}`}>Dark (Default)</button>
-              <button className={styles.themeBtn} disabled>Light (Soon)</button>
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>{dict.settings.preferences.theme}</h3>
+                <p className={styles.cardDesc}>{lang === 'pt' ? 'Personalize a aparência do sistema' : 'Customize the system appearance'}</p>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={styles.themeOptions}>
+                  <button className={`${styles.themeBtn} ${styles.themeActive}`}>Dark (Default)</button>
+                  <button className={styles.themeBtn} disabled>Light (Soon)</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -534,92 +620,98 @@ export function SettingsContent({ dict }: SettingsContentProps) {
         {/* CONNECTIONS TAB — dispositivos MCP */}
         {activeTab === 'connections' && (
           <div className={styles.tabContent}>
-            <div className={styles.devicesHeader}>
-              <MonitorSmartphone size={20} />
-              <div>
-                <h3 className={styles.sectionTitle}>{dict.settings.connections.devicesTitle}</h3>
-                <p className={styles.devicesSubtitle}>{dict.settings.connections.devicesSubtitle}</p>
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                  <MonitorSmartphone size={20} className={styles.upsellIcon} />
+                  <div>
+                    <h3 className={styles.cardTitle}>{dict.settings.connections.devicesTitle}</h3>
+                    <p className={styles.cardDesc}>{dict.settings.connections.devicesSubtitle}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className={styles.cardBody} style={{ padding: 0 }}>
+                {devicesError && (
+                  <p className={styles.devicesErrMsg} style={{ padding: '1.5rem' }}>{devicesError}</p>
+                )}
+
+                {!devices && !devicesError && (
+                  <div className={styles.devicesLoading} style={{ padding: '1.5rem' }}>
+                    <Loader2 size={16} className={styles.spin} />
+                    <span>{lang === 'pt' ? 'Carregando…' : 'Loading…'}</span>
+                  </div>
+                )}
+
+                {revokeError && (
+                  <p className={styles.devicesErrMsg} style={{ padding: '0 1.5rem' }}>{revokeError}</p>
+                )}
+
+                {devices && devices.length === 0 && (
+                  <div className={styles.devicesEmpty} style={{ border: 'none', margin: '1.5rem' }}>
+                    <WifiOff size={32} />
+                    <p>{dict.settings.connections.noDevices}</p>
+                    <span>{dict.settings.connections.noDevicesHint}</span>
+                  </div>
+                )}
+
+                {devices && devices.length > 0 && (
+                  <ul className={styles.devicesList} style={{ gap: 0 }}>
+                    {devices.map((device, index) => (
+                      <li key={device.id} className={`${styles.deviceItem} ${statusClass(device)}`} style={{ border: 'none', borderRadius: 0, borderBottom: index < devices.length - 1 ? '1px solid var(--border-light)' : 'none', padding: '1.5rem' }}>
+                        <div className={styles.deviceIcon}>
+                          {isRevocable(device) ? <Wifi size={18} /> : <WifiOff size={18} />}
+                        </div>
+
+                        <div className={styles.deviceInfo}>
+                          <div className={styles.deviceRow}>
+                            <span className={styles.deviceCode}>{device.userCode}</span>
+                            <span className={`${styles.deviceStatus} ${statusClass(device)}`}>
+                              {statusLabel(device)}
+                            </span>
+                          </div>
+
+                          {device.tokenPreview && (
+                            <div className={styles.deviceMeta}>
+                              <span>{dict.settings.connections.tokenPreview}:</span>
+                              <code className={styles.tokenPreview}>{device.tokenPreview}</code>
+                            </div>
+                          )}
+
+                          <div className={styles.deviceDates}>
+                            <span>
+                              <Clock size={11} />
+                              {dict.settings.connections.connectedOn}: {new Date(device.createdAt).toLocaleDateString()}
+                            </span>
+                            <span>
+                              {dict.settings.connections.expiresOn}: {new Date(device.expiresAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isRevocable(device) && (
+                          <button
+                            className={styles.revokeBtn}
+                            onClick={() => revokeDevice(device.id)}
+                            disabled={revokingId === device.id}
+                            title={dict.settings.connections.revokeBtn}
+                          >
+                            {revokingId === device.id ? (
+                              <Loader2 size={14} className={styles.spin} />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                            {revokingId === device.id
+                              ? dict.settings.connections.revoking
+                              : dict.settings.connections.revokeBtn}
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
-
-            {devicesError && (
-              <p className={styles.devicesErrMsg}>{devicesError}</p>
-            )}
-
-            {!devices && !devicesError && (
-              <div className={styles.devicesLoading}>
-                <Loader2 size={16} className={styles.spin} />
-                <span>{lang === 'pt' ? 'Carregando…' : 'Loading…'}</span>
-              </div>
-            )}
-
-            {revokeError && (
-              <p className={styles.devicesErrMsg}>{revokeError}</p>
-            )}
-
-            {devices && devices.length === 0 && (
-              <div className={styles.devicesEmpty}>
-                <WifiOff size={32} />
-                <p>{dict.settings.connections.noDevices}</p>
-                <span>{dict.settings.connections.noDevicesHint}</span>
-              </div>
-            )}
-
-            {devices && devices.length > 0 && (
-              <ul className={styles.devicesList}>
-                {devices.map((device) => (
-                  <li key={device.id} className={`${styles.deviceItem} ${statusClass(device)}`}>
-                    <div className={styles.deviceIcon}>
-                      {isRevocable(device) ? <Wifi size={18} /> : <WifiOff size={18} />}
-                    </div>
-
-                    <div className={styles.deviceInfo}>
-                      <div className={styles.deviceRow}>
-                        <span className={styles.deviceCode}>{device.userCode}</span>
-                        <span className={`${styles.deviceStatus} ${statusClass(device)}`}>
-                          {statusLabel(device)}
-                        </span>
-                      </div>
-
-                      {device.tokenPreview && (
-                        <div className={styles.deviceMeta}>
-                          <span>{dict.settings.connections.tokenPreview}:</span>
-                          <code className={styles.tokenPreview}>{device.tokenPreview}</code>
-                        </div>
-                      )}
-
-                      <div className={styles.deviceDates}>
-                        <span>
-                          <Clock size={11} />
-                          {dict.settings.connections.connectedOn}: {new Date(device.createdAt).toLocaleDateString()}
-                        </span>
-                        <span>
-                          {dict.settings.connections.expiresOn}: {new Date(device.expiresAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {isRevocable(device) && (
-                      <button
-                        className={styles.revokeBtn}
-                        onClick={() => revokeDevice(device.id)}
-                        disabled={revokingId === device.id}
-                        title={dict.settings.connections.revokeBtn}
-                      >
-                        {revokingId === device.id ? (
-                          <Loader2 size={14} className={styles.spin} />
-                        ) : (
-                          <Trash2 size={14} />
-                        )}
-                        {revokingId === device.id
-                          ? dict.settings.connections.revoking
-                          : dict.settings.connections.revokeBtn}
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         )}
       </div>

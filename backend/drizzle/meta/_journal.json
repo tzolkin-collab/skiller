@@ -50,6 +50,104 @@
       "when": 1786695104012,
       "tag": "0006_narrow_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786755002083,
+      "tag": "0007_flimsy_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786827928660,
+      "tag": "0008_windy_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786829696887,
+      "tag": "0009_true_inertia",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787377805746,
+      "tag": "0010_rename_claude_to_cursor",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787399345261,
+      "tag": "0011_aspiring_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787407373742,
+      "tag": "0012_tranquil_yellow_claw",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787408499433,
+      "tag": "0013_thankful_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787432045252,
+      "tag": "0014_hard_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1787435264026,
+      "tag": "0015_little_donald_blake",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1787436580855,
+      "tag": "0016_mixed_daimon_hellstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787436580856,
+      "tag": "0017_sessao_espelho",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787436580857,
+      "tag": "0018_sessao_mao_dupla",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787481551694,
+      "tag": "0019_aromatic_pete_wisdom",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787596929473,
+      "tag": "0020_lean_ultimo",
+      "breakpoints": true
     }
   ]
 }

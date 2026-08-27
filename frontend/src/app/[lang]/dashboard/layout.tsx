@@ -9,6 +9,8 @@ import { AccountSwitcher } from './AccountSwitcher';
 import { LogoutButton } from './LogoutButton';
 import { GlobalScrollTracker } from './GlobalScrollTracker';
 import { SessionGate } from '@/components/features/SessionGate/SessionGate';
+import { PlanGate } from '@/components/features/PlanGate/PlanGate';
+import { LiquidLoader } from '@/components/ui/Landing/LiquidLoader';
 import { exigirSessao } from '@/lib/require-session';
 import styles from './layout.module.css';
 
@@ -23,6 +25,9 @@ export default async function DashboardLayout({ children, params }: { children: 
 
   return (
     <div className={styles.layout}>
+      {/* Global Overlays */}
+      <LiquidLoader />
+
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
@@ -77,6 +82,10 @@ export default async function DashboardLayout({ children, params }: { children: 
           {children}
           {/* Sessao que expira com a pessoa ja dentro do painel. */}
           <SessionGate lang={lang} />
+          {/* Ordem importa: sessão morta vence assinatura ausente. Quem perdeu
+              a sessão precisa entrar de novo antes de qualquer oferta fazer
+              sentido — e o PlanGate se esconde sozinho quando não há usuário. */}
+          <PlanGate lang={lang} />
         </div>
       </main>
     </div>

@@ -112,7 +112,7 @@
     "features": "Características",
     "pricing": "Precios",
     "dashboard": "Panel",
-    "getStarted": "Empieza Gratis",
+    "getStarted": "Empezar ahora",
     "vocationalIntelligence": "INTELIGENCIA VOCACIONAL",
     "close": "CERRAR",
     "demoVideo": "VIDEO_DEMO.MP4"
@@ -121,8 +121,7 @@
     "tabs": {
       "pluginSource": "Código Fuente del Plugin",
       "humanView": "Vista Humana",
-      "visualTranscript": "Transcripción Visual",
-      "nodeMap": "Índice (Mapa de Nodos)"
+      "visualTranscript": "Transcripción Visual"
     },
     "transcript": {
       "notAvailable": "Transcripción no disponible.",
@@ -131,11 +130,7 @@
     "sidebar": {
       "pluginFiles": "Archivos del Plugin",
       "sources": "Fuentes",
-      "visualization": "Visualización",
-      "graphControls": "Controles del Grafo",
       "readDoc": "Leer Documento Analítico",
-      "nodeMapHidden": "El Mapa de Nodos está oculto por la Vista Previa del Documento. Cierra el documento con la 'X' o usa este menú para alternar.",
-      "nodeMapVisible": "Estás viendo la topología interactiva generada por IA.",
       "addSource": "Añadir Fuente",
       "download": "Descargar",
       "retry": "Reintentar",
@@ -165,7 +160,6 @@
     },
     "plan": {
       "currentPlan": "Current Plan",
-      "free": "Free Tier",
       "starter": "Starter Tier",
       "pro": "Pro Tier",
       "upgradeToPro": "Upgrade to Pro",
@@ -179,16 +173,26 @@
       "theme": "Theme"
     },
     "connections": {
-      "apiKeys": "API Keys",
-      "notion": "Notion Integration",
-      "github": "GitHub Integration"
+      "devicesTitle": "Clientes Conectados",
+      "devicesSubtitle": "Estas son las sesiones de IDE conectadas a tu servidor MCP de Skiller. Revoca una sesión para desconectar ese cliente inmediatamente.",
+      "noDevices": "Ningún cliente conectado todavía.",
+      "noDevicesHint": "Abre la pestaña Conectores en Skiller y sigue la guía de configuración para conectar tu IDE.",
+      "userCode": "Código de usuario",
+      "tokenPreview": "Token",
+      "connectedOn": "Conectado el",
+      "expiresOn": "Vence",
+      "statusAuthorized": "Activo",
+      "statusPending": "Pendiente",
+      "statusExpired": "Revocado",
+      "revokeBtn": "Revocar",
+      "revoking": "Revocando…",
+      "revokeError": "Error al revocar. Inténtalo de nuevo."
     }
   },
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Choose Your",
     "subtitle": "Start free, upgrade when you need unlimited power. No surprises, cancel anytime.",
-    "free": "Starter",
     "pro": "Skiller Pro",
     "enterprise": "Enterprise",
     "select": "Get Started",
@@ -198,17 +202,11 @@
     "save": "-20%",
     "perMonth": "/mo",
     "billedAnnually": "billed annually",
-    "foreverFree": "free forever",
     "customPricing": "Custom",
     "contactSales": "Contact Sales",
     "footerNote": "Need a custom plan for your team?",
     "contactUs": "Contact us",
     "features": {
-      "free": [
-        "5 public extractions per month",
-        "Markdown Export",
-        "Community Support"
-      ],
       "starter": [
         "Unlimited public skill extractions",
         "Generic AI Prompts",

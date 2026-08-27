@@ -9,7 +9,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #050505; /* Deep, clean black */
+  background-color: #000000; /* Deep, clean black */
   color: var(--text-primary);
   padding: 0 24px;
   position: relative;
@@ -466,11 +466,77 @@
 .valuePropTitle { font-family: var(--font-heading); font-size: 32px; font-weight: 700; margin-bottom: 16px; color: #fff; }
 .valuePropText { font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: rgba(255,255,255,0.7); margin-bottom: 32px; min-height: 100px; }
 
-.mobileStackedLayout { display: none; flex-direction: column; gap: 24px; max-width: 480px; width: 100%; margin-top: 24px; z-index: 1; }
+.mobileStackedLayout { display: none; }
 @media (max-width: 992px) { 
-  .desktopSplitLayout { display: grid; grid-template-columns: 480px 1fr; gap: 24px; align-items: center; max-width: 1280px; width: 100%; margin: 0 auto; z-index: 1; } 
-  .mobileStackedLayout { display: flex; } 
+  .desktopSplitLayout { display: none; } 
+  .mobileStackedLayout { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 24px; 
+    width: 100%; 
+    margin-top: 24px; 
+    z-index: 1; 
+  }
+  .mobileCardWrapper {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .mobileTabs {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 8px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto 8px auto;
+  }
+  .mobileTab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .mobileTab:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .mobileTabActive {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
   .grid { display: none; } 
-  .pageContainer { height: auto; min-height: 100vh; overflow-y: auto; }
-  .container { height: auto; min-height: 100vh; overflow-y: auto; padding: 64px 24px; justify-content: flex-start; }
+  .pageContainer { height: auto; min-height: 100vh; overflow-y: auto; overflow-x: hidden; }
+  .container { height: auto; min-height: 100vh; overflow-y: auto; padding: 24px 24px 64px 24px; justify-content: flex-start; }
+  .header { position: relative; top: 0; transform: none; left: auto; margin-bottom: 24px; margin-top: 16px; }
+}
+
+/*
+ * Badge cortado pelo carrossel.
+ *
+ * `.popularBadge` fica a `top: -12px`, cavalgando a borda de cima do card de
+ * propósito. Só que `.depth-carousel__card` traz `overflow: hidden`, e ele
+ * cortava o badge ao meio — visível só no desktop, porque no empilhado do
+ * mobile não há carrossel para cortar.
+ *
+ * O clip é do componente compartilhado, onde existe para o caso de imagem
+ * (`.depth-carousel__img` usa `object-fit: cover`). Em vez de removê-lo de lá
+ * e quebrar quem vier a usar o carrossel com foto, o override fica escopado
+ * nesta página. Sem risco de canto: aquele elemento não tem `border-radius`,
+ * então o clip só recortava um retângulo.
+ */
+.carouselWrapper :global(.depth-carousel__card) {
+  overflow: visible;
 }

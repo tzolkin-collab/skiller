@@ -1,0 +1,1 @@
+ALTER TABLE "skills" ADD COLUMN "channel_image_url" text;

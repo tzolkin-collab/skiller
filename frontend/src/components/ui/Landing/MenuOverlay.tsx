@@ -19,6 +19,9 @@ export function MenuOverlay({ isOpen, setIsOpen, lang, dict }: MenuOverlayProps)
     { label: dict.nav.features, href: null },
     { label: dict.nav.dashboard, href: `/${lang}/dashboard` },
     { label: dict.nav.pricing, href: `/${lang}/pricing` },
+    { label: dict.nav.login, href: `/${lang}/entrar` },
+    // Quem esta comecando cria conta; o link "Painel" acima continua indo
+    // direto ao painel para quem ja usa.
     { label: dict.nav.getStarted, href: `/${lang}/dashboard` },
   ];
 

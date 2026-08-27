@@ -192,3 +192,50 @@
   transform: translateY(0);
 }
 
+/* Channel Avatar Image */
+.avatarImg {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Subscriber count */
+.subs {
+  color: #888;
+  font-size: 12px;
+}
+
+/* Engagement bar — bottom-left overlay, visible on hover */
+.engagementBar {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.card:hover .engagementBar {
+  opacity: 1;
+}
+
+.engagementItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: #ccc;
+  white-space: nowrap;
+}

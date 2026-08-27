@@ -1,0 +1,87 @@
+/* Cobre o painel inteiro: enquanto a sessão não volta, nada ali funciona. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(10, 10, 10, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.card {
+  width: min(100%, 380px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 1.75rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+}
+
+.icone { color: var(--accent-primary); }
+
+.titulo {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.texto {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.botao:hover { filter: brightness(1.08); }
+.botao:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+
+/* Linha do teste, entre o texto e o botão. Números vêm do backend. */
+.teste {
+  margin: 0 0 0.9rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 51, 51, 0.1);
+  border: 1px solid rgba(255, 51, 51, 0.3);
+  color: var(--accent-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Saída discreta: a oferta é o caminho principal, mas trancar alguém sem
+   nenhuma porta seria pior do que o redirecionamento que isto substituiu. */
+.sair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.sair:hover { color: var(--text-primary); }

@@ -8,10 +8,6 @@ import styles from './LanguageSwitcher.module.css';
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
   { code: 'pt', label: 'Português', flag: '🇧🇷' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
 ];
 
 export function LanguageSwitcher({ 

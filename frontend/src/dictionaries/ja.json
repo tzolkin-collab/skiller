@@ -112,7 +112,7 @@
     "features": "特徴",
     "pricing": "料金",
     "dashboard": "ダッシュボード",
-    "getStarted": "無料で始める",
+    "getStarted": "今すぐ始める",
     "vocationalIntelligence": "職業インテリジェンス",
     "close": "閉じる",
     "demoVideo": "デモビデオ.MP4"
@@ -121,8 +121,7 @@
     "tabs": {
       "pluginSource": "プラグインソース",
       "humanView": "ヒューマンビュー",
-      "visualTranscript": "ビジュアル文字起こし",
-      "nodeMap": "インデックス (ノードマップ)"
+      "visualTranscript": "ビジュアル文字起こし"
     },
     "transcript": {
       "notAvailable": "トランスクリプトは利用できません。",
@@ -131,11 +130,7 @@
     "sidebar": {
       "pluginFiles": "プラグインファイル",
       "sources": "ソース",
-      "visualization": "視覚化",
-      "graphControls": "グラフコントロール",
       "readDoc": "分析ドキュメントを読む",
-      "nodeMapHidden": "ノードマップはドキュメントプレビューによって隠されています。「X」を使用してドキュメントを閉じるか、このメニューを使用して切り替えます。",
-      "nodeMapVisible": "AIによって生成されたインタラクティブなトポロジーを表示しています。",
       "addSource": "ソースを追加",
       "download": "ダウンロード",
       "retry": "再試行",
@@ -165,7 +160,6 @@
     },
     "plan": {
       "currentPlan": "Current Plan",
-      "free": "Free Tier",
       "starter": "Starter Tier",
       "pro": "Pro Tier",
       "upgradeToPro": "Upgrade to Pro",
@@ -179,16 +173,26 @@
       "theme": "Theme"
     },
     "connections": {
-      "apiKeys": "API Keys",
-      "notion": "Notion Integration",
-      "github": "GitHub Integration"
+      "devicesTitle": "接続済みクライアント",
+      "devicesSubtitle": "SkilerのMCPサーバーに接続しているIDEセッションの一覧です。セッションを無効化するとそのクライアントは即座に切断されます。",
+      "noDevices": "まだ接続済みクライアントはありません。",
+      "noDevicesHint": "Skillerのコネクタータブを開き、セットアップガイドに従ってIDEを接続してください。",
+      "userCode": "ユーザーコード",
+      "tokenPreview": "トークン",
+      "connectedOn": "接続日",
+      "expiresOn": "有効期限",
+      "statusAuthorized": "有効",
+      "statusPending": "保留中",
+      "statusExpired": "無効化済み",
+      "revokeBtn": "無効化",
+      "revoking": "無効化中…",
+      "revokeError": "無効化に失敗しました。再試行してください。"
     }
   },
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Choose Your",
     "subtitle": "Start free, upgrade when you need unlimited power. No surprises, cancel anytime.",
-    "free": "Starter",
     "pro": "Skiller Pro",
     "enterprise": "Enterprise",
     "select": "Get Started",
@@ -198,17 +202,11 @@
     "save": "-20%",
     "perMonth": "/mo",
     "billedAnnually": "billed annually",
-    "foreverFree": "free forever",
     "customPricing": "Custom",
     "contactSales": "Contact Sales",
     "footerNote": "Need a custom plan for your team?",
     "contactUs": "Contact us",
     "features": {
-      "free": [
-        "5 public extractions per month",
-        "Markdown Export",
-        "Community Support"
-      ],
       "starter": [
         "Unlimited public skill extractions",
         "Generic AI Prompts",

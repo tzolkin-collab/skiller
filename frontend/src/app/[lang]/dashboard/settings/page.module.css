@@ -1,0 +1,34 @@
+/*
+ * Moldura das configurações.
+ *
+ * Existia como estilo inline dentro do `page.tsx` — `padding: '2rem 0'` e um
+ * `<h1>` com CSS escrito à mão. Funcionava e não pertencia a sistema nenhum:
+ * sem escala de tipo, sem token, sem cabeçalho. É o que fazia a tela parecer
+ * um formulário solto em vez de uma área do produto.
+ */
+
+.pagina {
+  padding: 8px 0 64px;
+}
+
+.cabecalho {
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.titulo {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 60ch;
+}

@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { GlobalScene } from '../GlobalScene/GlobalScene';
+import { useState, useEffect } from 'react';
 import type { Dictionary } from '@/types/dictionary';
 import styles from './LandingPageClient.module.css';
 
@@ -26,15 +24,22 @@ export function LandingPageClient({ dict, lang }: LandingPageClientProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
+  useEffect(() => {
+    // Solicita a localização para melhorar a experiência (salvo nas preferências se o app precisar)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          // Permissão concedida
+        },
+        () => {
+          // Permissão negada ou erro (ignoramos silenciosamente na LP)
+        }
+      );
+    }
+  }, []);
+
   return (
     <div className={styles.pageContainer}>
-      {/* Global WebGL Background */}
-      <div className={styles.sceneLayer}>
-        <Canvas camera={{ position: [0, 0, 10], fov: 50 }}>
-          <GlobalScene />
-        </Canvas>
-      </div>
-
       {/* Global Overlays */}
       <LiquidLoader />
       <Sidebar setIsMenuOpen={setIsMenuOpen} dict={dict} />
@@ -42,6 +47,7 @@ export function LandingPageClient({ dict, lang }: LandingPageClientProps) {
 
       {/* Floating Controls */}
       <div className={styles.topRightControls}>
+        <a href={`/${lang}/entrar`} className={styles.loginLink}>{dict.nav.login}</a>
         <LanguageSwitcher align="right" variant="default" />
       </div>
 

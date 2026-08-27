@@ -1,0 +1,35 @@
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.crumbItem {
+  display: flex;
+  align-items: center;
+}
+
+.separator {
+  margin: 0 0.5rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--text-primary);
+}
+
+.current {
+  color: var(--text-primary);
+  font-weight: 500;
+}

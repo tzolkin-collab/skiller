@@ -120,7 +120,7 @@ function renderGemini(doc: SkillDocument): PackageFile[] {
   ];
 }
 
-function renderClaude(doc: SkillDocument): PackageFile[] {
+function renderCursor(doc: SkillDocument): PackageFile[] {
   const frontmatter = [
     '---',
     `description: ${yamlString(doc.description)}`,
@@ -130,16 +130,23 @@ function renderClaude(doc: SkillDocument): PackageFile[] {
     ''
   ].join('\n');
   return [
-    { path: '.cursorrules', content: frontmatter + renderBody(doc, 'cursor-rules', '.mdc') },
+    { path: '.cursor/rules/main.mdc', content: frontmatter + renderBody(doc, 'cursor-rules', '.mdc') },
     { path: 'human.md', content: renderHumanGuide(doc) },
-    ...moduleFiles(doc, 'cursor-rules', '.mdc')
+    ...moduleFiles(doc, '.cursor/rules', '.mdc')
+  ];
+}
+
+function renderClaude(doc: SkillDocument): PackageFile[] {
+  return [
+    { path: 'CLAUDE.md', content: `# ${escapeMarkdownBody(doc.title)}\n\n` + renderBody(doc, 'modules', '.md') },
+    { path: 'human.md', content: renderHumanGuide(doc) }
   ];
 }
 
 function renderCopilot(doc: SkillDocument): PackageFile[] {
   return [
     {
-      path: 'copilot-instructions.md',
+      path: '.github/copilot-instructions.md',
       content: `# ${escapeMarkdownBody(doc.title)}\n\n` + renderBody(doc, 'modules', '.md')
     },
     { path: 'human.md', content: renderHumanGuide(doc) },
@@ -196,7 +203,7 @@ server.tool(
   'Full content of one knowledge module.',
   { slug: z.string() },
   async ({ slug }) => {
-    const found = knowledge.modules.find((m: { slug: string }) => m.slug === slug);
+    const found = knowledge.modules.find((m) => m.slug === slug);
     return {
       content: [
         { type: 'text', text: found ? JSON.stringify(found, null, 2) : \`No module "\${slug}".\` }
@@ -210,7 +217,7 @@ server.tool('list_modules', 'Available modules, by slug.', {}, async () => ({
     {
       type: 'text',
       text: JSON.stringify(
-        knowledge.modules.map((m: { slug: string; title: string; summary: string }) => ({
+        knowledge.modules.map((m) => ({
           slug: m.slug,
           title: m.title,
           summary: m.summary
@@ -221,6 +228,15 @@ server.tool('list_modules', 'Available modules, by slug.', {}, async () => ({
     }
   ]
 }));
+
+server.tool(
+  'get_connectors',
+  'MCP connectors this skill requires or recommends. Each entry has id, reason and required.',
+  {},
+  async () => ({
+    content: [{ type: 'text', text: JSON.stringify(knowledge.connectors ?? [], null, 2) }]
+  })
+);
 
 await server.connect(new StdioServerTransport());
 `;
@@ -255,7 +271,7 @@ await server.connect(new StdioServerTransport());
   ].join('\n');
 
   return [
-    { path: 'src/index.ts', content: server },
+    { path: 'src/index.js', content: server },
     { path: 'src/knowledge/skill.json', content: JSON.stringify(knowledge, null, 2) },
     { path: 'package.json', content: JSON.stringify(pkg, null, 2) },
     { path: 'README.md', content: readme },
@@ -265,6 +281,7 @@ await server.connect(new StdioServerTransport());
 
 const RENDERERS: Record<SkillFormat, (doc: SkillDocument) => PackageFile[]> = {
   gemini: renderGemini,
+  cursor: renderCursor,
   claude: renderClaude,
   copilot: renderCopilot,
   generic: renderGeneric,
@@ -280,6 +297,7 @@ export function renderSkill(doc: SkillDocument, format: SkillFormat): PackageFil
 export function renderAllFormats(doc: SkillDocument): Record<SkillFormat, PackageFile[]> {
   return {
     gemini: renderGemini(doc),
+    cursor: renderCursor(doc),
     claude: renderClaude(doc),
     copilot: renderCopilot(doc),
     generic: renderGeneric(doc),

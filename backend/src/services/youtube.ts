@@ -2,7 +2,7 @@ export async function getPlaylistVideos(playlistId: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error('YOUTUBE_API_KEY is missing');
 
-  let videos: { videoId: string; title: string; description: string; publishedAt: string; thumbnailUrl: string }[] = [];
+  const videos: { videoId: string; title: string; description: string; publishedAt: string; thumbnailUrl: string }[] = [];
   let nextPageToken = '';
   
   do {
@@ -51,10 +51,28 @@ export async function getPlaylistDetails(playlistId: string) {
   if (data.items.length === 0) throw new Error('Playlist not found');
   
   const item = data.items[0];
+  const channelId = item.snippet.channelId;
+  let channelImageUrl = null;
+
+  if (channelId) {
+    try {
+      const channelRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`);
+      if (channelRes.ok) {
+        const channelData = await channelRes.json();
+        if (channelData.items && channelData.items.length > 0) {
+          channelImageUrl = channelData.items[0].snippet.thumbnails?.default?.url || channelData.items[0].snippet.thumbnails?.high?.url || null;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch channel image:', e);
+    }
+  }
+
   return {
     playlistTitle: item.snippet.title,
     channelName: item.snippet.channelTitle,
-    channelId: item.snippet.channelId
+    channelId,
+    channelImageUrl
   };
 }
 
@@ -65,7 +83,7 @@ export function extractPlaylistId(url: string): string | null {
     if (listId) return listId;
     
     // Fallback regex
-    const match = url.match(/[?&]list=([^#\&\?]+)/);
+    const match = url.match(/[?&]list=([^#&?]+)/);
     return match ? match[1] : null;
   } catch {
     return null;
@@ -91,7 +109,7 @@ export function extractVideoId(url: string): string | null {
   }
 
   // Regex fallback for edge cases
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([^"&?\/\s]{11})/);
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([^"&?/\s]{11})/);
   return match ? match[1] : null;
 }
 
@@ -107,9 +125,26 @@ export async function getVideoDetails(videoId: string) {
   }
   
   const data = await res.json();
-  if (!data.items || data.items.length === 0) throw new Error('Video not found');
+  if (!data.items || data.items.length === 0) return null;
   
   const item = data.items[0];
+  const channelId = item.snippet.channelId;
+  let channelImageUrl = null;
+
+  if (channelId) {
+    try {
+      const channelRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`);
+      if (channelRes.ok) {
+        const channelData = await channelRes.json();
+        if (channelData.items && channelData.items.length > 0) {
+          channelImageUrl = channelData.items[0].snippet.thumbnails?.default?.url || channelData.items[0].snippet.thumbnails?.high?.url || null;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch channel image:', e);
+    }
+  }
+
   return {
     videoId: item.id,
     title: item.snippet.title,
@@ -117,6 +152,7 @@ export async function getVideoDetails(videoId: string) {
     publishedAt: item.snippet.publishedAt,
     thumbnailUrl: item.snippet.thumbnails?.maxres?.url || item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || '',
     channelName: item.snippet.channelTitle,
-    channelId: item.snippet.channelId
+    channelId,
+    channelImageUrl
   };
 }

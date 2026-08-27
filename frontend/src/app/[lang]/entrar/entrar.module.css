@@ -1,0 +1,397 @@
+/*
+ * A porta de entrada, em dois painéis.
+ *
+ * Esquerda é argumento, direita é ação — padrão que a Stripe consolidou porque
+ * resolve um problema real: quem chega vindo da landing precisa lembrar por que
+ * estava vindo, e um formulário sozinho no meio da tela não diz nada.
+ *
+ * No estreito o painel some inteiro em vez de virar um bloco de texto que a
+ * pessoa rola para passar. O argumento já foi feito na landing; aqui atrapalha.
+ */
+
+.tela {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ---------------------------------------------------------------- painel */
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 44px 48px;
+  border-right: 1px solid #1f1f1f;
+  /* Um brilho fraco atrás do argumento. Sutil de propósito: o contraste que
+     importa é entre os dois painéis, não dentro deste. */
+  background:
+    radial-gradient(70% 55% at 12% 0%, rgba(255, 51, 51, 0.09), transparent 70%),
+    var(--bg-primary);
+}
+
+.marca {
+  display: inline-flex;
+  opacity: 0.92;
+  transition: opacity 0.15s ease;
+}
+
+.marca:hover { opacity: 1; }
+
+.painelCorpo { max-width: 30rem; }
+
+.painelTitulo {
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  margin: 0 0 16px;
+}
+
+.painelTitulo em {
+  font-style: normal;
+  color: var(--accent-primary);
+}
+
+.painelTexto {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 38ch;
+}
+
+.provas {
+  list-style: none;
+  padding: 0;
+  margin: 32px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.provas li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.provas svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--accent-primary);
+}
+
+.painelRodape {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.painelRodape a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.painelRodape a:hover { color: var(--text-primary); }
+
+/* ---------------------------------------------------------------- lado do form */
+
+.lado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44px 32px;
+  background: var(--bg-secondary);
+}
+
+.cartao {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.marcaMobile { display: none; }
+
+.titulo {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.subtitulo {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 18px;
+  transition: color 0.15s ease;
+}
+
+.voltar:hover { color: var(--text-primary); }
+
+/* ---------------------------------------------------------------- provedores */
+
+.provedores {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btnProvedor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid #2a2a2a;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.btnProvedor:hover:not(:disabled) {
+  border-color: #3a3a3a;
+  background: var(--bg-elevated);
+}
+
+.btnProvedor:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.iconeProvedor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.separador {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.separador::before,
+.separador::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #262626;
+}
+
+/* ---------------------------------------------------------------- formulário */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.campo > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.dica {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-primary);
+  border: 1px solid #2a2a2a;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  /* 16px evita o zoom automático do Safari no iOS ao focar. */
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input::placeholder { color: var(--text-muted); }
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.termos {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.termos input {
+  flex: none;
+  margin-top: 2px;
+  accent-color: var(--accent-primary);
+  width: 15px;
+  height: 15px;
+}
+
+.termos a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.termos a:hover { color: var(--text-primary); }
+
+.btnPrincipal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 20px;
+  margin-top: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.btnPrincipal:hover:not(:disabled) { background: var(--accent-secondary); }
+.btnPrincipal:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------- mensagens */
+
+.mensagem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mensagem svg { flex: none; margin-top: 2px; }
+
+.mensagemErro {
+  background: rgba(255, 51, 51, 0.1);
+  border: 1px solid rgba(255, 51, 51, 0.3);
+  color: var(--accent-primary);
+}
+
+.mensagemOk {
+  background: var(--bg-elevated);
+  border: 1px solid #2f2f2f;
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------- alternativas */
+
+.alternativas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #262626;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.alternativas button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.alternativas button:hover { color: var(--accent-primary); }
+
+.girando { animation: girar 1s linear infinite; }
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .girando { animation: none; }
+}
+
+/* ---------------------------------------------------------------- estreito */
+
+@media (max-width: 900px) {
+  .tela { grid-template-columns: 1fr; }
+
+  /* O argumento já foi feito na landing. Aqui viraria texto para rolar antes
+     de chegar no formulário, que é o que a pessoa veio fazer. */
+  .painel { display: none; }
+
+  .lado {
+    align-items: flex-start;
+    padding: 32px 20px 64px;
+    background: var(--bg-primary);
+  }
+
+  .marcaMobile {
+    display: inline-flex;
+    margin-bottom: 28px;
+  }
+}

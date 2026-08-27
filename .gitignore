@@ -18,3 +18,13 @@ migrate-temp.js
 # Respostas cruas do LLM gravadas com SKILLER_RECORD_LLM=1.
 # Contêm transcrição da fonte — não versionar.
 backend/fixtures/
+
+# Scripts descartáveis da raiz com credenciais ou testes avulsos.
+test.js
+youtube-test.js
+check-logs.js
+get-logs.js
+
+# Diretórios de IDE/agente que não pertencem ao projeto.
+.codex/
+.claude/

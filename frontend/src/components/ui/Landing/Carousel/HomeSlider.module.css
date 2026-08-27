@@ -246,7 +246,6 @@
 
 .word {
   display: inline-block;
-  will-change: transform;
   animation-duration: 0.9s;
   animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   animation-fill-mode: both;
@@ -258,11 +257,18 @@
   animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   animation-fill-mode: both;
   animation-delay: calc(140ms + var(--i, 0) * 45ms);
-  will-change: transform, opacity;
 }
 
 .brandLine {
   display: block;
+}
+
+/* Restrict hardware acceleration to the active/leaving slides to prevent VRAM bloat */
+.slide.active .word,
+.slide.leave .word,
+.slide.active .reveal,
+.slide.leave .reveal {
+  will-change: transform, opacity;
 }
 
 /* -- entrances ------------------------------------------------------------ */

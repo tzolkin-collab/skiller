@@ -1,8 +1,7 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Play, Sparkles, Send, MessageSquare } from 'lucide-react';
-import { Card } from '@/components/ui/Card/Card';
-import type { SkillDetail } from '@/types/api';
+import ReactMarkdown, { type Components } from 'react-markdown';
+
+import type { SkillDetail, TreeNode } from '@/types/api';
 import type { Dictionary } from '@/types/dictionary';
 import styles from './human.module.css';
 
@@ -14,23 +13,50 @@ interface HumanWorkspaceProps {
 }
 
 export function HumanWorkspace({ skillData, dict }: HumanWorkspaceProps) {
+  const markdownComponents: Components = {
+    img: ({ node, src, alt, ...props }) => {
+      if (src && typeof src === 'string' && (src.startsWith('./assets/') || src.startsWith('assets/'))) {
+        const filename = src.replace('./assets/', '').replace('assets/', '');
+        
+        const findAsset = (tree: TreeNode[], currentPath: string): TreeNode | undefined => {
+          for (const child of tree) {
+            const fullPath = currentPath ? `${currentPath}/${child.name}` : child.name;
+            if (fullPath === `assets/${filename}` || fullPath === `./assets/${filename}`) {
+              return child;
+            }
+            if (child.children) {
+              const found = findAsset(child.children, fullPath);
+              if (found) return found;
+            }
+          }
+          return undefined;
+        };
+
+        if (skillData?.skillPackage?.root?.children) {
+          const fileNode = findAsset(skillData.skillPackage.root.children, '');
+          if (fileNode?.sha && skillData.skillPackage.blobs[fileNode.sha]) {
+            const base64 = skillData.skillPackage.blobs[fileNode.sha].content;
+            const ext = filename.split('.').pop()?.toLowerCase();
+            const mime = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : 'image/png';
+            return <img {...props} src={`data:${mime};base64,${base64}`} alt={alt} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid var(--border-light)' }} />;
+          }
+        }
+      }
+      return <img {...props} src={src} alt={alt} />;
+    }
+  };
+
   return (
     <div className={styles.humanContainer}>
       
       {/* LEFT PANE: STUDY GUIDE */}
       <div className={styles.studyGuidePane}>
-        <div className={styles.studyGuideHeader}>
-          <h1 className={styles.guideTitle}>{skillData.playlistTitle || skillData.name || 'Guia de Estudos'}</h1>
-          <div className={styles.guideMeta}>
-            <span className={styles.badge}><Sparkles size={12}/> Síntese de IA</span>
-            <span className={styles.metaText}>{skillData.videos?.length || 1} fontes processadas</span>
-          </div>
-        </div>
+
 
         <div className={styles.studyGuideContent}>
           {skillData.humanMdContent ? (
             <div className={styles.readingTypography}>
-              <ReactMarkdown>{skillData.humanMdContent}</ReactMarkdown>
+              <ReactMarkdown components={markdownComponents}>{skillData.humanMdContent}</ReactMarkdown>
             </div>
           ) : (
             <div className={styles.emptyState}>
@@ -40,50 +66,7 @@ export function HumanWorkspace({ skillData, dict }: HumanWorkspaceProps) {
         </div>
       </div>
 
-      {/* RIGHT PANE: TOOLS & CHAT */}
-      <div className={styles.toolsPane}>
-        
-        {/* AUDIO OVERVIEW MOCK */}
-        <Card className={styles.audioCard} glass>
-          <div className={styles.audioHeader}>
-            <h3 className={styles.audioTitle}>Audio Overview</h3>
-            <span className={styles.betaBadge}>BETA</span>
-          </div>
-          <p className={styles.audioDesc}>Ouça um podcast gerado por IA debatendo os principais conceitos deste conteúdo.</p>
-          <button className={styles.audioPlayBtn}>
-            <Play size={18} fill="currentColor" />
-            <span>Gerar e Ouvir (Mock)</span>
-          </button>
-        </Card>
 
-        {/* CHAT INTERFACE MOCK */}
-        <div className={styles.chatContainer}>
-          <div className={styles.chatHeader}>
-            <MessageSquare size={18} />
-            <span style={{ fontWeight: 600 }}>Conversar com a Skill</span>
-          </div>
-          
-          <div className={styles.chatHistory}>
-            <div className={styles.chatMessageBot}>
-              <p>Olá! Eu li todo o conteúdo desta skill para você. O que você gostaria de explorar mais a fundo?</p>
-            </div>
-          </div>
-
-          <div className={styles.chatInputWrapper}>
-            <input 
-              type="text" 
-              className={styles.chatInput} 
-              placeholder="Faça uma pergunta sobre o conteúdo..." 
-              disabled
-            />
-            <button className={styles.chatSendBtn} disabled>
-              <Send size={16} />
-            </button>
-          </div>
-          <p className={styles.chatDisclaimer}>O chat ao vivo será implementado na próxima versão.</p>
-        </div>
-
-      </div>
 
     </div>
   );

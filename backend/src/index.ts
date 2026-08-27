@@ -3,6 +3,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { config } from 'dotenv'
 import path from 'path'
+// Em produção (Docker/EasyPanel) as variáveis vêm do ambiente — não há ../. env.
+// Em dev o env-cmd já carrega, mas este fallback cobre execuções avulsas.
 config({ path: path.resolve(process.cwd(), '../.env') })
 import { skillsRouter } from './routes/skills.js'
 import { queueRouter } from './routes/queue.js'
@@ -14,7 +16,7 @@ import { billingRouter } from './routes/billing.js'
 import { youtubeRouter } from './routes/youtube.js'
 import './queue/worker.js' // initialize the worker
 
-const app = new Hono()
+export const app = new Hono()
 
 // `credentials: true` e origem explicita: com `*` o navegador recusa enviar o
 // cookie de sessao, e a autenticacao inteira nao funcionaria em outro dominio.
@@ -32,8 +34,13 @@ function origemPermitida(origin: string): string | undefined {
   return undefined
 }
 
-app.use('/api/*', cors({
-  origin: (origin) => origemPermitida(origin),
+app.use('/*', cors({
+  origin: (origin) => {
+    const permitida = origemPermitida(origin);
+    if (permitida) return permitida;
+    // Permite chamadas MCP e metadados de qualquer origem
+    return origin || '*';
+  },
   credentials: true,
 }))
 
@@ -42,7 +49,10 @@ app.get('/', (c) => {
 })
 
 import { mcpRouter } from './routes/mcp.js'
+import { sessionsRouter } from './routes/sessions.js'
+import { wellKnownRouter } from './routes/well-known.js'
 
+app.route('/.well-known', wellKnownRouter)
 app.route('/api/skills', skillsRouter)
 app.route('/api/queue', queueRouter)
 app.route('/api/kb', kbRouter)
@@ -52,6 +62,7 @@ app.route('/api/account', accountRouter)
 app.route('/api/billing', billingRouter)
 app.route('/api/youtube', youtubeRouter)
 app.route('/api/mcp', mcpRouter)
+app.route('/api/sessions', sessionsRouter)
 
 const port = parseInt(process.env.BACKEND_PORT || '3001')
 console.log(`Server is running on port ${port}`)

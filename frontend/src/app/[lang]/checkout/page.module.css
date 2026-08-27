@@ -1,0 +1,321 @@
+/*
+ * Checkout em dois painéis.
+ *
+ * O que está aqui estiliza a MOLDURA — colunas, resumo, botão, espaçamento.
+ * Os campos de pagamento vivem num iframe da Stripe e este CSS não os alcança;
+ * quem os estiliza é `lib/stripe-appearance.ts`. Mantenha os dois de acordo:
+ * `--bg-form` abaixo precisa bater com o `colorBackground` de lá, senão os
+ * campos flutuam sobre um fundo de tom diferente do painel.
+ */
+
+.pagina {
+  --bg-form: #101010;
+  --linha: #1f1f1f;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  background: var(--bg-form);
+  color: var(--text-primary);
+}
+
+/*
+ * O conteúdo de cada metade se aproxima da divisória em vez de encostar nas
+ * bordas da tela — é o que faz a página ler como um documento de duas colunas
+ * e não como duas páginas coladas.
+ */
+.colResumo {
+  background: var(--bg-primary);
+  border-right: 1px solid var(--linha);
+  padding: 56px 48px 56px 32px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.colForm {
+  background: var(--bg-form);
+  padding: 56px 32px 56px 48px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.interno {
+  width: 100%;
+  max-width: 400px;
+}
+
+.colForm .interno {
+  max-width: 460px;
+}
+
+@media (max-width: 900px) {
+  .pagina {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .colResumo {
+    border-right: none;
+    border-bottom: 1px solid var(--linha);
+    padding: 28px 20px;
+    justify-content: flex-start;
+  }
+
+  .colForm {
+    padding: 28px 20px 64px;
+  }
+
+  .interno,
+  .colForm .interno {
+    max-width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------- resumo */
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 36px;
+  transition: color 0.15s ease;
+}
+
+.voltar:hover {
+  color: var(--text-primary);
+}
+
+.marca {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 28px;
+}
+
+.rotuloValor {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+}
+
+/* O número é a informação principal da coluna; tudo o mais é contexto dele. */
+.valor {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.depois {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 10px 0 0;
+}
+
+.selo {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 51, 51, 0.12);
+  border: 1px solid rgba(255, 51, 51, 0.35);
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.seloNeutro {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.itens {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--linha);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.itemNome {
+  color: var(--text-secondary);
+}
+
+.itemValor {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.nota {
+  margin: 20px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.rodape {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--linha);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- formulário */
+
+.tituloForm {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 32px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.secaoTitulo {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.campo {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-primary);
+  border: 1px solid #262626;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  /* 16px evita o zoom automático do Safari no iOS ao focar um input. */
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campo::placeholder {
+  color: var(--text-muted);
+}
+
+.campo:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.ajuda {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 15px 20px;
+  margin-top: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.botao:hover:not(:disabled) {
+  background: var(--accent-secondary);
+}
+
+.botao:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.termos {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.termos a {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.termos a:hover {
+  color: var(--text-primary);
+}
+
+/* ---------------------------------------------------------------- estados */
+
+.carregando {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.erro {
+  color: var(--accent-primary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Enquanto o Stripe não devolve o total, o espaço já fica reservado — sem
+   isto a coluna inteira pula quando o valor chega. */
+.esqueleto {
+  display: block;
+  height: 44px;
+  width: 168px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+/* Seletor de moeda do Adaptive Pricing, acima das formas de pagamento. */
+.moeda {
+  margin-bottom: 4px;
+}

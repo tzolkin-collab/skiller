@@ -112,7 +112,7 @@
     "features": "特性",
     "pricing": "定价",
     "dashboard": "仪表板",
-    "getStarted": "免费开始",
+    "getStarted": "立即开始",
     "vocationalIntelligence": "职业智能",
     "close": "关闭",
     "demoVideo": "演示视频.MP4"
@@ -121,8 +121,7 @@
     "tabs": {
       "pluginSource": "插件源码",
       "humanView": "人类视图",
-      "visualTranscript": "可视化文字记录",
-      "nodeMap": "索引 (节点图)"
+      "visualTranscript": "可视化文字记录"
     },
     "transcript": {
       "notAvailable": "暂无文字记录。",
@@ -131,11 +130,7 @@
     "sidebar": {
       "pluginFiles": "插件文件",
       "sources": "来源",
-      "visualization": "可视化",
-      "graphControls": "图表控制",
       "readDoc": "阅读分析文档",
-      "nodeMapHidden": "节点图被文档预览遮挡。使用“X”关闭文档或使用此菜单进行切换。",
-      "nodeMapVisible": "您正在查看由 AI 生成的交互式拓扑图。",
       "addSource": "添加来源",
       "download": "下载",
       "retry": "重试",
@@ -165,7 +160,6 @@
     },
     "plan": {
       "currentPlan": "Current Plan",
-      "free": "Free Tier",
       "starter": "Starter Tier",
       "pro": "Pro Tier",
       "upgradeToPro": "Upgrade to Pro",
@@ -179,16 +173,26 @@
       "theme": "Theme"
     },
     "connections": {
-      "apiKeys": "API Keys",
-      "notion": "Notion Integration",
-      "github": "GitHub Integration"
+      "devicesTitle": "已连接的客户端",
+      "devicesSubtitle": "这些是已连接到您的 Skiller MCP 服务器的 IDE 会话。撤销会话可立即断开该客户端的连接。",
+      "noDevices": "暂无已连接的客户端。",
+      "noDevicesHint": "在 Skiller 中打开连接器标签页，按照设置指南连接您的 IDE。",
+      "userCode": "用户代码",
+      "tokenPreview": "令牌",
+      "connectedOn": "连接于",
+      "expiresOn": "到期于",
+      "statusAuthorized": "活跃",
+      "statusPending": "待处理",
+      "statusExpired": "已撤销",
+      "revokeBtn": "撤销",
+      "revoking": "撤销中…",
+      "revokeError": "撤销失败，请重试。"
     }
   },
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Choose Your",
     "subtitle": "Start free, upgrade when you need unlimited power. No surprises, cancel anytime.",
-    "free": "Starter",
     "pro": "Skiller Pro",
     "enterprise": "Enterprise",
     "select": "Get Started",
@@ -198,17 +202,11 @@
     "save": "-20%",
     "perMonth": "/mo",
     "billedAnnually": "billed annually",
-    "foreverFree": "free forever",
     "customPricing": "Custom",
     "contactSales": "Contact Sales",
     "footerNote": "Need a custom plan for your team?",
     "contactUs": "Contact us",
     "features": {
-      "free": [
-        "5 public extractions per month",
-        "Markdown Export",
-        "Community Support"
-      ],
       "starter": [
         "Unlimited public skill extractions",
         "Generic AI Prompts",

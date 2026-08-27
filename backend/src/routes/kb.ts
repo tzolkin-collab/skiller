@@ -11,10 +11,15 @@
  */
 import { Hono, type Context } from 'hono';
 import { db } from '../db/db.js';
-import { kbPages, kbLog } from '../db/schema.js';
+import { kbPages, kbLog, skills } from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { getErrorMessage } from '../lib/errors.js';
-import { parseFrontmatter, INDEX_PATH, LOG_PATH, CANVAS_PATH, appendLog, today } from '../lib/kb.js';
+import {
+  parseFrontmatter, buildPage, pathFor, type Frontmatter,
+  INDEX_PATH, LOG_PATH, CANVAS_PATH, appendLog, today,
+  upsertIndexEntry, emptyCanvas, addCanvasNode
+} from '../lib/kb.js';
+import { ingestarSkillNaKb } from '../lib/kb-skill-bridge.js';
 import { usuarioAtual, naoAutenticado } from '../lib/current-user.js';
 import { planOf, denyUnless } from '../lib/entitlements.js';
 
@@ -48,6 +53,64 @@ async function exigirAcessoKb(c: Context): Promise<Acesso> {
 
   return { userId };
 }
+
+/** Inicializa a estrutura do cofre da Base da IA para o usuário. */
+kbRouter.post('/init', async (c) => {
+  const acesso = await exigirAcessoKb(c);
+  if ('negar' in acesso) return acesso.negar;
+  const { userId } = acesso;
+
+  try {
+    const data = today();
+
+    // 1. Index mestre limpo
+    await db
+      .insert(kbPages)
+      .values({ userId, path: INDEX_PATH, content: '# Índice da Base da IA\n', title: 'Índice' })
+      .onConflictDoNothing();
+
+    // 2. Log append-only inicial
+    const initialLog = appendLog('# Log de Alterações\n', data, 'init', 'Cofre Inicializado', 'painel');
+    await db
+      .insert(kbPages)
+      .values({ userId, path: LOG_PATH, content: initialLog, title: 'Log' })
+      .onConflictDoNothing();
+
+    // 3. Canvas visual inicial
+    const canvas = emptyCanvas();
+    await db
+      .insert(kbPages)
+      .values({ userId, path: CANVAS_PATH, content: JSON.stringify(canvas), title: 'Canvas' })
+      .onConflictDoNothing();
+
+    await db.insert(kbLog).values({
+      userId,
+      action: 'init',
+      summary: 'Inicialização da Base da IA',
+      channel: 'painel',
+    });
+
+    // 4. Ingesta automaticamente todas as skills existentes da conta (migração / inicialização)
+    const userSkills = await db
+      .select()
+      .from(skills)
+      .where(and(eq(skills.userId, userId), eq(skills.status, 'completed')));
+
+    let skillsIngestadas = 0;
+    for (const s of userSkills) {
+      const qte = await ingestarSkillNaKb(userId, s);
+      if (qte > 0) skillsIngestadas++;
+    }
+
+    return c.json({
+      ok: true,
+      message: 'Base da IA inicializada com sucesso.',
+      skillsIngestadas,
+    });
+  } catch (error: unknown) {
+    return c.json({ error: getErrorMessage(error) }, 500);
+  }
+});
 
 /** Catálogo do cofre, sem o corpo das páginas — a lista pode ficar grande. */
 kbRouter.get('/pages', async (c) => {

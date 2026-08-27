@@ -1,6 +1,6 @@
 :root {
   /* Colors - Radiant Obsidian */
-  --bg-primary: #0A0A0A; /* True Obsidian */
+  --bg-primary: #000000; /* True Obsidian */
   --bg-secondary: #121212; /* Level 1 */
   --bg-card: #121212; /* Level 1 */
   --bg-elevated: #1A1A1A; /* Level 2 */
@@ -46,9 +46,9 @@ html, body {
 body {
   /* Fonts */
   --font-sans: var(--font-roboto, 'Roboto'), Arial, Helvetica, sans-serif;
-  --font-heading: var(--font-syne, 'Syne'), sans-serif;
+  --font-heading: var(--font-display, 'IBM Plex Sans'), 'Helvetica Neue', Arial, sans-serif;
   --font-accent: var(--font-oswald, 'Oswald'), sans-serif;
-  --font-mono: var(--font-jetbrains-mono, 'JetBrains Mono'), monospace;
+  --font-mono: var(--font-mono-corp, 'IBM Plex Mono'), 'SFMono-Regular', Consolas, monospace;
   
   font-family: var(--font-sans);
 }

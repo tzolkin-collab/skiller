@@ -94,6 +94,9 @@
 .menuBtn:hover {
   color: var(--accent-primary);
 }
+.mobileLang {
+  display: none;
+}
 
 /* 3. MENU OVERLAY */
 .menuOverlay {
@@ -164,6 +167,22 @@
   top: 24px;
   right: 40px;
   z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.loginLink {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.loginLink:hover {
+  color: var(--text-primary);
 }
 
 /* 4. MAIN CONTENT */
@@ -337,6 +356,9 @@
   .scrollIndexContainer {
     display: none;
   }
+  .topRightControls {
+    display: none;
+  }
   .pageContainer {
     padding-left: 0;
     padding-top: 60px;
@@ -352,6 +374,14 @@
   }
   .sidebarMiddle {
     display: none;
+  }
+  .sidebarBottom {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .mobileLang {
+    display: block;
   }
   .menuWipeRed, .menuPanelDark {
     max-width: 100%;

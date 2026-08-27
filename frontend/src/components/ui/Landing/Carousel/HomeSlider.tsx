@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, TouchEvent } from 'react';
 import Image from 'next/image';
 import { useReducedMotion } from 'framer-motion';
@@ -49,7 +49,7 @@ const countWords = (text: string) => text.split(/\s+/).filter(Boolean).length;
  * sliding through empty space — the effect asiaxp gets from its
  * `.line-1 > span` markup.
  */
-function MaskedWords({ text, start = 0 }: { text: string; start?: number }) {
+const MaskedWords = memo(function MaskedWords({ text, start = 0 }: { text: string; start?: number }) {
   return (
     <>
       {text
@@ -64,7 +64,7 @@ function MaskedWords({ text, start = 0 }: { text: string; start?: number }) {
         ))}
     </>
   );
-}
+});
 
 interface HomeSliderProps {
   dict: Dictionary;
@@ -287,7 +287,11 @@ export function HomeSlider({ dict, lang, onOpenDemo, paused }: HomeSliderProps) 
                 <button
                   type="button"
                   className={styles.primaryBtn}
-                  onClick={() => router.push(`/${lang}/pricing`)}
+                  // "Começar" leva ao app, não à tabela de preços. Quem não tem
+                  // sessão cai no login, e quem não tem plano cai em preços — o
+                  // guarda de sessão resolve os dois casos sem a landing ter que
+                  // adivinhar em qual deles a pessoa está.
+                  onClick={() => router.push(`/${lang}/dashboard`)}
                 >
                   {dict.landing.ctaStart}
                 </button>
@@ -316,6 +320,7 @@ export function HomeSlider({ dict, lang, onOpenDemo, paused }: HomeSliderProps) 
               key={slide.eyebrow}
               className={slideClassName(slideIndex, visual)}
               style={{ '--slide-color': visual.color } as SlideStyle}
+              data-direction={direction}
               aria-hidden={slideIndex !== index}
               inert={slideIndex !== index}
               aria-roledescription="slide"
@@ -326,18 +331,23 @@ export function HomeSlider({ dict, lang, onOpenDemo, paused }: HomeSliderProps) 
                   <span className={`${styles.eyebrow} ${styles.reveal}`} style={{ '--i': 0 } as StaggerStyle}>
                     {slide.eyebrow}
                   </span>
-                  <h2 className={styles.title}>
-                    <MaskedWords text={slide.title} start={1} />
+                  <h2 className={`${styles.title} ${styles.brandTitle}`}>
+                    <span className={styles.brandLine}>
+                      <MaskedWords text={slide.title1} start={1} />
+                    </span>
+                    <span className={`${styles.brandLine} ${styles.brandAccent}`}>
+                      <MaskedWords text={slide.title2} start={1 + countWords(slide.title1)} />
+                    </span>
                   </h2>
                   <p
                     className={`${styles.description} ${styles.reveal}`}
-                    style={{ '--i': 2 + countWords(slide.title) } as StaggerStyle}
+                    style={{ '--i': 2 + countWords(slide.title1) + countWords(slide.title2) } as StaggerStyle}
                   >
                     {slide.description}
                   </p>
                   <span
                     className={`${styles.cta} ${styles.reveal}`}
-                    style={{ '--i': 3 + countWords(slide.title) } as StaggerStyle}
+                    style={{ '--i': 3 + countWords(slide.title1) + countWords(slide.title2) } as StaggerStyle}
                   >
                     {dict.carousel.cta}
                   </span>
@@ -361,7 +371,7 @@ export function HomeSlider({ dict, lang, onOpenDemo, paused }: HomeSliderProps) 
 
               <div
                 className={`${styles.marqueeWrapper} ${styles.reveal}`}
-                style={{ '--i': 4 + countWords(slide.title) } as StaggerStyle}
+                style={{ '--i': 4 + countWords(slide.title1) + countWords(slide.title2) } as StaggerStyle}
               >
                 <Marquee text={slide.marquee} reverse={slideIndex % 2 === 1} />
               </div>

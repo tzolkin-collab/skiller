@@ -27,6 +27,9 @@ export function Sidebar({ setIsMenuOpen, dict }: SidebarProps) {
         <span className={styles.sidebarText}>{dict.nav.vocationalIntelligence}</span>
       </div>
       <div className={styles.sidebarBottom}>
+        <div className={styles.mobileLang}>
+          <LanguageSwitcher align="right" variant="default" />
+        </div>
         <Logo size={32} />
       </div>
     </motion.aside>

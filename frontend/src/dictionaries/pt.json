@@ -1,9 +1,9 @@
 {
   "landing": {
     "badge": "ENGINE ONLINE V2.4",
-    "title1": "Transforme Playlists em",
-    "title2": "Plugins Auto-Instaláveis.",
-    "subtitle": "O Skiller é um gerador de plugins que resolve a falta de contexto das IAs de código. Eliminamos a dor de digitar prompts gigantes para tech founders. É como o NPM, mas para plugar novas habilidades nos seus assistentes como Cursor e Copilot.",
+    "title1": "A Camada de Harness",
+    "title2": "Para Agentes Autônomos de IA.",
+    "subtitle": "O Skiller monta e mantém tudo o que seu assistente de código precisa para ser competente: habilidades executáveis, memória de longo prazo e ferramentas prontas. Do tutorial no YouTube direto para o Cursor, Claude e Copilot.",
     "ctaStart": "EXTRAIR",
     "ctaGithub": "Ver Código",
     "socialProof": "",
@@ -38,30 +38,34 @@
     "slides": [
       {
         "eyebrow": "01 — INGESTÃO",
-        "title": "COLE A PLAYLIST",
-        "description": "O Skiller lê a playlist inteira pela YouTube Data API: título, descrição, ordem e metadados de cada vídeo. Sem download, sem setup.",
-        "marquee": "INGESTÃO → PLAYLIST → METADADOS →"
+        "title1": "INGESTÃO MULTIFONTE",
+        "title2": "Tudo que você assiste vira contexto para a IA",
+        "description": "Cole playlists do YouTube, links ou documentações. O Skiller absorve o conteúdo técnico sem você precisar assistir a horas de vídeo nem copiar e colar nada.",
+        "marquee": "INGESTÃO AUTOMÁTICA → ZERO CÓPIA MANUAL → CONTEXTO PURO →"
       },
       {
         "eyebrow": "02 — EXTRAÇÃO",
-        "title": "CADA VÍDEO VIRA UMA FICHA",
-        "description": "A transcrição de cada aula passa por um pipeline que devolve JSON validado: conceitos-chave, resumo denso e os blocos de código mostrados na tela.",
-        "marquee": "TRANSCRIÇÃO → CONCEITOS → CÓDIGO →"
+        "title1": "EXTRAÇÃO DETERMINÍSTICA",
+        "title2": "Filtra o papo furado e guarda o código exato",
+        "description": "Nosso pipeline separa o que importa do ruído: comandos reais, arquitetura e sintaxe limpa em formato estruturado, sem alucinação.",
+        "marquee": "CÓDIGO REAL → SEM RUÍDO → SINTAXE VALIDADA →"
       },
       {
         "eyebrow": "03 — SÍNTESE",
-        "title": "UMA SKILL, NÃO UM RESUMO",
-        "description": "As fichas são sintetizadas em um documento coerente, com dependências mapeadas e ordem de aprendizado — em vez de uma pilha de resumos soltos.",
-        "marquee": "SÍNTESE → GRAFO CONCEITUAL →"
+        "title1": "GRAFO DE CONHECIMENTO & MEMÓRIA",
+        "title2": "Sua IA aprende na ordem certa e nunca esquece",
+        "description": "Em vez de resumos soltos, criamos um mapa lógico com passo a passo, pré-requisitos e memória contínua para guiar seu agente com precisão.",
+        "marquee": "MAPA LÓGICO → DEPENDÊNCIAS → MEMÓRIA CONTÍNUA →"
       },
       {
-        "eyebrow": "04 — SAÍDA",
-        "title": "AUTO-INSTALL PLUGIN",
-        "description": "Ao invés de texto solto, o Skiller gera um plugin empacotado. Basta adicionar à raiz do seu projeto e assistentes modernos descobrem a nova habilidade automaticamente.",
-        "marquee": "PLUGIN COMPLETO • AUTO INSTALL • AGENTES •"
+        "eyebrow": "04 — CONECTORES & MCP",
+        "title1": "PLUGINS & PROTOCOLO MCP",
+        "title2": "Instalação com 1 clique direto no Cursor e Claude",
+        "description": "Transforma o aprendizado em skills prontas e servidores MCP. O seu assistente de código descobre as novas habilidades automaticamente na IDE.",
+        "marquee": "SKILL.MD → SERVIDOR MCP → CURSOR & CLAUDE → 1-CLIQUE →"
       }
     ],
-    "brandMarquee": "SKILLER → PLAYLIST → SKILL.md →"
+    "brandMarquee": "SKILLER → HARNESS DE IA → SKILLS & MCP → AGENTES COMPETENTES →"
   },
   "dashboard": {
     "menu": "Menu",
@@ -112,8 +116,7 @@
     "tabs": {
       "pluginSource": "Código Fonte do Plugin",
       "humanView": "Visão Humana",
-      "visualTranscript": "Transcrição Visual",
-      "nodeMap": "Índice (Node Map)"
+      "visualTranscript": "Transcrição Visual"
     },
     "transcript": {
       "notAvailable": "Transcrição não disponível.",
@@ -122,11 +125,7 @@
     "sidebar": {
       "pluginFiles": "Arquivos do Plugin",
       "sources": "Fontes",
-      "visualization": "Visualização",
-      "graphControls": "Controles do Grafo",
       "readDoc": "Ler Documento Analítico",
-      "nodeMapHidden": "O Node Map está oculto pelo Preview do Documento. Feche o documento no 'X' ou use este menu para alternar.",
-      "nodeMapVisible": "Você está visualizando a topologia interativa gerada pela IA.",
       "addSource": "Adicionar Fonte",
       "download": "Download",
       "retry": "Tentar Novamente",
@@ -143,7 +142,8 @@
     "features": "Recursos",
     "pricing": "Preços",
     "dashboard": "Painel",
-    "getStarted": "Comece Grátis",
+    "getStarted": "Começar agora",
+    "login": "Entrar",
     "vocationalIntelligence": "INTELIGÊNCIA VOCACIONAL",
     "close": "FECHAR",
     "demoVideo": "VÍDEO_DEMO.MP4"
@@ -165,7 +165,6 @@
     },
     "plan": {
       "currentPlan": "Plano Atual",
-      "free": "Plano Gratuito",
       "starter": "Plano Starter",
       "pro": "Plano Pro",
       "upgradeToPro": "Assinar Pro",
@@ -179,16 +178,26 @@
       "theme": "Tema"
     },
     "connections": {
-      "apiKeys": "Chaves de API",
-      "notion": "Integração Notion",
-      "github": "Integração GitHub"
+      "devicesTitle": "Clientes Conectados",
+      "devicesSubtitle": "Estas são as sessões de IDE conectadas ao seu servidor MCP do Skiller. Revogar uma sessão desconecta o cliente imediatamente.",
+      "noDevices": "Nenhum cliente conectado ainda.",
+      "noDevicesHint": "Abra a aba Conectores no Skiller e siga o guia de configuração para conectar sua IDE.",
+      "userCode": "Código de usuário",
+      "tokenPreview": "Token",
+      "connectedOn": "Conectado em",
+      "expiresOn": "Expira em",
+      "statusAuthorized": "Ativo",
+      "statusPending": "Pendente",
+      "statusExpired": "Revogado",
+      "revokeBtn": "Revogar",
+      "revoking": "Revogando…",
+      "revokeError": "Falha ao revogar. Tente novamente."
     }
   },
   "pricing": {
     "eyebrow": "Planos",
     "title": "Escolha Sua",
     "subtitle": "Comece grátis, faça upgrade quando precisar de poder ilimitado. Sem surpresas, cancele quando quiser.",
-    "free": "Grátis",
     "starter": "Starter",
     "pro": "Skiller Pro",
     "enterprise": "Enterprise",
@@ -200,17 +209,11 @@
     "perMonth": "/mês",
     "perUser": "/usuário",
     "billedAnnually": "faturado anualmente",
-    "foreverFree": "grátis para sempre",
     "customPricing": "Sob Demanda",
     "contactSales": "Falar com Vendas",
     "footerNote": "Precisa de um plano personalizado para o seu time?",
     "contactUs": "Fale conosco",
     "features": {
-      "free": [
-        "Extração instantânea de playlists inteiras",
-        "Esqueça a engenharia de prompts manual",
-        "Auto-install no Cursor, Claude e Copilot"
-      ],
       "starter": [
         "Extrações instantâneas ilimitadas",
         "Zero setup, fluxo de copiar e colar",

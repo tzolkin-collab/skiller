@@ -35,6 +35,17 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
   const [activeIndex, setActiveIndex] = useState(0); 
 
+  // Reserva do teste, no mesmo lugar que a de preco e pelo mesmo motivo: sao
+  // valores do backend espelhados aqui para a primeira pintura. Ficavam soltos
+  // acima e derivaram — a franquia subiu para 300 em `plans.ts` e a pagina
+  // continuou anunciando 100 ate o catalogo chegar, trocando o numero na tela.
+  // Se mexer em `PLAN_SPEC.starter.trialDays/trialCredits`, mexa aqui tambem.
+  const RESERVA_TESTE = { dias: 3, creditos: 300 };
+
+  const testeStarter = catalogo?.plans.find((p) => p.id === 'starter');
+  const trialDias = testeStarter?.trialDays ?? RESERVA_TESTE.dias;
+  const trialCreditos = testeStarter?.trialCredits ?? RESERVA_TESTE.creditos;
+
   const copy = {
     eyebrow: dict.pricing.eyebrow,
     title: dict.pricing.title,
@@ -51,12 +62,13 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     perMonth: dict.pricing.perMonth,
     perUser: dict.pricing.perUser,
     billedAnnually: dict.pricing.billedAnnually,
-    trialBadge: lang === 'pt' ? '7 dias grátis' : '7 days free',
+    trialBadge:
+      lang === 'pt' ? `${trialDias} dias grátis` : `${trialDias} days free`,
     trialCta: lang === 'pt' ? 'Começar teste grátis' : 'Start free trial',
     trialSubtext:
       lang === 'pt'
-        ? 'Cartão na assinatura. Cancele em até 7 dias sem cobrança.'
-        : 'Card required. Cancel within 7 days and pay nothing.',
+        ? `Cartão na assinatura, ${trialCreditos} créditos no teste. Cancele em até ${trialDias} dias sem cobrança.`
+        : `Card required, ${trialCreditos} credits during the trial. Cancel within ${trialDias} days and pay nothing.`,
     customPricing: dict.pricing.customPricing,
     contactSales: dict.pricing.contactSales,
     footerNote: dict.pricing.footerNote,
@@ -123,40 +135,26 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
   );
 
   /**
-   * Manda para o checkout do Stripe.
+   * Abre o checkout.
    *
-   * Sem usuario resolvido nao ha o que cobrar, entao cai no painel — o mesmo
-   * destino de antes, para nao regredir quem chega deslogado.
-   */
-  /**
-   * Abre o checkout do Stripe.
+   * Antes isto mandava o navegador para `checkout.stripe.com`. Agora navega
+   * para a nossa propria pagina de checkout, que monta o formulario com
+   * Elements — mesma Checkout Session por tras, mesmo webhook, mas a pessoa
+   * nao sai do produto no momento em que decide pagar.
    *
-   * Deslogado, manda criar conta LEVANDO A ESCOLHA JUNTO — plano e período vão
-   * na URL de retorno, e o efeito abaixo retoma a compra assim que a sessão
-   * existe. Antes isto empurrava para Configurações, que respondia "nenhuma
-   * conta selecionada": a pessoa clicava em assinar e caía num beco.
+   * Deslogado segue direto: e o formulario que coleta o e-mail e a conta nasce
+   * do pagamento confirmado. Por isso nao ha guarda de sessao aqui.
    */
   const assinar = useCallback(async (plan: 'starter' | 'pro', period: BillingPeriod = billing) => {
-    // Sem conta segue direto para o Stripe: é lá que o e-mail é coletado e a
-    // conta nasce. Mandar criar cadastro aqui poria um formulário entre a
-    // decisão de comprar e o pagamento.
     setErroCobranca(null);
     setAssinando(plan);
-    try {
-      const url = await criarCheckout({
-        // `undefined` quando ninguém está logado — o backend aceita.
-        userId: userId ?? undefined,
-        plan,
-        period,
-        currency: (catalogo?.currency ?? currency) as MoedaCobranca,
-        lang,
-      });
-      window.location.href = url;
-    } catch (e) {
-      setErroCobranca(e instanceof Error ? e.message : 'Nao foi possivel abrir o checkout.');
-      setAssinando(null);
-    }
-  }, [userId, lang, router, catalogo, currency, billing]);
+    const q = new URLSearchParams({
+      plan,
+      period,
+      currency: (catalogo?.currency ?? currency) as string,
+    });
+    router.push(`/${lang}/checkout?${q.toString()}`);
+  }, [lang, router, catalogo, currency, billing]);
 
   /**
    * Retoma a compra depois do login.
@@ -182,7 +180,7 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
     {
       // Entrada unica do produto. O card "Grátis" separado saiu: ele abria o
       // mesmo checkout que este, entao eram dois cards vendendo a mesma coisa.
-      // O teste de 7 dias e um atributo do Starter, nao um plano ao lado dele.
+      // O teste e um atributo do Starter, nao um plano ao lado dele.
       id: 'starter',
       name: copy.starter,
       price: precoEmCentavos('starter'),
@@ -319,21 +317,31 @@ export default function PricingClient({ lang, dict }: PricingClientProps) {
           </div>
         </div>
 
-        {/* Mobile Stacked Layout */}
+        {/* Mobile Tabbed Layout (Enterprise Style) */}
         <div className={styles.mobileStackedLayout}>
-          {plansData.map((plan) => (
-            <div key={plan.id} className={styles.mobileCardWrapper} style={{ marginBottom: '24px' }}>
-              {renderCardContent(plan)}
-              <div className={styles.mobileValueProp} style={{ marginTop: '16px', textAlign: 'center' }}>
-                <p className={styles.valuePropText}>{plan.possibilityText}</p>
-                <button className={plan.ctaClass} onClick={plan.action} disabled={assinando !== null}>
-                  <span>{assinando === plan.id ? copy.redirecting : plan.ctaText}</span>
-                  <ArrowRight size={14} className={styles.arrowIcon} />
-                </button>
-                {erroCobranca ? <p className={styles.priceSubtext}>{erroCobranca}</p> : null}
-              </div>
+          <div className={styles.mobileTabs}>
+            {plansData.map((plan, index) => (
+              <button 
+                key={plan.id}
+                className={`${styles.mobileTab} ${activeIndex === index ? styles.mobileTabActive : ''}`}
+                onClick={() => setActiveIndex(index)}
+              >
+                {plan.name}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.mobileCardWrapper} style={{ marginTop: '16px' }}>
+            {renderCardContent(activePlanData)}
+            <div className={styles.mobileValueProp} style={{ marginTop: '24px', textAlign: 'center' }}>
+              <p className={styles.valuePropText}>{activePlanData.possibilityText}</p>
+              <button className={activePlanData.ctaClass} onClick={activePlanData.action} disabled={assinando !== null}>
+                <span>{assinando === activePlanData.id ? copy.redirecting : activePlanData.ctaText}</span>
+                <ArrowRight size={14} className={styles.arrowIcon} />
+              </button>
+              {erroCobranca ? <p className={styles.priceSubtext}>{erroCobranca}</p> : null}
             </div>
-          ))}
+          </div>
         </div>
 
         {/* Footer Note */}

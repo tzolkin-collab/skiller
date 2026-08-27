@@ -17,6 +17,7 @@ export function buildExtractCardPrompt(
     3. USE TIMESTAMPS: Whenever possible, prefix the key concept with the timestamp where it occurs (e.g., "[120s] Initializing the WebGL Context"). The transcript contains lines starting with timestamps (e.g., [120s]).
     4. SETUP & INSTALLATION: If the speaker provides a tutorial on installing tools, configuring environments, or setting environment variables, you MUST explicitly extract these as \`setupRequirements\`.
     5. COMPREHENSIVE SUMMARY: The summary should read like a detailed technical article covering the entire video's narrative arc.
+    6. TRANSCRIPT PARAGRAPHS: You MUST group the raw transcript lines into chronological, readable paragraphs. Each paragraph should cover a meaningful block of time and text. If a paragraph is a turning point in the explanation (a key definition, a decisive result, or the moment a concept clicks), mark \`isImportant\` as true so the reader can jump straight to it.
 
     Video Title: ${title}
     Video Description: ${description}

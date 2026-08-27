@@ -168,7 +168,6 @@ const DepthCarousel = <T,>({
 
       el.style.transform = `translate(-50%, -50%) scale(${sc}) translateX(${tx.toFixed(2)}px) translateZ(${tz.toFixed(2)}px) rotateY(${ry.toFixed(3)}deg)`;
       el.style.opacity = opacity.toFixed(3);
-      el.style.filter = `brightness(${brightness.toFixed(3)}) blur(${blurPx.toFixed(2)}px)`;
       el.style.zIndex = String(zi);
       el.style.pointerEvents = shown && opacity > 0.05 ? 'auto' : 'none';
 
@@ -264,8 +263,12 @@ const DepthCarousel = <T,>({
       }
 
       const step = clamp(delta / (cfg.cardWidth * 0.9), -0.6, 0.6);
-      posRef.current += step;
-      layout(posRef.current);
+      
+      requestAnimationFrame(() => {
+        posRef.current += step;
+        layout(posRef.current);
+      });
+      
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
       wheelTimerRef.current = setTimeout(() => setFocus(Math.round(posRef.current), true), 130);
     };
@@ -308,8 +311,11 @@ const DepthCarousel = <T,>({
       drag.v = (e.clientX - drag.lastX) / dt;
       drag.lastX = e.clientX;
       drag.lastT = now;
-      posRef.current = drag.startPos - dx / stepPx;
-      layout(posRef.current);
+      
+      requestAnimationFrame(() => {
+        posRef.current = drag.startPos - dx / stepPx;
+        layout(posRef.current);
+      });
     },
     [layout]
   );

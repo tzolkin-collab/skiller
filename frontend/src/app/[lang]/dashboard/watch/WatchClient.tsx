@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/ui/SearchAutocomplete/SearchAutocomplete';
 import { FloatingCart } from '@/components/ui/FloatingCart/FloatingCart';
 import { VideoCard } from '@/components/ui/VideoCard/VideoCard';
 import { useCart } from '@/components/providers/CartProvider';
-import { Plus, Check, ArrowLeft } from 'lucide-react';
+import { Plus, Check, ArrowLeft, Bot } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLayoutState } from '@/store/layoutState';
 import styles from './WatchClient.module.css';
 
 interface Dictionary {
@@ -17,6 +19,7 @@ interface WatchClientProps {
   dict: Dictionary;
   lang: string;
   videoId: string;
+  editSkillId?: string;
 }
 
 interface VideoDetails {
@@ -38,9 +41,11 @@ interface SuggestedVideo {
   duration: string;
 }
 
-export default function WatchClient({ dict, lang, videoId }: WatchClientProps) {
+export default function WatchClient({ dict, lang, videoId, editSkillId }: WatchClientProps) {
   const router = useRouter();
+  const sessaoAgente = useSearchParams().get('sessao');
   const { selectedUrls, toggleUrl } = useCart();
+  const { isSearchInHeader } = useLayoutState();
   const [video, setVideo] = useState<VideoDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -98,13 +103,37 @@ export default function WatchClient({ dict, lang, videoId }: WatchClientProps) {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      {/* Quem chegou pelo link do agente precisa saber que a seleção vai para
+          ele, e não para uma geração aqui. Sem isto o botão "Enviar ao agente"
+          aparece sem contexto. */}
+      {sessaoAgente ? (
+        <div className={styles.avisoAgente}>
+          <Bot size={15} />
+          <span>
+            Seu agente está esperando: escolha os vídeos e playlists, depois toque em
+            <strong> Enviar ao agente</strong>.
+          </span>
+        </div>
+      ) : null}
+      {/* Fixed minHeight prevents layout shift when search bar unmounts */}
+      <header className={styles.header} style={{ minHeight: '60px' }}>
         <button className={styles.backBtn} onClick={() => router.back()}>
           <ArrowLeft size={24} />
         </button>
-        <div style={{ flex: 1, maxWidth: '600px', margin: '0 auto' }}>
-          <SearchAutocomplete language={lang} />
-        </div>
+        <AnimatePresence>
+          {!isSearchInHeader && (
+            <motion.div
+              layoutId="global-search"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              style={{ flex: 1, maxWidth: '600px', margin: '0 auto' }}
+            >
+              <SearchAutocomplete language={lang} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <main className={styles.mainContent}>
@@ -197,7 +226,7 @@ export default function WatchClient({ dict, lang, videoId }: WatchClientProps) {
       </main>
 
       {/* Renders the floating cart so user can generate the skill from here */}
-      <FloatingCart language={lang} />
+      <FloatingCart language={lang} editSkillId={editSkillId} />
     </div>
   );
 }

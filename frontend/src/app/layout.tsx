@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto, Oswald, Syne, JetBrains_Mono } from "next/font/google";
+import { Roboto, Oswald, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -13,13 +13,31 @@ const oswald = Oswald({
   subsets: ["latin"],
 });
 
-const syne = Syne({
-  variable: "--font-syne",
+/**
+ * Display corporativa.
+ *
+ * Era Syne — geométrica, larga e com formas excêntricas. Numa landing isso
+ * passa por personalidade; num card de plano com preço, passa por
+ * desalinhado. IBM Plex Sans forma par com a Plex Mono usada em dado
+ * tabular, então título e número passam a vir da mesma família.
+ */
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-display",
+  weight: ['400', '500', '600', '700'],
   subsets: ["latin"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+/**
+ * Monoespaçada corporativa.
+ *
+ * Era JetBrains Mono, que é fonte de IDE: ligaduras de código e desenho com
+ * personalidade de editor. Aqui ela aparece em id de sessão, token mascarado,
+ * valor de plano — dado tabular de produto, não código. IBM Plex Mono foi
+ * desenhada como face corporativa e resolve o mesmo problema sem o sotaque.
+ */
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-mono-corp",
+  weight: ['400', '500', '600'],
   subsets: ["latin"],
 });
 
@@ -27,7 +45,7 @@ export const metadata: Metadata = {
   title: "Skiller | YouTube Playlist to Skills",
   description: "Transform any YouTube playlist into an actionable, structured SKILL.md document for AI coding assistants.",
   icons: [
-    { rel: "icon", url: "/icon.svg", type: "image/svg+xml" }
+    { rel: "icon", url: "/icon.svg?v=3", type: "image/svg+xml" }
   ],
 };
 
@@ -40,7 +58,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${roboto.variable} ${oswald.variable} ${syne.variable} ${jetbrainsMono.variable}`}>
+      <body className={`${roboto.variable} ${oswald.variable} ${plexSans.variable} ${plexMono.variable}`}>
         <CartProvider>
           {children}
         </CartProvider>

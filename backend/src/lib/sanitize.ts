@@ -26,8 +26,12 @@ const HIJACK_PATTERNS: Array<[RegExp, string]> = [
   [/disregard\s+(your|the|all)\s+(system\s+)?(prompt|instructions?|rules)/i, 'disregard-system'],
   [/you\s+are\s+now\s+(a|an|the)\s+\w+/i, 'role-reassignment'],
   [/forget\s+(everything|all|your)\s+(you|previous|prior)/i, 'forget-context'],
-  [/\bsystem\s*prompt\b.*\b(reveal|print|output|show|repeat)\b/i, 'prompt-exfiltration'],
   [/<\|?\s*(im_start|im_end|system|endoftext)\s*\|?>/i, 'chat-template-token']
+];
+
+/** Padrões que geram apenas aviso, pois são muito comuns em conteúdo didático sobre IAs. */
+const HIJACK_WARNING_PATTERNS: Array<[RegExp, string]> = [
+  [/\bsystem\s*prompt\b.*\b(reveal|print|output|show|repeat)\b/i, 'prompt-exfiltration'],
 ];
 
 /** Referência a credencial ou exfiltração de dado. */
@@ -112,6 +116,7 @@ export function inspectDocument(doc: SkillDocument): SanitizeFinding[] {
 
   walkText(doc, (field, value) => {
     findings.push(...scan(value, field, HIJACK_PATTERNS, 'block'));
+    findings.push(...scan(value, field, HIJACK_WARNING_PATTERNS, 'warn'));
     findings.push(...scan(value, field, SECRET_PATTERNS, 'block'));
     // Shell destrutivo só reprova dentro de snippet; em prosa costuma ser aviso
     // legítimo do tipo "nunca rode rm -rf /".

@@ -7,26 +7,33 @@ import type { Dictionary } from '@/types/dictionary';
 import { VideoCard } from '@/components/ui/VideoCard/VideoCard';
 import { FilterChips } from '@/components/ui/FilterChips/FilterChips';
 import { ShortsShelf } from '@/components/ui/ShortsShelf/ShortsShelf';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 import { SearchAutocomplete } from '@/components/ui/SearchAutocomplete/SearchAutocomplete';
+import { SourceSelector } from '@/components/ui/SourceSelector/SourceSelector';
+import { useLayoutState } from '@/store/layoutState';
 import { FloatingCart } from '@/components/ui/FloatingCart/FloatingCart';
 import { useCart } from '@/components/providers/CartProvider';
 import styles from './page.module.css';
 import useSWRInfinite from 'swr/infinite';
-import { useInView } from 'react-intersection-observer';
 
 interface DashboardClientProps {
   dict: Dictionary;
   lang: string;
   initialQuery?: string;
+  editSkillId?: string;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+//  manda o cookie de sessão; sem ele o backend
+// devolve 401 em toda rota autenticada.
+const fetcher = (url: string) =>
+  fetch(url, { credentials: 'include' }).then((res) => res.json());
 
-const FILTER_CHIPS = ['All', 'AI & Machine Learning', 'Next.js', 'Python', 'Productivity', 'Startups', 'Figma'];
+export const FILTER_CHIPS = ['All', 'AI & Machine Learning', 'Next.js', 'Python', 'Productivity', 'Startups', 'Figma'];
 
-export default function DashboardClient({ dict, lang, initialQuery }: DashboardClientProps) {
+export default function DashboardClient({ dict, lang, initialQuery, editSkillId }: DashboardClientProps) {
+  const { setIsSearchInHeader, activeFilter, setActiveFilter, activeSourceTab, setActiveSourceTab } = useLayoutState();
   const [activeQuery, setActiveQuery] = useState('');
-  const [activeChip, setActiveChip] = useState('All');
   
   // Recent searches fallback logic
   useEffect(() => {
@@ -56,9 +63,10 @@ export default function DashboardClient({ dict, lang, initialQuery }: DashboardC
       }
     }
 
-    setActiveQuery(finalQuery);
-    setActiveChip(FILTER_CHIPS.includes(finalQuery) ? finalQuery : 'All');
-  }, [initialQuery]);
+    const safeQuery = finalQuery || '';
+    setActiveQuery(safeQuery);
+    setActiveFilter(FILTER_CHIPS.includes(safeQuery) ? safeQuery : 'All');
+  }, [initialQuery, setActiveFilter]);
 
   const { selectedUrls, toggleUrl } = useCart();
   const router = useRouter();
@@ -111,7 +119,7 @@ export default function DashboardClient({ dict, lang, initialQuery }: DashboardC
         nextQuery = 'AI Agent Tutorial';
       }
     }
-    setActiveChip(chip);
+    setActiveFilter(chip);
     setActiveQuery(nextQuery);
   };
 
@@ -122,22 +130,56 @@ export default function DashboardClient({ dict, lang, initialQuery }: DashboardC
   const allVideos = Array.from(new Map(rawVideos.map(v => [v.id, v])).values());
   const allShorts = Array.from(new Map(rawShorts.map(s => [s.id, s])).values());
 
+  const { isSearchInHeader } = useLayoutState();
+  const isScrolled = isSearchInHeader;
+
   return (
     <div className={styles.container}>
-      {/* Top Search Bar */}
-      <header className={styles.header}>
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-          <SearchAutocomplete language={lang} />
-        </div>
+      {/* Top Controls: Fixed minHeight prevents layout shift when search bar unmounts, fixing the scroll loop */}
+      <header className={styles.header} style={{ minHeight: '120px' }}>
+        <AnimatePresence>
+          {!isScrolled && (
+            <motion.div
+              layoutId="global-search"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              <SourceSelector 
+                language={lang} 
+                activeTab={activeSourceTab}
+                onTabChange={setActiveSourceTab} 
+              >
+                <div style={{ flex: 1, minWidth: '300px' }}>
+                  <SearchAutocomplete language={lang} />
+                </div>
+              </SourceSelector>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
-        <FilterChips 
-          chips={FILTER_CHIPS} 
-          activeChip={activeChip} 
-          onSelectChip={handleChipSelect} 
-        />
+        <AnimatePresence>
+          {!isScrolled && activeSourceTab === 'youtube' && (
+            <motion.div
+              layoutId="global-filters"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              <FilterChips 
+                chips={FILTER_CHIPS} 
+                activeChip={activeFilter} 
+                onSelectChip={setActiveFilter} 
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Video Grid */}
+      {activeSourceTab === 'youtube' && (
       <main className={styles.mainGrid}>
         <h2 className={styles.gridTitle}>Recommended For You</h2>
         <div className={styles.videoGrid}>
@@ -173,11 +215,15 @@ export default function DashboardClient({ dict, lang, initialQuery }: DashboardC
         {/* Infinite Scroll trigger */}
         <div ref={ref} style={{ height: '40px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <span style={{ color: 'var(--text-secondary)', display: isValidating ? 'inline' : 'none' }}>Loading more...</span>
-          <span style={{ color: 'red', display: swrError ? 'inline' : 'none' }}>Error loading videos</span>
+          {isValidating && size > 1 && (
+            <div className={styles.loadingMore}>Loading more recommendations...</div>
+          )}
         </div>
+        <div ref={ref} style={{ height: '20px', width: '100%' }} />
       </main>
+      )}
 
-      <FloatingCart language={lang} />
+      {activeSourceTab === 'youtube' && <FloatingCart language={lang} editSkillId={editSkillId} />}
     </div>
   );
 }

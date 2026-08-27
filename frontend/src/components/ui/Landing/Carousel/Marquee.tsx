@@ -9,7 +9,9 @@ interface MarqueeProps {
   pauseOnHover?: boolean;
 }
 
-export function Marquee({
+import { memo } from 'react';
+
+export const Marquee = memo(function Marquee({
   text,
   reverse = false,
   pauseOnHover = true,
@@ -37,4 +39,4 @@ export function Marquee({
       </div>
     </div>
   );
-}
+});

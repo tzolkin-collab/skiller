@@ -40,6 +40,15 @@ interface PlanSpec {
   capabilities: Capability[];
   /** Recarga mensal de créditos. */
   monthlyCredits: number;
+  /**
+   * Franquia do período de teste, quando o plano oferece um.
+   *
+   * Não é a mensal: durante o teste o Stripe não emite fatura, então a recarga
+   * de `invoice.paid` nunca dispara. Sem um número próprio aqui, quem entra no
+   * teste fica com o saldo que já tinha — zero — e não consegue usar nada.
+   */
+  trialDays?: number;
+  trialCredits?: number;
   /** Quantas pessoas cabem na conta. */
   members: number;
 }
@@ -49,11 +58,11 @@ export const PLAN_SPEC: Record<Plan, PlanSpec> = {
     label: 'Sem plano ativo',
     priceCents: 0,
     // `free` NAO e um tier: e a ausencia de assinatura valida. Cai aqui quem
-    // nunca comecou o teste, quem cancelou dentro dos 7 dias, e quem deixou a
+    // nunca comecou o teste, quem cancelou dentro do prazo, e quem deixou a
     // assinatura vencer. Nenhum deles deve conseguir usar o produto.
     //
-    // A porta de entrada e o teste de 7 dias do Starter, com cartao — o
-    // `trial_period_days` que `routes/billing.ts` ja monta no checkout. Durante
+    // A porta de entrada e o teste do Starter, com cartao — os dias e a franquia
+    // sao `trialDays`/`trialCredits` logo abaixo, e nao literais soltos. Durante
     // o teste o Stripe reporta `trialing`, e o webhook grava `plan: 'starter'`,
     // entao as capacidades vem de la, nao daqui.
     capabilities: [],
@@ -65,6 +74,15 @@ export const PLAN_SPEC: Record<Plan, PlanSpec> = {
     priceCents: 4990,
     capabilities: ['skill.generate', 'skill.test', 'skill.export', 'skill.edit', 'connectors.mcp'],
     monthlyCredits: 1000,
+    // Teste de 3 dias com franquia reduzida. 300 créditos ≈ 23 vídeos: o
+    // bastante para processar uma playlist real e ver o produto funcionando,
+    // ao custo máximo de R$3 de API por pessoa (markup 5x sobre ~R$0,134/vídeo).
+    // A 100 créditos o teste parava em 7 vídeos e não completava nem uma
+    // playlist curta — demonstrava a interface, não o resultado.
+    // Estes dois números são a única fonte: `routes/billing.ts` monta o
+    // `trial_period_days` a partir daqui e a página de preços lê via catálogo.
+    trialDays: 3,
+    trialCredits: 300,
     members: 1,
   },
   pro: {

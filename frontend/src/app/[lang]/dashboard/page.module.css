@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding-top: 0.5rem;
 }
 
 .title {
@@ -98,32 +99,66 @@
 
 /* SEARCH BAR */
 .searchSection {
-  margin-bottom: 2rem;
+  margin-bottom: 0;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1.25rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
 }
 
 .searchInput {
-  font-family: var(--font-heading);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  font-size: 1.25rem;
-  height: 4rem;
-  padding: 0 1.5rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
   width: 100%;
+  height: 3.5rem;
+  padding: 0 3rem 0 3.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
   outline: none;
   transition: border-color 0.2s;
 }
 
 .searchInput::placeholder {
   color: var(--text-muted);
+  font-weight: 400;
 }
 
 .searchInput:focus {
   border-color: var(--accent-primary);
+}
+
+.searchClear {
+  position: absolute;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--border-light);
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.searchClear:hover {
+  background: var(--text-muted);
+  color: var(--bg-primary);
 }
 
 /* LIBRARY */
@@ -183,29 +218,112 @@
 
 .skillCard {
   cursor: pointer;
-  transition: all 0.2s ease;
+  position: relative;
   background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .skillCard:hover {
-  border-color: var(--accent-primary);
   transform: translateY(-4px);
+  border-color: var(--niche-color, var(--accent-primary));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--niche-color, var(--accent-primary)) 20%, transparent);
 }
 
-.skillTitle {
+/* Faixa colorida no topo */
+.skillCardStripe {
+  height: 3px;
+  background: var(--niche-color, var(--accent-primary));
+  flex-shrink: 0;
+}
+
+.skillCardBody {
+  padding: 1.25rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.skillCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.skillAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.skillAvatarImage {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.skillCardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.nicheBadge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   font-weight: 700;
-  white-space: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.channelName {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.skillTitle {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-transform: uppercase;
+  margin: 0;
+}
+
+.skillTitlePlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
 }
 
 .titleIcon {
@@ -219,12 +337,32 @@
 
 .skillDesc {
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: 0;
+  flex: 1;
+}
+
+.skillFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.skillOpenIcon {
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.skillCard:hover .skillOpenIcon {
+  color: var(--niche-color, var(--accent-primary));
 }
 
 .skillMeta {
@@ -375,4 +513,556 @@
   .videoGrid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Library: Filter Trigger Button ─────────────────────────────────────── */
+
+.libraryTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.filterTrigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 24px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.filterTrigger:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary));
+}
+
+.filterTriggerActive {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-secondary));
+}
+
+.filterBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.filterChevron {
+  opacity: 0.5;
+  transition: transform 0.2s;
+}
+
+/* ── Active filter pills ──────────────────────────────────────────────────── */
+
+.activePills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.activePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.5rem;
+  background: color-mix(in srgb, var(--pill-color, var(--accent-primary)) 12%, var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--pill-color, var(--accent-primary)) 35%, transparent);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pill-color, var(--accent-primary));
+  animation: pillIn 0.18s ease;
+}
+
+.activePill button {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0;
+  margin-left: 0.1rem;
+}
+
+.activePill button:hover { opacity: 1; }
+
+.activePillDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activePillsClear {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+  transition: color 0.15s;
+}
+.activePillsClear:hover { color: var(--error); }
+
+@keyframes pillIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Filter Panel (bottom-sheet / modal) ─────────────────────────────────── */
+
+.filterBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  z-index: 200;
+  pointer-events: none;
+  transition: background 0.3s, backdrop-filter 0.3s;
+}
+
+.filterBackdropOpen {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.filterPanel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  transform: translateY(100%);
+  width: 100vw;
+  max-width: none;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-light);
+  border-radius: 0;
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.4);
+  z-index: 201;
+  padding: 0 0 env(safe-area-inset-bottom, 1.5rem);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.filterPanelOpen {
+  transform: translateY(0);
+}
+
+/* Scrollbar do painel */
+.filterPanel::-webkit-scrollbar { width: 4px; }
+.filterPanel::-webkit-scrollbar-track { background: transparent; }
+.filterPanel::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 2px;
+}
+
+.filterPanelHandle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  margin: 0.75rem auto 0;
+  flex-shrink: 0;
+}
+
+.filterPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.875rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.filterPanelTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.filterPanelActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterClearAll {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filterClearAll:hover { border-color: var(--error); color: var(--error); }
+
+.filterPanelClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filterPanelClose:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+/* Search dentro do painel */
+.filterSearchWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem 1.25rem 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 0 0.875rem;
+  height: 46px;
+  transition: border-color 0.2s;
+}
+
+.filterSearchWrapper:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent);
+}
+
+.filterSearchIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.filterSearchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  outline: none;
+}
+
+.filterSearchInput::placeholder { color: var(--text-muted); }
+
+.filterSearchClear {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.filterSearchClear:hover { color: var(--text-primary); }
+
+/* Divider */
+.filterDivider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 1.25rem 0 0;
+}
+
+/* Layout para organizar filtros horizontalmente */
+.filterLayoutRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0 1.25rem;
+}
+
+/* Grupos de filtro */
+.filterGroup {
+  padding: 1rem 1.25rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.filterGroupLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.filterChipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.875rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filterChip:hover:not(.filterChipActive) {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.filterChipActive {
+  background: color-mix(in srgb, var(--fchip-color, var(--accent-primary)) 14%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--fchip-color, var(--accent-primary)) 55%, transparent);
+  color: var(--fchip-color, var(--accent-primary));
+  font-weight: 700;
+}
+
+.filterChipDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Footer do painel */
+.filterPanelFooter {
+  padding: 1rem 1.25rem 1.5rem;
+  border-top: 1px solid var(--border-light);
+  margin-top: 0.5rem;
+}
+
+.filterApplyBtn {
+  width: 100%;
+  padding: 0.875rem;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--bg-primary);
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.filterApplyBtn:hover { opacity: 0.9; }
+.filterApplyBtn:active { transform: scale(0.98); }
+
+
+
+/* ── Library: Skill Cards ─────────────────────────────────────────────────── */
+
+.librarySection {
+  flex: 1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.skillCard {
+  --niche-color: var(--accent-primary);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.skillCard:hover {
+  border-color: var(--niche-color);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+
+.skillCardStripe {
+  height: 3px;
+  background: var(--niche-color);
+  flex-shrink: 0;
+}
+
+.skillCardBody {
+  padding: 1rem 1.125rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.625rem;
+}
+
+.skillCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.skillAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+
+.skillCardMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.nicheBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.channelName {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skillTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skillTitlePlaceholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.skillDesc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skillFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.skillOpenIcon {
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.skillCard:hover .skillOpenIcon {
+  color: var(--niche-color);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 4rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.emptyIcon {
+  opacity: 0.3;
+}
+
+.loading {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 2rem 0;
+}
+
+.fetchError {
+  color: var(--error);
+  font-size: 0.875rem;
 }
