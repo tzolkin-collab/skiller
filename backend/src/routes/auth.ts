@@ -265,10 +265,12 @@ authRouter.get('/:provider/callback', async (c) => {
   }
 
   const token = await criarSessao(userId, { userAgent: c.req.header('user-agent'), ipAddress: ip(c) });
-  gravarCookieSessao(c, token);
 
+  // Redireciona para a bridge do Next.js, que seta o cookie no domínio do
+  // frontend. Se o cookie ficasse aqui (backend domain), o middleware do
+  // Next.js nunca o enxergaria e mandaria o usuário de volta ao /entrar.
   const destino = guardado.proximo.startsWith('/') ? guardado.proximo : '/pt/dashboard';
-  return c.redirect(`${appUrl()}${destino}`);
+  return c.redirect(`${appUrl()}/api/auth/session?token=${encodeURIComponent(token)}&next=${encodeURIComponent(destino)}`);
 });
 
 // ------------------------------------------------------------ e-mail e senha
@@ -336,7 +338,7 @@ authRouter.post('/register', async (c) => {
   const sessao = await criarSessao(conta.id, { userAgent: c.req.header('user-agent'), ipAddress: ip(c) });
   gravarCookieSessao(c, sessao);
 
-  return c.json({ ok: true, emailVerificationSent: true });
+  return c.json({ ok: true, emailVerificationSent: true, token: sessao });
 });
 
 authRouter.post('/login', async (c) => {
@@ -369,7 +371,7 @@ authRouter.post('/login', async (c) => {
   const token = await criarSessao(u.id, { userAgent: c.req.header('user-agent'), ipAddress: ip(c) });
   gravarCookieSessao(c, token);
 
-  return c.json({ ok: true });
+  return c.json({ ok: true, token });
 });
 
 // -------------------------------------------------------------- link mágico
@@ -412,7 +414,7 @@ authRouter.post('/magic-link/consume', async (c) => {
 
   const token = await criarSessao(userId, { userAgent: c.req.header('user-agent'), ipAddress: ip(c) });
   gravarCookieSessao(c, token);
-  return c.json({ ok: true });
+  return c.json({ ok: true, token });
 });
 
 // -------------------------------------------------------- e-mail e senha (2)
@@ -482,7 +484,7 @@ authRouter.post('/password/reset', async (c) => {
 
   const token = await criarSessao(userId, { userAgent: c.req.header('user-agent'), ipAddress: ip(c) });
   gravarCookieSessao(c, token);
-  return c.json({ ok: true });
+  return c.json({ ok: true, token });
 });
 
 
@@ -560,6 +562,7 @@ authRouter.post('/from-checkout', async (c) => {
   return c.json({
     ok: true,
     email: dono.email,
+    token,
     /** O front usa isto para pedir uma senha logo depois da compra. */
     needsPassword: !dono.passwordHash,
   });

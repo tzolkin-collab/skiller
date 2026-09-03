@@ -75,16 +75,35 @@ async function exigirOk(res: Response): Promise<Record<string, unknown>> {
   return d;
 }
 
+/**
+ * Seta o cookie de sessão no domínio do frontend (skiller.tzolkin.cloud).
+ *
+ * O backend seta o cookie no domínio dele (easypanel.host). O middleware do
+ * Next.js e os Server Components não conseguem ler cookies de outro domínio.
+ * Esta chamada sincroniza: POST para /api/auth/session faz o Next.js setar o
+ * mesmo token no domínio certo.
+ */
+async function sincronizarSessao(token: unknown): Promise<void> {
+  if (typeof token !== 'string' || !token) return;
+  await fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  }).catch(() => {/* falha silenciosa — próximo reload detecta ausência de sessão */});
+}
+
 // ------------------------------------------------------------------ ações
 
 export async function entrarComSenha(email: string, password: string): Promise<void> {
-  await exigirOk(await api('/login', { method: 'POST', body: JSON.stringify({ email, password }) }));
+  const d = await exigirOk(await api('/login', { method: 'POST', body: JSON.stringify({ email, password }) }));
+  await sincronizarSessao(d.token);
 }
 
 export async function criarConta(dados: {
   email: string; password: string; name?: string; acceptTerms: boolean;
 }): Promise<void> {
-  await exigirOk(await api('/register', { method: 'POST', body: JSON.stringify(dados) }));
+  const d = await exigirOk(await api('/register', { method: 'POST', body: JSON.stringify(dados) }));
+  await sincronizarSessao(d.token);
 }
 
 export async function pedirLinkMagico(email: string, next?: string): Promise<string> {
@@ -93,7 +112,8 @@ export async function pedirLinkMagico(email: string, next?: string): Promise<str
 }
 
 export async function consumirLinkMagico(token: string): Promise<void> {
-  await exigirOk(await api('/magic-link/consume', { method: 'POST', body: JSON.stringify({ token }) }));
+  const d = await exigirOk(await api('/magic-link/consume', { method: 'POST', body: JSON.stringify({ token }) }));
+  await sincronizarSessao(d.token);
 }
 
 export async function confirmarEmail(token: string): Promise<void> {
@@ -110,11 +130,15 @@ export async function pedirRedefinicao(email: string): Promise<string> {
 }
 
 export async function redefinirSenha(token: string, password: string): Promise<void> {
-  await exigirOk(await api('/password/reset', { method: 'POST', body: JSON.stringify({ token, password }) }));
+  const d = await exigirOk(await api('/password/reset', { method: 'POST', body: JSON.stringify({ token, password }) }));
+  await sincronizarSessao(d.token);
 }
 
 export async function sair(): Promise<void> {
-  await api('/logout', { method: 'POST', body: '{}' });
+  await Promise.all([
+    api('/logout', { method: 'POST', body: '{}' }),
+    fetch('/api/auth/session', { method: 'DELETE' }),
+  ]);
 }
 
 /** Começa o fluxo do provedor. Navegação de topo, não `fetch`: há redirects. */
@@ -133,6 +157,7 @@ export function entrarComProvedor(provider: string, next?: string): void {
  */
 export async function entrarPeloCheckout(sessionId: string): Promise<{ email: string; needsPassword: boolean }> {
   const d = await exigirOk(await api('/from-checkout', { method: 'POST', body: JSON.stringify({ sessionId }) }));
+  await sincronizarSessao(d.token);
   return { email: d.email as string, needsPassword: Boolean(d.needsPassword) };
 }
 
