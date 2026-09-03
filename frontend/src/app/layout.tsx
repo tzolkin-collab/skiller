@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Roboto, Oswald, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -41,15 +41,29 @@ const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#0a0a0f',
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "Skiller | YouTube Playlist to Skills",
   description: "Transform any YouTube playlist into an actionable, structured SKILL.md document for AI coding assistants.",
-  // icon.tsx e opengraph-image.tsx na pasta app/ são detectados automaticamente
-  // pelo App Router — não precisam ser declarados aqui. O SVG animado fica como
-  // fallback para browsers que suportam SVG favicon.
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Skiller',
+    startupImage: '/skiller-logo-transparent.png',
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: '/skiller-google-logo.png', sizes: '192x192' },
     ],
   },
   openGraph: {
@@ -78,6 +92,11 @@ export default function RootLayout({
         <CartProvider>
           {children}
         </CartProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}`,
+          }}
+        />
       </body>
     </html>
   );
