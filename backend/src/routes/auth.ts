@@ -176,8 +176,14 @@ authRouter.get('/:provider/start', async (c) => {
 
   // `state` e `verifier` vão num cookie curto, não em memória do servidor:
   // com mais de uma instância, memória não sobrevive ao balanceador.
+  // `SameSite=None` e não `Lax`: o frontend e o backend ficam em domínios
+  // diferentes (ex.: skiller.tzolkin.cloud ↔ other-skiller.rzkso2.easypanel.host).
+  // Chrome classifica o cookie como cross-site e o bloqueia no callback do
+  // Google mesmo numa navegação de topo, onde `Lax` deveria bastir.
+  // É seguro porque (a) o cookie dura 10 min, (b) a proteção CSRF é o `state`
+  // opaco — o cookie em si não prova nada sem o `state` que o Google devolve.
   setCookie(c, COOKIE_OAUTH, JSON.stringify({ state, verifier: pkce?.verifier ?? null, proximo, p: p.id }), {
-    httpOnly: true, secure: producao(), sameSite: 'Lax', path: '/', maxAge: 600,
+    httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 600,
   });
 
   return c.redirect(urlDeAutorizacao(p, redirectUri(p.id), state, pkce));
