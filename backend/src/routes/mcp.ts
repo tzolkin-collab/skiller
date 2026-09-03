@@ -103,7 +103,7 @@ function sanitizarNome(bruto: string | undefined | null): string | null {
  * descrever a capacidade. `goal` entra junto porque descrição de tool é prompt:
  * quanto mais superfície semântica, maior a chance de o agente escolher certo.
  */
-function descricaoDaSkill(s: Skill): string {
+export function descricaoDaSkill(s: Skill): string {
   const doc = s.skillDocument as SkillDocument | null;
   if (doc?.description) {
     return `${doc.description}${doc.goal ? ` Objetivo: ${doc.goal}` : ''}`.slice(0, 480);
@@ -130,7 +130,7 @@ function descricaoDaSkill(s: Skill): string {
  * envolvidas, não só na segunda — assim o nome de uma skill não depende de qual
  * outra apareceu antes na consulta.
  */
-function mapaDeTools(linhas: Skill[]): Map<string, Skill> {
+export function mapaDeTools(linhas: Skill[]): Map<string, Skill> {
   const bases = linhas.map((s) =>
     sanitizarNome((s.skillDocument as SkillDocument | null)?.name)
       ?? `skill_${s.id.replace(/-/g, '_')}`

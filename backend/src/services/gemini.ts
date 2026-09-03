@@ -38,7 +38,7 @@ export interface PluginPackage {
 }
 
 /** Espelha `SkillDocumentSchema` para o structured output do Gemini. */
-const SKILL_DOCUMENT_RESPONSE_SCHEMA = {
+export const SKILL_DOCUMENT_RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     name: { type: Type.STRING },

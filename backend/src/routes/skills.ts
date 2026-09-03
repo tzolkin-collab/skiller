@@ -445,7 +445,11 @@ skillsRouter.get('/:id/plugin', async (c) => {
     // A recusa vem ANTES da consulta, de propósito. Rota sem sessão é rota que
     // qualquer um chama em laço; se o `?t=` ausente ainda custasse um SELECT,
     // bastaria um laço de requisições vazias para carregar o banco.
-    if (!oferecido || !pareceUuid(skillId)) return naoAchou();
+    // Token tem sempre 32 chars base64url (randomBytes(24).toString('base64url')).
+    // Rejeitar formato errado ANTES do SELECT elimina a amplificação: um token
+    // malformado prova que não veio do painel e não merece uma consulta ao banco.
+    const TOKEN_FORMAT = /^[A-Za-z0-9_-]{32}$/;
+    if (!oferecido || !TOKEN_FORMAT.test(oferecido) || !pareceUuid(skillId)) return naoAchou();
 
     const linhas = await db.select().from(skills).where(eq(skills.id, skillId)).limit(1);
     const skill = linhas[0];
