@@ -13,7 +13,9 @@ import { redirect } from 'next/navigation';
  * vez de abrir o painel — um portão que cede quando a rede oscila não é portão.
  */
 const COOKIE = 'skiller_session';
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+// Variável privada — só roda no servidor (import 'server-only' garante isso).
+// Não precisa do prefixo NEXT_PUBLIC_, que exporia a URL no bundle do cliente.
+const BASE_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export interface SessaoAtual {
   id: string;
