@@ -173,6 +173,25 @@ authRouter.get('/:provider/start', async (c) => {
     return c.json({ error: 'provider_not_configured', message: `${p.nome} não está configurado neste ambiente.` }, 503);
   }
 
+  // O cookie abaixo e' gravado no host que atende ESTA requisicao, mas quem
+  // vai le-lo e' o callback, que o provedor chama no host de `API_URL`. Se os
+  // dois diferirem o cookie simplesmente nao existe la', e o login morre em
+  // `resposta_incompleta` sem dizer por que — foi o que aconteceu quando o
+  // backend passou a responder tambem por um dominio proprio e o front
+  // continuou apontando para o antigo.
+  //
+  // Redirecionar para o host canonico antes de gravar mantem o par
+  // start/callback sempre no mesmo dominio, venha a chamada de onde vier.
+  const canonico = new URL(redirectUri(p.id)).origin;
+  const hostAtual = c.req.header('x-forwarded-host') ?? c.req.header('host');
+  if (hostAtual) {
+    const proto = c.req.header('x-forwarded-proto') ?? 'https';
+    if (`${proto}://${hostAtual}` !== canonico) {
+      const veio = new URL(c.req.url);
+      return c.redirect(`${canonico}${veio.pathname}${veio.search}`);
+    }
+  }
+
   const state = crypto.randomUUID();
   const pkce = p.usaPkce ? gerarPkce() : null;
   const proximo = c.req.query('next') ?? '/pt/dashboard';
