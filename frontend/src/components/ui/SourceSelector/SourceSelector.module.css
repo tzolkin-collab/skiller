@@ -114,3 +114,41 @@
     transform: rotate(360deg);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE (768px, corte padrão do painel)
+
+   Os três rótulos somam mais que a largura útil de um aparelho estreito,
+   e o padrão de flex é quebrar a linha — "GitHub Repo" e "Google Search"
+   viravam duas linhas cada, com altura desigual entre as abas. Rolagem
+   horizontal mantém cada rótulo inteiro e numa linha só.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Abas e campo dividiam a mesma linha; num aparelho estreito o campo
+     tomava o espaço e as abas eram espremidas a quase nada. Empilhar dá
+     largura inteira aos dois. */
+  .container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Encosta nas bordas do cartão em vez de parar antes, para ficar claro
+       que há mais conteúdo à direita. */
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+}

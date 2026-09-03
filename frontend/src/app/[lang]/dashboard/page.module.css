@@ -1066,3 +1066,32 @@
   color: var(--error);
   font-size: 0.875rem;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE — corte padrão do painel (768px)
+
+   O recuo lateral daqui somava com o do `.content` do layout: 32px + 16px
+   de cada lado deixavam 275px úteis numa tela de 375, ou seja 73% da
+   largura. Como o `.content` já garante o respiro da borda, este zera o
+   próprio e devolve os 64px ao conteúdo.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .container {
+    padding: 0;
+    gap: 1.5rem;
+  }
+
+  /* 3rem em caixa alta com tracking negativo passava de duas linhas num
+     aparelho estreito e empurrava a grade para fora da primeira tela. */
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 0.9375rem;
+  }
+
+  .gridTitle {
+    font-size: 1.125rem;
+  }
+}
