@@ -6,26 +6,28 @@ import styles from '../page.module.css';
 
 interface Props {
   text: string;
+  /** Endpoint MCP, resolvido do ambiente por quem renderiza. */
+  mcpUrl: string;
 }
 
-export function DownloadProfileButton({ text }: Props) {
+export function DownloadProfileButton({ text, mcpUrl }: Props) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = () => {
     setDownloading(true);
-    
-    // Determine the base URL dynamically based on where the user is
-    const baseUrl = window.location.origin + '/api';
 
+    /**
+     * O perfil descrevia o binário local `@skiller/mcp-server`, que não lê
+     * argumento nenhum — `start` era ignorado e o processo morria no boot.
+     * E montava `SKILLER_API_URL` com `window.location.origin`, que é a origem
+     * do FRONTEND: em produção o perfil apontava para o Next, não para a API.
+     * Duas falhas somadas davam um arquivo que nunca conectou.
+     *
+     * Agora é o endpoint remoto, recebido de quem sabe ler o ambiente.
+     */
     const config = {
       mcpServers: {
-        skiller: {
-          command: "npx",
-          args: ["-y", "@skiller/mcp-server", "start"],
-          env: {
-            SKILLER_API_URL: baseUrl
-          }
-        }
+        skiller: { url: mcpUrl }
       }
     };
 

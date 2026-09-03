@@ -115,6 +115,33 @@ type DictionaryType = Record<string, unknown> & {
   dashboard: Record<string, string>;
 };
 
+/**
+ * O endpoint MCP do Skiller.
+ *
+ * Esta página anunciava dois caminhos, e nenhum dos dois existia.
+ *
+ * `https://api.skiller.local/mcp`, em quatro cartões, é domínio que não resolve.
+ * E `npx @skiller/mcp-server`, em seis, aponta para um binário sem parsing de
+ * argumento nenhum: `auth login` e `start` são ignorados, e o processo lança na
+ * inicialização quando `SKILLER_API_URL` falta — que era o caso de todos os
+ * snippets, nenhum trazia bloco `env`. Ninguém nunca instalou nada por aqui.
+ *
+ * O que existe e funciona é o MCP remoto de `routes/mcp.ts`: OAuth com descoberta
+ * em `/.well-known/oauth-authorization-server`, bearer, e uma sessão por cliente.
+ * É para ele que a página passa a apontar. Regra 9 do AGENTS.md: a URL vem do
+ * ambiente, nunca escrita à mão.
+ */
+// O fallback espelha o de `lib/require-session.ts`, e não é decorativo: sem ele
+// a URL sairia relativa (`/api/mcp`), que nenhum cliente MCP consegue usar — a
+// página voltaria a exibir algo que não conecta, só que de outro jeito.
+const MCP_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/mcp`;
+
+/** O bloco que a pessoa cola num `mcp_config.json`. */
+const MCP_CONFIG = `"skiller": {\n  "url": "${MCP_URL}"\n}`;
+
+/** Aviso honesto: nem todo cliente MCP fala transporte remoto. */
+const EXIGE_REMOTO = 'Requires a client with remote MCP support. Your client opens the browser to authorize on first connection.';
+
 export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType, lang: string }) {
   const [activeTab, setActiveTab] = useState<'ide' | 'chat'>('chat');
 
@@ -183,14 +210,15 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                 </CardHeader>
                 <CardContent>
                   <p className={styles.skillDesc}>
-                    Authenticate your local environment to allow IDEs to request and install skills directly.
+                    One endpoint for every client below. Point your MCP client at this URL —
+                    there is nothing to install locally.
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                      npx @skiller/mcp-server auth login
+                    <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                      {MCP_URL}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Run this command in your terminal. You will be prompted to enter a code in the browser to authorize your machine.
+                      {EXIGE_REMOTO}
                     </span>
                   </div>
                 </CardContent>
@@ -213,9 +241,9 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                     {dict.dashboard.ideDesc}
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <DownloadProfileButton text={dict.dashboard.downloadProfile} />
+                    <DownloadProfileButton text={dict.dashboard.downloadProfile} mcpUrl={MCP_URL} />
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                      Or add <code style={{background:'var(--bg-secondary)', padding:'2px 4px', borderRadius:'2px'}}>npx -y @skiller/mcp-server start</code> in Cursor Settings (Features &gt; MCP).
+                      Or add the URL above under Cursor Settings (Features &gt; MCP). {EXIGE_REMOTO}
                     </span>
                   </div>
                 </CardContent>
@@ -234,7 +262,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                      {MCP_CONFIG}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Add this to your global mcp_config.json file.
@@ -256,7 +284,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                      {MCP_CONFIG}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Add this to ~/.codeium/windsurf/mcp_config.json
@@ -278,7 +306,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                      {MCP_CONFIG}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Add this to your VS Code MCP settings file.
@@ -310,7 +338,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      {`"skiller": {\n  "command": "npx",\n  "args": ["-y", "@skiller/mcp-server", "start"]\n}`}
+                      {MCP_CONFIG}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Add this to your claude_desktop_config.json
@@ -332,10 +360,10 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      claude mcp add skiller npx -y @skiller/mcp-server start
+                      {`claude mcp add --transport http skiller ${MCP_URL}`}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Run this command in your terminal
+                      Run this command in your terminal. {EXIGE_REMOTO}
                     </span>
                   </div>
                 </CardContent>
@@ -359,7 +387,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      https://api.skiller.local/mcp
+                      {MCP_URL}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Configure your MCP client to point to the SSE remote endpoint.
@@ -414,7 +442,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      https://api.skiller.local/mcp
+                      {MCP_URL}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Add this URL as an SSE endpoint in your librechat.yaml config.
@@ -436,7 +464,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      https://api.skiller.local/mcp
+                      {MCP_URL}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Add this SSE URL in the Workspace Agent Skills configuration.
@@ -458,7 +486,7 @@ export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType,
                   </p>
                   <div className={styles.skillMeta} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-                      https://api.skiller.local/mcp
+                      {MCP_URL}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Configure the remote MCP Tool connection with this SSE URL.
