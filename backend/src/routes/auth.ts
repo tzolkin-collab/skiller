@@ -47,12 +47,15 @@ function producao(): boolean {
 }
 
 function gravarCookieSessao(c: Context, token: string): void {
+  // `SameSite=None` porque o frontend (skiller.tzolkin.cloud) e o backend
+  // (easypanel.host) ficam em domínios diferentes. Com `Lax`, o browser não
+  // manda o cookie de sessão nas requisições fetch do frontend — o painel
+  // abre sem sessão e redireciona para o login. `None` exige `Secure=true`.
+  // O CSRF continua protegido pelo `httpOnly` + tokens de sessão opacos.
   setCookie(c, COOKIE_SESSAO, token, {
     httpOnly: true,
-    secure: producao(),
-    // `lax` deixa o cookie viajar no retorno do OAuth (navegação de topo) mas
-    // não em requisição de outro site — que é o que o CSRF explora.
-    sameSite: 'Lax',
+    secure: true,
+    sameSite: 'None',
     path: '/',
     maxAge: Math.floor(DURACAO_SESSAO_MS / 1000),
   });
