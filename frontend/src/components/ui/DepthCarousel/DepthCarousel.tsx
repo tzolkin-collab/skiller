@@ -69,7 +69,7 @@ interface DragState {
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-const DepthCarousel = <T,>({
+const DepthCarousel = <T extends unknown>({
   items = [],
   renderItem,
   captureGlobalScroll = false,
