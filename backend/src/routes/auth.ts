@@ -52,12 +52,26 @@ function gravarCookieSessao(c: Context, token: string): void {
   // manda o cookie de sessão nas requisições fetch do frontend — o painel
   // abre sem sessão e redireciona para o login. `None` exige `Secure=true`.
   // O CSRF continua protegido pelo `httpOnly` + tokens de sessão opacos.
+  //
+  // `COOKIE_DOMAIN` cobre o caso em que front e back passam a dividir o mesmo
+  // dominio registravel (skiller.tzolkin.cloud e api.skiller.tzolkin.cloud).
+  // Sem ele o cookie e' host-only no backend, o que o torna DE TERCEIRO na
+  // visao do Chrome quando o painel o chama — e o bloqueio de cookies de
+  // terceiro derruba so' a checagem do cliente. O sintoma e' entrar no painel
+  // (o middleware le' o cookie-ponte do proprio front) e levar "sessao
+  // expirou" logo em seguida.
+  //
+  // Definido como `.tzolkin.cloud`, o cookie vira primario nos dois hosts e
+  // deixa de depender de politica de terceiros. Vazio mantem o de antes.
+  const dominio = process.env.COOKIE_DOMAIN?.trim();
+
   setCookie(c, COOKIE_SESSAO, token, {
     httpOnly: true,
     secure: true,
     sameSite: 'None',
     path: '/',
     maxAge: Math.floor(DURACAO_SESSAO_MS / 1000),
+    ...(dominio ? { domain: dominio } : {}),
   });
 }
 
@@ -105,7 +119,10 @@ authRouter.get('/me', async (c) => {
 authRouter.post('/logout', async (c) => {
   const token = getCookie(c, COOKIE_SESSAO);
   if (token) await revogarSessao(token);
-  deleteCookie(c, COOKIE_SESSAO, { path: '/' });
+  // O apagar precisa repetir o `domain` do gravar: sem ele o browser mira um
+  // cookie host-only, e o de dominio — que e' o que existe — fica de pe'.
+  const dominio = process.env.COOKIE_DOMAIN?.trim();
+  deleteCookie(c, COOKIE_SESSAO, { path: '/', ...(dominio ? { domain: dominio } : {}) });
   return c.json({ ok: true });
 });
 
