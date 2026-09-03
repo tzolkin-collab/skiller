@@ -7,7 +7,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card/Card';
 import { Progress } from '@/components/ui/Progress/Progress';
 import { Button } from '@/components/ui/Button/Button';
-import { CheckCircle2, CircleDashed, Download, Loader2, RotateCcw, Copy, Check, Video, LayoutList, Puzzle, BrainCircuit, Box, Lightbulb, Youtube, X, Target, Settings, Play, Send, MessageSquare, Pencil, Eye, Save } from 'lucide-react';
+import { CheckCircle2, CircleDashed, CircleX, Download, Loader2, RotateCcw, Copy, Check, Video, LayoutList, Puzzle, BrainCircuit, Box, Lightbulb, Youtube, X, Target, Settings, Play, Send, MessageSquare, Pencil, Eye, Save } from 'lucide-react';
 import JSZip from 'jszip';
 import { fetcher } from '@/lib/fetcher';
 import type { Dictionary } from '@/types/dictionary';
@@ -577,7 +577,7 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
           </header>
 
           {!isCompleted && !isFailed && (
-            <div style={{ padding: '1rem' }}>
+            <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <Card glass className={styles.progressCard}>
                 <CardHeader style={{ padding: '1rem' }}>
                   <CardTitle style={{ fontSize: '0.9rem' }}>{dict.skill.generationInProgress}</CardTitle>
@@ -586,9 +586,9 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                   <div className={styles.progressWrapper}>
                     <div className={styles.progressLabels}>
                       <span>{
-                        progress < 20 ? 'Iniciando processamento...' : 
-                        progress < 85 ? dict.skill.extracting : 
-                        progress < 100 ? 'Sintetizando a Skill com IA...' : 
+                        progress < 20 ? 'Iniciando processamento...' :
+                        progress < 85 ? dict.skill.extracting :
+                        progress < 100 ? 'Sintetizando a Skill com IA...' :
                         'Finalizando pacote...'
                       }</span>
                       <span>{progress}%</span>
@@ -597,6 +597,49 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Fila de vídeos com thumbs */}
+              {skillData.videos && skillData.videos.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <h3 className={styles.sidebarSectionTitle} style={{ margin: 0 }}>
+                    {dict.skillClient.sidebar.sources} ({skillData.videos.length})
+                  </h3>
+                  {skillData.videos.map((video) => {
+                    const thumbUrl = video.thumbnailUrl ||
+                      (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg` : null);
+                    const done = video.processingStatus === 'completed';
+                    const failed = video.processingStatus === 'failed';
+                    return (
+                      <div
+                        key={video.id}
+                        style={{
+                          display: 'flex', gap: '0.65rem', alignItems: 'center',
+                          padding: '0.5rem', borderRadius: '8px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-light)',
+                          opacity: done || failed ? 1 : 0.75,
+                        }}
+                      >
+                        {thumbUrl && (
+                          <img
+                            src={thumbUrl}
+                            alt={video.title ?? ''}
+                            style={{ width: 72, height: 40, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                          />
+                        )}
+                        <span style={{ flex: 1, fontSize: '0.78rem', lineHeight: 1.3, color: 'var(--text-primary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {video.title}
+                        </span>
+                        <span style={{ flexShrink: 0 }}>
+                          {done ? <CheckCircle2 size={14} className={styles.successIcon} />
+                            : failed ? <CircleX size={14} style={{ color: 'var(--error)' }} />
+                            : <Loader2 size={14} className={styles.spinning} style={{ color: 'var(--text-muted)' }} />}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

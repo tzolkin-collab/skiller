@@ -19,6 +19,7 @@ import { SanitizeError, type SanitizeFinding } from '../lib/sanitize.js';
 import { persistirSkill, DocumentoInvalidoError } from '../lib/persist-skill.js';
 import { SynthesisParseError } from '../services/gemini.js';
 import { extractFromGithub } from '../services/github.js';
+import { registrarEvento, fecharSessao } from '../lib/mcp-sessions.js';
 
 if (!process.env.REDIS_HOST) {
   throw new Error('REDIS_HOST is required in the environment variables.');
@@ -42,6 +43,7 @@ interface SkillJobData {
   isAppend?: boolean;
   language?: string;
   userId?: string;
+  sessionId?: string | null;
 }
 
 
@@ -62,7 +64,7 @@ type RegistroDeVideo =
 export const skillWorker = new Worker<SkillJobData>(
   SKILL_QUEUE_NAME,
   async (job: Job<SkillJobData>) => {
-    const { skillId, sourceType, sourceQuery, urls, playlistId, videoId, isAppend, language, userId } = job.data;
+    const { skillId, sourceType, sourceQuery, urls, playlistId, videoId, isAppend, language, userId, sessionId } = job.data;
     
     const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
     if (!skillResult.length) throw new Error('Skill not found');
@@ -382,6 +384,67 @@ export const skillWorker = new Worker<SkillJobData>(
 
       await job.updateProgress(100);
 
+      // Cockpit na sessão: busca os vídeos processados para montar o resumo rico
+      if (sessionId) {
+        try {
+          const vidsProcessados = await db.select({
+            videoId: skillVideos.videoId,
+            title: skillVideos.title,
+            thumbnailUrl: skillVideos.thumbnailUrl,
+            duration: skillVideos.duration,
+            processingStatus: skillVideos.processingStatus,
+          }).from(skillVideos).where(eq(skillVideos.skillId, skillId));
+
+          const doc = persistida.document;
+          const skillUrl = `/dashboard/skills/${skillId}`;
+          const completedCount = vidsProcessados.filter(v => v.processingStatus === 'completed').length;
+          const failedCount = vidsProcessados.filter(v => v.processingStatus === 'failed').length;
+
+          const videoLines = vidsProcessados.slice(0, 12).map(v => {
+            const thumb = v.thumbnailUrl || (v.videoId ? `https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg` : null);
+            const icon = v.processingStatus === 'completed' ? '✅' : v.processingStatus === 'failed' ? '❌' : '⏳';
+            return `${icon} ${v.title || v.videoId}${thumb ? ` [thumb](${thumb})` : ''}`;
+          }).join('\n');
+
+          const modulesLines = (doc.modules || []).slice(0, 10).map((m) =>
+            `• **${m.title}**: ${m.summary}`
+          ).join('\n');
+
+          const commandsLines = (doc.commands || []).slice(0, 8).map((c) =>
+            `• \`${c.name}\`: ${c.description}`
+          ).join('\n');
+
+          await registrarEvento(sessionId, 'ok', `✅ Skill **${doc.title}** pronta!`, {
+            skillId,
+            url: skillUrl,
+            videos: { total: vidsProcessados.length, ok: completedCount, failed: failedCount },
+            modules: (doc.modules || []).length,
+            commands: (doc.commands || []).length,
+          });
+
+          const cockpit = [
+            `## ✅ Skill Pronta: ${doc.title}`,
+            ``,
+            `🔗 **Ver skill:** ${skillUrl}`,
+            ``,
+            doc.description ? `> ${doc.description}` : '',
+            ``,
+            `**📹 Vídeos processados (${completedCount}/${vidsProcessados.length}):**`,
+            videoLines,
+            failedCount > 0 ? `\n⚠️ ${failedCount} vídeo(s) falharam no processamento.` : '',
+            ``,
+            modulesLines ? `**📚 Módulos (${(doc.modules || []).length}):**\n${modulesLines}` : '',
+            ``,
+            commandsLines ? `**⚡ Comandos (${(doc.commands || []).length}):**\n${commandsLines}` : '',
+          ].filter(Boolean).join('\n');
+
+          await registrarEvento(sessionId, 'info', cockpit);
+          await fecharSessao(sessionId, 'done');
+        } catch (e) {
+          console.warn('[worker] cockpit falhou:', e instanceof Error ? e.message : e);
+        }
+      }
+
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       console.error(`Job failed for skill ${skillId}`, message, error);
@@ -445,6 +508,10 @@ export const skillWorker = new Worker<SkillJobData>(
       } catch (logError: unknown) {
         console.error('Could not persist pipeline log for failed run', getErrorMessage(logError));
       }
+
+      // Sinalizar falha na sessão se houver uma associada
+      await registrarEvento(sessionId, 'error', `❌ Falha ao gerar skill: ${message}`).catch(() => {});
+      await fecharSessao(sessionId, 'error').catch(() => {});
 
       throw error;
     }

@@ -320,10 +320,11 @@ export async function handleSkillTool(
       targetFormat: 'claude',
       language: 'pt',
       userId: conta.userId,
+      sessionId,
     }, { jobId: skillId });
 
     await registrarEvento(sessionId, 'ok', `${urls.length} vídeo(s) enfileirado(s). Skill em processamento.`, { skillId, urls });
-    await fecharSessao(sessionId, 'done');
+    // Não fechar a sessão aqui: o worker fechará e postará o cockpit completo quando terminar.
 
     return texto([
       `Skill enfileirada com ${urls.length} vídeo(s).`,
