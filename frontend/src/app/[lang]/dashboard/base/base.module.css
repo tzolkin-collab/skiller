@@ -417,7 +417,7 @@
   overflow-x: auto;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .linha { grid-template-columns: minmax(0, 1fr) auto; }
   .linhaTipo, .linhaTags { display: none; }
 }
@@ -433,7 +433,7 @@
   height: calc(100vh - 210px);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .explorerLayout {
     grid-template-columns: 1fr;
     height: auto;
@@ -613,3 +613,30 @@
   overflow-x: auto;
 }
 
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE — corte padrão do painel (768px)
+
+   Os dois cortes acima eram 760px e 900px; foram trazidos para 768px
+   junto com o resto do painel. O de 900px valia para o explorador em
+   duas colunas, que agora empilha no mesmo ponto das demais telas.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* "PASTAS & ARQUIVOS" e "CRONOLOGIA (CANVAS)" quebravam em duas linhas
+     cada, deixando o par com 46px de altura. Em caixa alta com espaçamento
+     entre letras, o rótulo precisa de mais largura do que a metade da tela
+     oferece — daí o corpo menor e o recuo mais curto. */
+  .viewBtn {
+    font-size: 0.6875rem;
+    padding: 0.5rem 0.5rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  /* O explorador ganha altura própria: `calc(100vh - 210px)` foi medido
+     para a tela cheia do desktop e, empilhado, espremia árvore e
+     visualizador em metades curtas demais para serem úteis. */
+  .explorerSidebar {
+    max-height: 45vh;
+  }
+}
