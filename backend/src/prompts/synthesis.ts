@@ -46,10 +46,15 @@ FIELD GUIDE
 - \`principles\`: 1–15 behavioural rules. Each has a short \`title\` and a \`rule\`
   written as a directive ("Always…", "Never…", "When X, do Y"). These are the
   heart of the skill — be specific to the source, not generic advice.
-- \`modules\`: break extensive knowledge into 0–12 modules. Each needs a kebab-case
-  \`slug\`, a \`title\`, a \`summary\`, and 1–20 \`sections\`. A section has a \`heading\`,
-  a \`body\`, and optional \`snippets\` (each with \`language\` and \`code\`).
-  Only include code that actually appeared in the source.
+- \`modules\`: break the knowledge into 1–12 modules. REQUIRED — never return an
+  empty list. Each needs a kebab-case \`slug\`, a \`title\`, a \`summary\`, and 1–20
+  \`sections\`. A section has a \`heading\`, a \`body\`, and optional \`snippets\`
+  (each with \`language\` and \`code\`). Only include code that actually appeared
+  in the source.
+  Modules are where an agent LOOKS THINGS UP. Reference knowledge belongs here —
+  not in \`commands\` (which are procedures to execute) and not in \`humanGuide\`
+  (which the agent never reads). If the source is thin, return ONE module
+  covering it. Never split artificially to reach a count.
 - \`connectors\`: MCP servers the slash commands will ACTIVELY USE during execution.
   Pick only connectors an agent will actually call — not ones merely related to the topic.
   \`id\` MUST be exactly one of the values below. Never invent an id.
