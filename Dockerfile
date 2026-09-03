@@ -34,6 +34,9 @@ RUN pnpm install --frozen-lockfile --filter backend... --prod
 # Copiar artefatos compilados
 COPY --from=builder /app/backend/dist ./backend/dist
 
+# Copiar migrations (drizzle-orm/migrator lê os arquivos SQL em runtime)
+COPY backend/drizzle ./backend/drizzle
+
 # Entrypoint: roda migrations e só então sobe o servidor.
 # Se a migration falhar o container sai com código não-zero — o EasyPanel
 # mantém o container anterior servindo tráfego em vez de subir um quebrado.
