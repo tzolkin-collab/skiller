@@ -1,8 +1,44 @@
 .layout {
   display: flex;
+  /* `dvh` acompanha a barra do navegador no celular; `vh` fica como reserva
+     para quem não suporta. Com `vh` puro o rodapé some atrás da barra. */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--bg-primary);
+}
+
+/* Botão do menu e fundo escuro: só existem no mobile, onde a sidebar vira
+   gaveta. No desktop a sidebar está sempre visível e ambos somem. */
+.menuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.menuBtn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  padding: 0;
 }
 
 .sidebar {
@@ -194,4 +230,104 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+}
+
+/* As três faixas do topbar. Eram `style={{flex:1}}` inline, que media query
+   não alcança — e é justamente a do meio (a busca) que precisa sair no
+   celular, onde ela sozinha ocuparia a largura toda. */
+.topbarInicio {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.topbarMeio {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.topbarFim {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE
+
+   Um único corte, em 768px. O projeto tinha dez valores diferentes
+   espalhados (640, 720, 760, 767, 768, 800, 860, 900, 992, 1024), o que
+   fazia cada tela quebrar numa largura própria. Daqui em diante o padrão
+   é este; os antigos vão sendo migrados conforme cada aba for ajustada.
+
+   A sidebar vira gaveta em vez de encolher: com 260px fixos num aparelho
+   de 375px ela tomaria 70% da tela, e reduzir a largura só transformaria
+   o menu em ícones ilegíveis.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+    /* A gaveta cobre conteúdo; sem fundo próprio ele apareceria por baixo. */
+    background: var(--bg-primary);
+  }
+
+  /* Estado no `html` porque quem alterna é o botão no topbar, que fica em
+     outra ramificação da árvore. `:global` porque o módulo só embaralha as
+     classes daqui — o atributo no html precisa passar intacto. */
+  :global(html[data-nav='aberto']) .sidebar {
+    transform: translateX(0);
+  }
+
+  :global(html[data-nav='aberto']) .backdrop {
+    display: block;
+  }
+
+  .menuBtn {
+    display: flex;
+  }
+
+  .topbar {
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  /* A busca ganha a largura toda quando aparece, então sai da linha do
+     topbar no celular — as telas que dependem dela têm busca própria. */
+  .topbarMeio {
+    display: none;
+  }
+
+  .topbarFim {
+    flex: 0 0 auto;
+    gap: 0.5rem;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  .sidebarHeader,
+  .nav,
+  .sidebarFooter {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
 }

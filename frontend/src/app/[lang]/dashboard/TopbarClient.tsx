@@ -12,6 +12,7 @@ import { SourceSelector } from '@/components/ui/SourceSelector/SourceSelector';
 import { FilterChips } from '@/components/ui/FilterChips/FilterChips';
 import { FILTER_CHIPS } from './DashboardClient';
 import { LogoutButton } from './LogoutButton';
+import { MenuBotao } from './MobileNav';
 import { useLayoutState } from '@/store/layoutState';
 import type { Dictionary } from '@/types/dictionary';
 import styles from './layout.module.css';
@@ -27,12 +28,14 @@ export function TopbarClient({ lang, dict }: TopbarClientProps) {
 
   return (
     <div className={styles.topbar}>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+      <div className={styles.topbarInicio}>
+        {/* Abre a gaveta do menu. Some no desktop, onde a sidebar e' fixa. */}
+        <MenuBotao rotulo={dict.dashboard.menu} />
         {/* Sempre mostramos os comandos de voltar (Breadcrumbs) */}
         <Breadcrumbs lang={lang} dict={dict} />
       </div>
       
-      <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
+      <div className={styles.topbarMeio}>
         <AnimatePresence mode="popLayout">
           {showSearch && (
             <motion.div
@@ -77,7 +80,7 @@ export function TopbarClient({ lang, dict }: TopbarClientProps) {
         </AnimatePresence>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div className={styles.topbarFim}>
         <LanguageSwitcher />
         <Link href={`/${lang}/dashboard/settings`} className={styles.settingsBtn} title={dict.settings.title}>
           <Settings size={20} />
