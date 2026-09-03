@@ -15,8 +15,8 @@
  * Irmão do `SessionGate`, e por isso a mesma forma. A diferença é o que cada um
  * resolve: aquele trata sessão que morreu, este trata assinatura que não existe.
  */
-import { useEffect, useState } from 'react';
-import { ArrowRight, LogOut, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowRight, LogOut, RefreshCw, Sparkles } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import { buscarConta } from '@/lib/account';
 import styles from './PlanGate.module.css';
@@ -32,33 +32,44 @@ export function PlanGate({ lang, trialDays = 3, trialCredits = 300 }: Props) {
   const pt = lang === 'pt';
   const { userId, pronto, sair } = useSession();
   const [semPlano, setSemPlano] = useState(false);
+  const [verificando, setVerificando] = useState(false);
+  const vivoRef = useRef(true);
 
-  useEffect(() => {
-    // Só depois de a sessão resolver. Antes disso não dá para distinguir
-    // "sem plano" de "ainda não sei quem é", e o modal piscaria em toda
-    // navegação — que foi o erro que o SessionGate já tinha aprendido.
+  const verificarPlano = useCallback(async () => {
     if (!pronto || !userId) {
       setSemPlano(false);
       return;
     }
-    let vivo = true;
-    buscarConta()
-      .then((c) => {
-        if (vivo) {
-          const temPlano = Boolean(c.plan?.id && c.plan.id !== 'free');
-          setSemPlano(!temPlano);
-        }
-      })
-      .catch(() => {
-        // Falha de rede não bloqueia o painel. Errar para o lado de deixar
-        // passar é melhor que trancar quem já paga por causa de um timeout —
-        // quem barra de verdade são os portões do backend, em cada chamada.
-        if (vivo) setSemPlano(false);
-      });
-    return () => {
-      vivo = false;
-    };
+    setVerificando(true);
+    try {
+      const c = await buscarConta();
+      if (vivoRef.current) {
+        const temPlano = Boolean(c.plan?.id && c.plan.id !== 'free');
+        setSemPlano(!temPlano);
+      }
+    } catch {
+      // Falha de rede não bloqueia o painel. Errar para o lado de deixar
+      // passar é melhor que trancar quem já paga por causa de um timeout —
+      // quem barra de verdade são os portões do backend, em cada chamada.
+      if (vivoRef.current) setSemPlano(false);
+    } finally {
+      if (vivoRef.current) setVerificando(false);
+    }
   }, [pronto, userId]);
+
+  useEffect(() => {
+    vivoRef.current = true;
+    void verificarPlano();
+    return () => { vivoRef.current = false; };
+  }, [verificarPlano]);
+
+  // Enquanto o gate está visível, re-verifica a cada 8 s — o webhook do Stripe
+  // pode chegar com alguns segundos de atraso depois do checkout.
+  useEffect(() => {
+    if (!semPlano) return;
+    const id = setInterval(() => { void verificarPlano(); }, 8000);
+    return () => clearInterval(id);
+  }, [semPlano, verificarPlano]);
 
   if (!semPlano) return null;
 
@@ -89,6 +100,18 @@ export function PlanGate({ lang, trialDays = 3, trialCredits = 300 }: Props) {
           {pt ? 'Ver planos' : 'See plans'}
           <ArrowRight size={16} aria-hidden="true" />
         </a>
+
+        <button
+          type="button"
+          className={styles.jaAssinei}
+          disabled={verificando}
+          onClick={() => void verificarPlano()}
+        >
+          <RefreshCw size={13} aria-hidden="true" className={verificando ? styles.girando : undefined} />
+          {pt
+            ? verificando ? 'Verificando…' : 'Já assinei'
+            : verificando ? 'Checking…' : 'I already subscribed'}
+        </button>
 
         <button
           type="button"

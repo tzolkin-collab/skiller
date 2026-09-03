@@ -67,6 +67,36 @@
   font-weight: 600;
 }
 
+/* Botão para quem já assinou e quer que o gate some sem recarregar. */
+.jaAssinei {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  background: none;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.jaAssinei:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.jaAssinei:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+.girando { animation: girar 0.8s linear infinite; }
+
 /* Saída discreta: a oferta é o caminho principal, mas trancar alguém sem
    nenhuma porta seria pior do que o redirecionamento que isto substituiu. */
 .sair {
