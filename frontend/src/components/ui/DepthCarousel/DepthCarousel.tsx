@@ -69,7 +69,7 @@ interface DragState {
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-const DepthCarousel = <T extends unknown>({
+function DepthCarousel<T>({
   items = [],
   renderItem,
   captureGlobalScroll = false,
@@ -94,7 +94,7 @@ const DepthCarousel = <T extends unknown>({
   showIndicators = true,
   onChange,
   className = ''
-}: DepthCarouselProps<T>) => {
+}: DepthCarouselProps<T>) {
   const data = useMemo(() => Array.isArray(items) ? items : [], [items]);
   const count = data.length;
 
@@ -442,7 +442,7 @@ const DepthCarousel = <T extends unknown>({
             {renderItem ? (
               renderItem(item, i)
             ) : (
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              // eslint-disable-next-line @next/next/no-img-element
               <img className="depth-carousel__img" src={(item as { image?: string; alt?: string })?.image} alt={(item as { image?: string; alt?: string })?.alt || ''} draggable={false} />
             )}
             <span
@@ -512,6 +512,6 @@ const DepthCarousel = <T extends unknown>({
       )}
     </div>
   );
-};
+}
 
 export default DepthCarousel;
