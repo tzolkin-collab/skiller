@@ -97,7 +97,7 @@ export function PlanGate({ lang, trialDays = 3, trialCredits = 300 }: Props) {
         ) : null}
 
         <a className={styles.botao} href={`/${lang}/pricing`}>
-          {pt ? 'Ver planos' : 'See plans'}
+          {pt ? 'Assinar' : 'Subscribe'}
           <ArrowRight size={16} aria-hidden="true" />
         </a>
 
@@ -109,8 +109,8 @@ export function PlanGate({ lang, trialDays = 3, trialCredits = 300 }: Props) {
         >
           <RefreshCw size={13} aria-hidden="true" className={verificando ? styles.girando : undefined} />
           {pt
-            ? verificando ? 'Verificando…' : 'Já assinei'
-            : verificando ? 'Checking…' : 'I already subscribed'}
+            ? verificando ? 'Verificando…' : 'Já assinei, verificar novamente'
+            : verificando ? 'Checking…' : 'Already subscribed, check again'}
         </button>
 
         <button
