@@ -17,7 +17,7 @@ import { revogarTodasSessoes } from '../lib/auth.js';
 import { enviarEmail } from '../lib/email.js';
 import * as tpl from '../lib/email-templates.js';
 import { stripe, isStripeConfigured } from '../lib/stripe.js';
-import { sincronizarAssinatura } from './billing.js';
+import { tentarSincronizarStripe } from '../lib/stripe-sync.js';
 
 export const accountRouter = new Hono();
 
@@ -55,41 +55,24 @@ accountRouter.get('/', async (c) => {
   let u = rows[0];
   if (!u) return c.json({ error: 'not_found' }, 404);
 
-  // Fallback Stripe: se o banco diz free mas o usuário tem um customer, pode
-  // ser que o webhook não chegou (entrega atrasada, secret ausente no deploy,
-  // etc.). Consultamos o Stripe diretamente e sincronizamos antes de responder.
-  if (
-    normalizePlan(u.plan) === 'free' &&
-    u.stripeCustomerId &&
-    isStripeConfigured()
-  ) {
-    try {
-      const subs = await stripe().subscriptions.list({
-        customer: u.stripeCustomerId,
-        status: 'all',
-        limit: 5,
-        expand: ['data.items.data.price'],
-      });
-      const viva = subs.data.find((s) =>
-        ['trialing', 'active', 'past_due'].includes(s.status)
-      );
-      if (viva) {
-        await sincronizarAssinatura(viva);
-        // Re-lê após sincronizar para devolver os dados já atualizados.
-        const atualizado = await db
-          .select({
-            id: users.id, name: users.name, email: users.email,
-            plan: users.plan, credits: users.creditsBalance, validUntil: users.planValidUntil,
-            preferences: users.preferences, stripeCustomerId: users.stripeCustomerId,
-          })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-        if (atualizado[0]) u = atualizado[0];
-      }
-    } catch (e) {
-      // Falha silenciosa: devolve o que está no banco.
-      console.warn('[account] fallback Stripe falhou:', e instanceof Error ? e.message : e);
+  // Fallback Stripe: webhook pode ter falhado (secret ausente, deploy novo,
+  // entrega atrasada). Tenta sincronizar antes de responder com plano free.
+  if (normalizePlan(u.plan) === 'free') {
+    const sincronizou = await tentarSincronizarStripe({
+      userId: u.id,
+      stripeCustomerId: u.stripeCustomerId,
+    });
+    if (sincronizou) {
+      const atualizado = await db
+        .select({
+          id: users.id, name: users.name, email: users.email,
+          plan: users.plan, credits: users.creditsBalance, validUntil: users.planValidUntil,
+          preferences: users.preferences, stripeCustomerId: users.stripeCustomerId,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (atualizado[0]) u = atualizado[0];
     }
   }
 
