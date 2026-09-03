@@ -442,6 +442,7 @@ const DepthCarousel = <T,>({
             {renderItem ? (
               renderItem(item, i)
             ) : (
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="depth-carousel__img" src={(item as { image?: string; alt?: string })?.image} alt={(item as { image?: string; alt?: string })?.alt || ''} draggable={false} />
             )}
             <span

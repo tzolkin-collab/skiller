@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import useSWR from 'swr';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/session';
@@ -53,7 +54,7 @@ function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
       <div className={styles.skillCardBody}>
         <div className={styles.skillCardHeader}>
           {skill.channelImageUrl ? (
-            <img src={skill.channelImageUrl} alt={skill.channelName || ''} className={styles.skillAvatarImage} />
+            <Image src={skill.channelImageUrl} alt={skill.channelName || ''} width={40} height={40} className={styles.skillAvatarImage} unoptimized />
           ) : (
             <div className={styles.skillAvatar} style={{ background: nicheColor }}>
               {initials}

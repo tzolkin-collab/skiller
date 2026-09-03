@@ -1,4 +1,5 @@
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Play, Plus, Check, ThumbsUp, MessageCircle, TrendingUp } from 'lucide-react';
 import styles from './VideoCard.module.css';
 
@@ -50,7 +51,7 @@ export function VideoCard({ videoId, title, channel, channelAvatar, subscribers,
   return (
     <div className={`${styles.card} ${isSubmitting ? styles.submitting : ''} ${isSelected ? styles.selected : ''}`} onClick={handleCardClick}>
       <div className={styles.thumbnailContainer}>
-        <img src={thumbnailUrl} alt={title} className={styles.thumbnail} />
+        <Image src={thumbnailUrl} alt={title} width={320} height={180} className={styles.thumbnail} unoptimized />
         <div className={styles.duration}>{duration}</div>
         
         <button 
@@ -93,7 +94,7 @@ export function VideoCard({ videoId, title, channel, channelAvatar, subscribers,
       </div>
       <div className={styles.info}>
         {channelAvatar ? (
-          <img src={channelAvatar} alt={channel} className={styles.avatarImg} referrerPolicy="no-referrer" />
+          <Image src={channelAvatar} alt={channel} width={36} height={36} className={styles.avatarImg} referrerPolicy="no-referrer" unoptimized />
         ) : (
           <div className={styles.avatar}>{channel.charAt(0)}</div>
         )}

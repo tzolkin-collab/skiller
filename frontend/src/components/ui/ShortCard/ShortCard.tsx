@@ -1,4 +1,5 @@
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { Play, Plus, Check } from 'lucide-react';
 import styles from './ShortCard.module.css';
 
@@ -32,11 +33,13 @@ export function ShortCard({ videoId, title, channel, views, onClick, isSubmittin
   return (
     <div className={`${styles.card} ${isSubmitting ? styles.submitting : ''} ${isSelected ? styles.selected : ''}`} onClick={handleCardClick}>
       <div className={styles.thumbnailContainer}>
-        <img 
-          src={thumbnailUrl} 
-          alt={title} 
-          className={styles.thumbnail} 
-          onError={(e) => { e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; }}
+        <Image
+          src={thumbnailUrl}
+          alt={title}
+          width={360}
+          height={640}
+          className={styles.thumbnail}
+          unoptimized
         />
         
         <button 

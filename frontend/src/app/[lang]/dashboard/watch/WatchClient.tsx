@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/ui/SearchAutocomplete/SearchAutocomplete';
 import { FloatingCart } from '@/components/ui/FloatingCart/FloatingCart';
@@ -160,7 +161,7 @@ export default function WatchClient({ dict, lang, videoId, editSkillId }: WatchC
               <div className={styles.metaRow}>
                 <div className={styles.channelInfo}>
                   {video.channelAvatar ? (
-                    <img src={video.channelAvatar} alt={video.channel} className={styles.avatarImg} />
+                    <Image src={video.channelAvatar} alt={video.channel} width={32} height={32} className={styles.avatarImg} unoptimized />
                   ) : (
                     <div className={styles.avatar}>{video.channel.charAt(0)}</div>
                   )}

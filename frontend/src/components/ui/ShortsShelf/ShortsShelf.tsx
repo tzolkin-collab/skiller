@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ShortCard } from '../ShortCard/ShortCard';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './ShortsShelf.module.css';
@@ -45,7 +46,7 @@ export function ShortsShelf({ shorts, onVideoClick, selectedUrls = [] }: ShortsS
   return (
     <div className={styles.shelfContainer}>
       <div className={styles.header}>
-        <img src="/icons/shorts-icon.svg" alt="Shorts" className={styles.icon} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <Image src="/icons/shorts-icon.svg" alt="Shorts" width={24} height={24} className={styles.icon} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         <h2 className={styles.title}>Shorts</h2>
       </div>
       

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -215,10 +216,12 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
             const base64 = skillData.skillPackage.blobs[fileNode.sha].content;
             const ext = filename.split('.').pop()?.toLowerCase();
             const mime = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : 'image/png';
+            // eslint-disable-next-line @next/next/no-img-element
             return <img {...props} src={`data:${mime};base64,${base64}`} alt={alt} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid var(--border-light)' }} />;
           }
         }
       }
+      // eslint-disable-next-line @next/next/no-img-element
       return <img {...props} src={src} alt={alt} />;
     }
   };
@@ -390,6 +393,7 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                         }
                         if (ext.match(/\.(png|jpe?g|gif|webp)$/i)) {
                           const mime = ext.toLowerCase().endsWith('png') ? 'image/png' : ext.toLowerCase().endsWith('webp') ? 'image/webp' : ext.toLowerCase().endsWith('gif') ? 'image/gif' : 'image/jpeg';
+                          // eslint-disable-next-line @next/next/no-img-element
                           return <div style={{display: 'flex', justifyContent: 'center', padding: '2rem'}}><img src={`data:${mime};base64,${content}`} alt={ext} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }} /></div>;
                         }
                         return <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>;
@@ -621,10 +625,13 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                         }}
                       >
                         {thumbUrl && (
-                          <img
+                          <Image
                             src={thumbUrl}
                             alt={video.title ?? ''}
-                            style={{ width: 72, height: 40, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                            width={72}
+                            height={40}
+                            style={{ objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                            unoptimized
                           />
                         )}
                         <span style={{ flex: 1, fontSize: '0.78rem', lineHeight: 1.3, color: 'var(--text-primary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -733,7 +740,7 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
                         onClick={() => handleVideoSelect(video.id)}
                       >
                         {video.thumbnailUrl && (
-                          <img src={video.thumbnailUrl} alt={video.title ?? ''} className={styles.thumbnailSmall} />
+                          <Image src={video.thumbnailUrl} alt={video.title ?? ''} width={120} height={68} className={styles.thumbnailSmall} unoptimized />
                         )}
                         <CardContent className={styles.videoCardContentSmall}>
                           <h4 className={styles.videoTitleSmall}>{video.title}</h4>

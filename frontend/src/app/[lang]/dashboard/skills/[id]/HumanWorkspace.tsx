@@ -38,10 +38,12 @@ export function HumanWorkspace({ skillData, dict }: HumanWorkspaceProps) {
             const base64 = skillData.skillPackage.blobs[fileNode.sha].content;
             const ext = filename.split('.').pop()?.toLowerCase();
             const mime = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : 'image/png';
+            // eslint-disable-next-line @next/next/no-img-element
             return <img {...props} src={`data:${mime};base64,${base64}`} alt={alt} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid var(--border-light)' }} />;
           }
         }
       }
+      // eslint-disable-next-line @next/next/no-img-element
       return <img {...props} src={src} alt={alt} />;
     }
   };
