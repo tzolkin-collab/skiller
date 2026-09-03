@@ -266,9 +266,13 @@ authRouter.get('/:provider/callback', async (c) => {
 
   const token = await criarSessao(userId, { userAgent: c.req.header('user-agent'), ipAddress: ip(c) });
 
-  // Redireciona para a bridge do Next.js, que seta o cookie no domínio do
-  // frontend. Se o cookie ficasse aqui (backend domain), o middleware do
-  // Next.js nunca o enxergaria e mandaria o usuário de volta ao /entrar.
+  // Grava no backend domain para que os componentes client-side (useAuth)
+  // consigam chamar /api/auth/me com credentials:include e receber sessão válida.
+  gravarCookieSessao(c, token);
+
+  // Redireciona para a bridge do Next.js, que seta o mesmo token no domínio do
+  // frontend. O middleware do Next.js e o exigirSessao (Server Components) só
+  // enxergam cookies do domínio deles — sem a bridge eles redirecionam pro /entrar.
   const destino = guardado.proximo.startsWith('/') ? guardado.proximo : '/pt/dashboard';
   return c.redirect(`${appUrl()}/api/auth/session?token=${encodeURIComponent(token)}&next=${encodeURIComponent(destino)}`);
 });
