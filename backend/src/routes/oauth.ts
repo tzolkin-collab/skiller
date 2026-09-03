@@ -7,6 +7,8 @@ import crypto from 'crypto';
 import { denyUnless } from '../lib/entitlements.js';
 import { normalizePlan, can } from '../lib/plans.js';
 import { validarSessao } from '../lib/auth.js';
+import { stripe, isStripeConfigured } from '../lib/stripe.js';
+import { sincronizarAssinatura } from './billing.js';
 
 export const oauthRouter = new Hono();
 
@@ -145,9 +147,32 @@ oauthRouter.get('/authorize', async (c) => {
   }
 
   // Verifica se o plano do usuário dá direito ao conector MCP
-  const [u] = await db.select().from(users).where(eq(users.id, sessao.userId)).limit(1);
+  let [u] = await db.select().from(users).where(eq(users.id, sessao.userId)).limit(1);
   if (!u) {
     return c.redirect(`${appUrl()}/pt/entrar?next=${encodeURIComponent(c.req.url)}`);
+  }
+
+  // Fallback Stripe: se o banco diz free mas há um customer, o webhook pode ter
+  // falhado. Sincroniza antes de barrar — evita rejeitar quem já pagou.
+  if (!can(u.plan, 'connectors.mcp') && u.stripeCustomerId && isStripeConfigured()) {
+    try {
+      const subs = await stripe().subscriptions.list({
+        customer: u.stripeCustomerId,
+        status: 'all',
+        limit: 5,
+        expand: ['data.items.data.price'],
+      });
+      const viva = subs.data.find((s) =>
+        ['trialing', 'active', 'past_due'].includes(s.status)
+      );
+      if (viva) {
+        await sincronizarAssinatura(viva);
+        const atualizado = await db.select().from(users).where(eq(users.id, u.id)).limit(1);
+        if (atualizado[0]) u = atualizado[0];
+      }
+    } catch (e) {
+      console.warn('[oauth] fallback Stripe falhou:', e instanceof Error ? e.message : e);
+    }
   }
 
   if (!can(u.plan, 'connectors.mcp')) {
