@@ -162,40 +162,16 @@ export default function ConnectorsClient(
         <p className={styles.subtitle}>{dict.dashboard.connectorsSubtitle}</p>
       </header>
 
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem' }}>
+      <div className={styles.connectorTabs}>
         <button
           onClick={() => setActiveTab('chat')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'chat' ? '2px solid var(--text-primary)' : '2px solid transparent',
-            color: activeTab === 'chat' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
+          className={`${styles.connectorTab} ${activeTab === 'chat' ? styles.connectorTabAtiva : ''}`}
         >
           <MessageSquare size={16} /> Chat & Coworking
         </button>
         <button
           onClick={() => setActiveTab('ide')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'ide' ? '2px solid var(--text-primary)' : '2px solid transparent',
-            color: activeTab === 'ide' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
+          className={`${styles.connectorTab} ${activeTab === 'ide' ? styles.connectorTabAtiva : ''}`}
         >
           <Plug size={16} /> IDE Integrations
         </button>

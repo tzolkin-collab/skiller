@@ -1109,3 +1109,59 @@
     justify-content: center;
   }
 }
+
+/* ─── Conector: abas de topo ──────────────────────────────────────────
+   Eram `style` inline nos dois botões, e media query não alcança estilo
+   inline — os rótulos quebravam em duas linhas no celular sem que
+   houvesse onde corrigir. As regras abaixo reproduzem exatamente o que
+   estava inline; o estado ativo continua no componente, porque depende
+   de `activeTab`.
+   ───────────────────────────────────────────────────────────────────── */
+.connectorTabs {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.connectorTab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.connectorTabAtiva {
+  border-bottom-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  /* Os dois rótulos somavam exatamente a largura útil (168 + 155 + 16 de
+     intervalo = 339), então cada um quebrava em duas linhas. Menos corpo e
+     menos recuo devolvem a folga; a rolagem cobre telas ainda mais
+     estreitas. */
+  .connectorTabs {
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .connectorTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .connectorTab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.625rem;
+  }
+}
