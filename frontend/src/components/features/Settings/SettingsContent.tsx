@@ -14,8 +14,8 @@ import {
 } from '@/lib/billing';
 
 import type { Dictionary } from '@/types/dictionary';
+import { BASE_URL } from '@/lib/api-base';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Conta {
   plan: {

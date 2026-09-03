@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card/C
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
 import { useSession } from '@/lib/session';
+import { BASE_URL } from '@/lib/api-base';
 type DictionaryType = Record<string, unknown> & {
   verify?: Record<string, string>;
   common?: Record<string, string>;
@@ -35,7 +36,7 @@ export default function VerifyClient({ lang, dict }: { lang: string, dict: Dicti
 
     setStatus('loading');
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const baseUrl = BASE_URL;
       const res = await fetch(`${baseUrl}/api/oauth/device/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

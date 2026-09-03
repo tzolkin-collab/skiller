@@ -1,5 +1,6 @@
 'use client';
 
+import { BASE_URL } from '@/lib/api-base';
 /**
  * Operações sobre a própria conta.
  *
@@ -8,7 +9,6 @@
  * reabriria exatamente o buraco que a autenticação fechou.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function api(caminho: string, init?: RequestInit): Promise<Response> {
   return fetch(BASE_URL + '/api/account' + caminho, {

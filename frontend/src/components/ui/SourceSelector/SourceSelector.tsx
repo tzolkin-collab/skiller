@@ -3,6 +3,7 @@ import { Youtube, Github, Search, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import styles from './SourceSelector.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
 export function SourceSelector({ 
   language = 'en', 
@@ -26,7 +27,7 @@ export function SourceSelector({
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = BASE_URL;
       const endpoint = `${apiUrl}/api/skills`;
       
       const res = await fetch(endpoint, {

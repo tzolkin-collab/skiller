@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import styles from './SearchAutocomplete.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
 export function SearchAutocomplete({ language = 'en' }: { language?: string }) {
   const [query, setQuery] = useState('');
@@ -32,7 +33,7 @@ export function SearchAutocomplete({ language = 'en' }: { language?: string }) {
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/youtube/suggest?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`${BASE_URL}/api/youtube/suggest?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
           setSuggestions(data.suggestions || []);

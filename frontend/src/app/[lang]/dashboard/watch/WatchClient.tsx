@@ -11,6 +11,7 @@ import { Plus, Check, ArrowLeft, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLayoutState } from '@/store/layoutState';
 import styles from './WatchClient.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
 interface Dictionary {
   [key: string]: unknown;
@@ -60,7 +61,7 @@ export default function WatchClient({ dict, lang, videoId, editSkillId }: WatchC
     async function fetchVideo() {
       try {
         setLoading(true);
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/youtube/video?v=${videoId}`);
+        const res = await fetch(`${BASE_URL}/api/youtube/video?v=${videoId}`);
         if (!res.ok) throw new Error('Failed to fetch video');
         const data = await res.json();
         setVideo(data);
@@ -77,7 +78,7 @@ export default function WatchClient({ dict, lang, videoId, editSkillId }: WatchC
     async function fetchSuggested(channelQuery: string) {
       try {
         setLoadingSuggested(true);
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/youtube/search?q=${encodeURIComponent(channelQuery)}`);
+        const res = await fetch(`${BASE_URL}/api/youtube/search?q=${encodeURIComponent(channelQuery)}`);
         if (res.ok) {
           const data = await res.json();
           // Filter out the current video

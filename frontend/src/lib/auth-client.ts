@@ -13,8 +13,8 @@
  * reescrever no console.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { BASE_URL } from '@/lib/api-base';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface UsuarioLogado {
   id: string;
@@ -141,10 +141,18 @@ export async function sair(): Promise<void> {
   ]);
 }
 
-/** Começa o fluxo do provedor. Navegação de topo, não `fetch`: há redirects. */
+/**
+ * Começa o fluxo do provedor. Navegação de topo, não `fetch`: há redirects.
+ *
+ * Aponta para uma rota do próprio front, e não para o backend: ela responde
+ * com um redirect (não com proxy) para o `/start` de lá. A distinção decide o
+ * login — o backend grava no `/start` um cookie com o `state` do OAuth, e quem
+ * o lê é o callback, que o provedor chama no domínio do backend. Repassado
+ * pelo proxy, o cookie nasceria neste domínio e seria procurado no outro.
+ */
 export function entrarComProvedor(provider: string, next?: string): void {
   const q = next ? `?next=${encodeURIComponent(next)}` : '';
-  window.location.href = `${BASE_URL}/api/auth/${provider}/start${q}`;
+  window.location.href = `/api/auth/start/${provider}${q}`;
 }
 
 

@@ -15,8 +15,8 @@ import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Info, TriangleAlert, CircleX, Loader2 } from 'lucide-react';
 import styles from './page.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type Kind = 'info' | 'ok' | 'warn' | 'error';
 

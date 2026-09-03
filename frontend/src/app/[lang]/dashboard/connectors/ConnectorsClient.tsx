@@ -6,6 +6,7 @@ import { Plug, MessageSquare, Plus, Terminal, Bot } from 'lucide-react';
 import { DownloadProfileButton } from './DownloadProfileButton';
 import styles from '../page.module.css';
 import { Button } from '@/components/ui/Button/Button';
+import { BASE_URL } from '@/lib/api-base';
 
 const SlackLogo = () => (
   <svg width="24" height="24" viewBox="0 0 244 244" xmlns="http://www.w3.org/2000/svg">
@@ -131,18 +132,22 @@ type DictionaryType = Record<string, unknown> & {
  * É para ele que a página passa a apontar. Regra 9 do AGENTS.md: a URL vem do
  * ambiente, nunca escrita à mão.
  */
-// O fallback espelha o de `lib/require-session.ts`, e não é decorativo: sem ele
-// a URL sairia relativa (`/api/mcp`), que nenhum cliente MCP consegue usar — a
-// página voltaria a exibir algo que não conecta, só que de outro jeito.
-const MCP_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/mcp`;
-
-/** O bloco que a pessoa cola num `mcp_config.json`. */
-const MCP_CONFIG = `"skiller": {\n  "url": "${MCP_URL}"\n}`;
+// Esta URL é a única da página que NÃO passa pelo proxy do Next: quem a
+// consome é o cliente MCP — outro processo, às vezes outra máquina —, e um
+// caminho relativo não significa nada para ele. Por isso `mcpUrl` desce por
+// prop do Server Component, que lê o endereço do backend do ambiente sem
+// precisar expô-lo no bundle.
 
 /** Aviso honesto: nem todo cliente MCP fala transporte remoto. */
 const EXIGE_REMOTO = 'Requires a client with remote MCP support. Your client opens the browser to authorize on first connection.';
 
-export default function ConnectorsClient({ dict, lang }: { dict: DictionaryType, lang: string }) {
+export default function ConnectorsClient(
+  { dict, lang, mcpUrl }: { dict: DictionaryType, lang: string, mcpUrl: string }
+) {
+  const MCP_URL = mcpUrl;
+  /** O bloco que a pessoa cola num `mcp_config.json`. */
+  const MCP_CONFIG = `"skiller": {\n  "url": "${MCP_URL}"\n}`;
+
   const [activeTab, setActiveTab] = useState<'ide' | 'chat'>('chat');
 
   const handleConnect = async (provider: string) => {

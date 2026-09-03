@@ -21,8 +21,8 @@ import { SkillEditor } from '@/components/ui/SkillEditor/SkillEditor';
 import { SkillConnectors } from '@/components/ui/SkillConnectors/SkillConnectors';
 import { SkillNodeMap } from './SkillNodeMap';
 import humanStyles from './human.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface SkillClientProps {
   dict: Dictionary;

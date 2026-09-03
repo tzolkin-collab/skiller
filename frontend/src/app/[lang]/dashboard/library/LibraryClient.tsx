@@ -14,6 +14,7 @@ import type { Dictionary } from '@/types/dictionary';
 import type { SkillSummary, SkillNiche } from '@/types/api';
 import { SKILL_NICHES, NICHE_LABEL } from '@/types/api';
 import styles from '../page.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
 interface LibraryClientProps {
   dict: Dictionary;
@@ -332,7 +333,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
   }, [searchInput]);
 
   // SWR
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const apiUrl = BASE_URL;
   const buildKey = () => {
     const params = new URLSearchParams();
     // A conta vem do cookie; mandar o id na query so o expunha.

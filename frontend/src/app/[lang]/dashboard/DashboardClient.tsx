@@ -16,6 +16,7 @@ import { FloatingCart } from '@/components/ui/FloatingCart/FloatingCart';
 import { useCart } from '@/components/providers/CartProvider';
 import styles from './page.module.css';
 import useSWRInfinite from 'swr/infinite';
+import { BASE_URL } from '@/lib/api-base';
 
 interface DashboardClientProps {
   dict: Dictionary;
@@ -77,7 +78,7 @@ export default function DashboardClient({ dict, lang, initialQuery, editSkillId 
       if (!activeQuery) return null; // Wait for activeQuery to be set
       // Reached the end
       if (previousPageData && !previousPageData.videos?.length) return null;
-      return `${process.env.NEXT_PUBLIC_API_URL}/api/youtube/search?q=${encodeURIComponent(activeQuery)}&page=${pageIndex + 1}`;
+      return `${BASE_URL}/api/youtube/search?q=${encodeURIComponent(activeQuery)}&page=${pageIndex + 1}`;
     },
     fetcher,
     { 

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import styles from './FloatingCart.module.css';
 import { Button } from '@/components/ui/Button/Button';
+import { BASE_URL } from '@/lib/api-base';
 
 export function FloatingCart({ language = 'en', editSkillId }: { language?: string, editSkillId?: string }) {
   const { selectedUrls, clearCart } = useCart();
@@ -34,7 +35,7 @@ export function FloatingCart({ language = 'en', editSkillId }: { language?: stri
   const handleEnviarParaAgente = async (sessao: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/sessions/${sessao}/sources`, {
+      const res = await fetch(`${BASE_URL}/api/sessions/${sessao}/sources`, {
         method: 'POST',
         // Cookie: a rota exige sessão no navegador e confere posse.
         credentials: 'include',
@@ -61,7 +62,7 @@ export function FloatingCart({ language = 'en', editSkillId }: { language?: stri
     setLoading(true);
     setErro(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = BASE_URL;
       const endpoint = `${apiUrl}/api/skills`;
       
       const res = await fetch(endpoint, {

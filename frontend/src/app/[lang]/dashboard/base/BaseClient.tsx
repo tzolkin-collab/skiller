@@ -12,8 +12,8 @@ import { fetcher } from '@/lib/fetcher';
 import { useSession } from '@/lib/session';
 import type { ContaAtual } from '@/lib/account';
 import styles from './base.module.css';
+import { BASE_URL } from '@/lib/api-base';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface KbPage {
   path: string;

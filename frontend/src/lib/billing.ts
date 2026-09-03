@@ -1,3 +1,4 @@
+import { BASE_URL } from '@/lib/api-base';
 /**
  * Cobrança, do lado do navegador.
  *
@@ -6,7 +7,6 @@
  * anunciar R$97 enquanto o backend cobrava R$99,99.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type Currency = 'BRL' | 'USD' | 'EUR';
 export type BillingPeriod = 'monthly' | 'annual';
