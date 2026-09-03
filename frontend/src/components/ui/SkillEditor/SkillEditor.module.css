@@ -76,6 +76,29 @@
   border-color: var(--primary-color);
 }
 
+.select {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
 .list {
   display: flex;
   flex-direction: column;

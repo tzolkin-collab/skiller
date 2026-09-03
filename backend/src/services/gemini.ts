@@ -5,7 +5,7 @@ import { buildSynthesisPrompt } from '../prompts/synthesis.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { getErrorMessage } from '../lib/errors.js';
-import { CONNECTOR_IDS, SkillDocumentSchema, type SkillDocument } from '../lib/skill-document.js';
+import { CONNECTOR_IDS, SKILL_NICHES, SkillDocumentSchema, type SkillDocument } from '../lib/skill-document.js';
 
 // Inicializa o GenAI. Se a chave não existir, lançaremos erro legível nas funções.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'MISSING_KEY' });
@@ -38,13 +38,24 @@ export interface PluginPackage {
 }
 
 /** Espelha `SkillDocumentSchema` para o structured output do Gemini. */
-const SKILL_DOCUMENT_RESPONSE_SCHEMA = {
+export const SKILL_DOCUMENT_RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     name: { type: Type.STRING },
     title: { type: Type.STRING },
     description: { type: Type.STRING },
     goal: { type: Type.STRING },
+    /**
+     * O prompt manda classificar o nicho desde sempre — mas o campo não estava
+     * declarado aqui, e o Gemini em structured output só emite o que o
+     * `responseSchema` declara. O pedido era descartado na saída: 9 das 11
+     * skills nasceram sem nicho, e as 2 que têm vieram por `skiller_create_skill`,
+     * onde o agente escreve o documento sem passar por este schema.
+     *
+     * O enum vem de `SKILL_NICHES` e não de literais soltos: prompt, Zod e
+     * provider precisam concordar, e três listas escritas à mão divergem.
+     */
+    niche: { type: Type.STRING, enum: [...SKILL_NICHES] },
     principles: {
       type: Type.ARRAY,
       items: {
@@ -129,7 +140,20 @@ const SKILL_DOCUMENT_RESPONSE_SCHEMA = {
       required: ['summary']
     }
   },
-  required: ['name', 'title', 'description', 'goal', 'principles', 'commands', 'humanGuide']
+  /**
+   * `modules` e `niche` entraram aqui, e a ausência deles não era detalhe.
+   *
+   * O que o provider não exige, o modelo omite — e omitiu: 5 de 11 skills sem
+   * módulo nenhum, 9 de 11 sem nicho. Medindo para onde o conteúdo ia quando
+   * `modules` faltava, ele não sumia: migrava para `commands` e `humanGuide`.
+   * Em `vender-saas-b2b` são 6.281 bytes de comando e 5.489 de guia contra ZERO
+   * de módulo. Conhecimento de referência virou procedimento a executar e texto
+   * para humano ler — dois lugares onde o agente não consulta.
+   *
+   * `connectors` fica fora de propósito: skill que não usa MCP nenhum é comum e
+   * legítima, e forçar o campo faria o modelo inventar conector.
+   */
+  required: ['name', 'title', 'description', 'goal', 'niche', 'principles', 'modules', 'commands', 'humanGuide']
 } as const;
 
 /** Tokens consumed by one call, read from the provider's own accounting. */

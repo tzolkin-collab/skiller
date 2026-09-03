@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './SkillEditor.module.css';
-import { SkillDocument } from '@/types/api';
+import { SkillDocument, SKILL_NICHES, NICHE_LABEL, type SkillNiche } from '@/types/api';
 import { Button } from '../Button/Button';
 import { Input } from '../Input/Input';
 
@@ -74,13 +74,35 @@ export const SkillEditor: React.FC<SkillEditorProps> = ({ initialDocument, onSav
         </div>
         <div className={styles.fieldGroup}>
           <label>Goal</label>
-          <textarea 
+          <textarea
             className={styles.textarea}
-            value={doc.goal} 
-            onChange={e => updateDoc({ goal: e.target.value })} 
+            value={doc.goal}
+            onChange={e => updateDoc({ goal: e.target.value })}
             placeholder="What should the agent achieve?"
             rows={3}
           />
+        </div>
+        {/*
+          O nicho era o único campo de descoberta que a IA inferia e ninguém
+          podia corrigir — e ela errava com frequência: 9 das 11 skills nasceram
+          sem nicho nenhum. Editável aqui, um acerto manual vale para sempre,
+          sem depender de regerar a skill.
+        */}
+        <div className={styles.fieldGroup}>
+          <label>Niche</label>
+          <select
+            className={styles.select}
+            value={doc.niche ?? ''}
+            onChange={e => updateDoc({ niche: e.target.value ? (e.target.value as SkillNiche) : undefined })}
+          >
+            <option value="">— not classified —</option>
+            {SKILL_NICHES.map(n => (
+              <option key={n} value={n}>{NICHE_LABEL[n]}</option>
+            ))}
+          </select>
+          <span className={styles.hint}>
+            Groups the skill in your library and helps an agent decide when to use it.
+          </span>
         </div>
       </div>
 

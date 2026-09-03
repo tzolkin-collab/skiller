@@ -29,6 +29,25 @@ export const SKILL_NICHES: SkillNiche[] = [
   'other',
 ];
 
+/**
+ * Rótulo humano de cada nicho.
+ *
+ * Vivia dentro do `LibraryClient`, onde nasceu para os chips de filtro. Saiu de
+ * lá quando o editor passou a precisar dos mesmos nomes: duas cópias da lista
+ * divergem no dia em que um nicho for renomeado, e aí o filtro e o editor
+ * chamam a mesma coisa por nomes diferentes.
+ */
+export const NICHE_LABEL: Record<SkillNiche, string> = {
+  marketing:   'Marketing',
+  sales:       'Sales',
+  traffic:     'Traffic',
+  development: 'Development',
+  productivity:'Productivity',
+  design:      'Design',
+  finance:     'Finance',
+  other:       'Other',
+};
+
 export interface SkillSummary {
   id: string;
   playlistUrl: string;
@@ -129,6 +148,12 @@ export interface SkillDetail extends SkillSummary {
   humanMdContent: string | null;
   skillPackage: PluginPackage | null;
   skillDocument?: SkillDocument | null;
+  /**
+   * Segredo do link de instalação. Só vem nesta rota, que exige sessão e posse:
+   * o `/plugin` é buscado pela IDE sem cookie, então é este token — e não o id
+   * da skill, visível na URL — que autoriza o download do pacote.
+   */
+  shareToken: string | null;
   videos: SkillVideo[];
 }
 

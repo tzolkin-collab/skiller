@@ -14,10 +14,12 @@ import { can, upgradeMessage } from '../lib/plans.js';
 
 export const mcpRouter = new Hono();
 
-interface SkillPackageMeta {
-  name?: string;
-  description?: string;
-}
+// `SkillPackageMeta { name?, description? }` e `parsePackageMeta` viviam aqui e
+// liam campos que `skillPackage` NUNCA teve: `buildGitPackage` devolve
+// `{ root, blobs }` e nada mais. Das 26 linhas, 23 têm `root` e só 2 têm `name`
+// — as duas são seeds. Não era um campo que faltava preencher: era um campo que
+// não existe. O nome e a descrição vêm de `skillDocument`, que é onde a síntese
+// realmente escreve.
 
 /**
  * Uma sessão por cliente conectado.
@@ -39,14 +41,6 @@ function criarServidor(): Server {
   return server;
 }
 
-function parsePackageMeta(raw: unknown): SkillPackageMeta {
-  if (raw === null || typeof raw !== 'object') return {};
-  if (typeof raw === 'string') {
-    try { return JSON.parse(raw) as SkillPackageMeta; } catch { return {}; }
-  }
-  return raw as SkillPackageMeta;
-}
-
 /**
  * Resolve quem está do outro lado da conexão.
  *
@@ -57,6 +51,101 @@ function parsePackageMeta(raw: unknown): SkillPackageMeta {
  */
 async function donoDaSessao(): Promise<{ userId: string; plan: string } | null> {
   return resolveAccount();
+}
+
+/** Uma linha de `skills`, derivada do schema. */
+type Skill = typeof skills.$inferSelect;
+
+/**
+ * As skills com pacote do usuário, em ordem estável.
+ *
+ * A ordem importa mais do que parece: `mapaDeTools` desempata nome repetido, e
+ * sem `ORDER BY` o Postgres é livre para devolver as linhas em ordem diferente
+ * entre duas consultas. ListTools e CallTool fazem a MESMA consulta — se a
+ * ordem variasse, o nome anunciado e o nome procurado poderiam divergir.
+ */
+function skillsComPacote(userId: string) {
+  return db
+    .select()
+    .from(skills)
+    .where(and(isNotNull(skills.skillPackage), eq(skills.userId, userId)))
+    .orderBy(skills.createdAt, skills.id);
+}
+
+/**
+ * Nome de tool aceito por cliente MCP.
+ *
+ * `skillDocument.name` é um `Slug` (kebab-case, sem acento) e já passaria
+ * direto; isto existe para as linhas gravadas antes daquela restrição, e para
+ * o dia em que o modelo devolver algo fora do formato. Nome inválido não é
+ * detalhe cosmético: o cliente rejeita a tool e ela some da lista.
+ */
+function sanitizarNome(bruto: string | undefined | null): string | null {
+  if (!bruto) return null;
+  const limpo = bruto
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '')
+    .slice(0, 64);
+  return limpo.length >= 3 ? limpo : null;
+}
+
+/**
+ * A descrição que o agente lê para decidir se chama esta skill.
+ *
+ * Vinha de `skillPackage.description`, e era ali que a descoberta morria: aquele
+ * campo guarda o TÍTULO DO VÍDEO de origem, não o que a skill ensina. Uma skill
+ * de gestão de canal se anunciava como "Skill: URGENTE! ME AJUDEM POR FAVOR!" —
+ * nenhum modelo casa isso com "como evito que meu canal seja bloqueado".
+ *
+ * `skillDocument` guarda o texto certo, escrito pela síntese justamente para
+ * descrever a capacidade. `goal` entra junto porque descrição de tool é prompt:
+ * quanto mais superfície semântica, maior a chance de o agente escolher certo.
+ */
+export function descricaoDaSkill(s: Skill): string {
+  const doc = s.skillDocument as SkillDocument | null;
+  if (doc?.description) {
+    return `${doc.description}${doc.goal ? ` Objetivo: ${doc.goal}` : ''}`.slice(0, 480);
+  }
+
+  // Sem documento estruturado só existe o título da fonte, guardado em
+  // `skills.name` como "Skill: <título do vídeo>". Dizer que é a FONTE evita
+  // que o agente leia um título de vídeo como promessa de capacidade.
+  const bruto = s.name;
+  return bruto
+    ? `Skill gerada a partir da fonte "${String(bruto).replace(/^Skill:\s*/, '').slice(0, 160)}". Sem descrição estruturada — carregue para ver o conteúdo.`
+    : 'Skill do Skiller sem descrição registrada.';
+}
+
+/**
+ * Nome de tool → skill, para o conjunto inteiro do usuário.
+ *
+ * ListTools e CallTool PRECISAM derivar o mesmo nome. Antes cada um repetia a
+ * expressão por conta própria; bastava a regra mudar de um lado para o agente
+ * enxergar uma tool que não conseguiria chamar. A resolução mora aqui e os dois
+ * consomem esta função.
+ *
+ * Colisão (duas skills com o mesmo slug) recebe sufixo do id em TODAS as
+ * envolvidas, não só na segunda — assim o nome de uma skill não depende de qual
+ * outra apareceu antes na consulta.
+ */
+export function mapaDeTools(linhas: Skill[]): Map<string, Skill> {
+  const bases = linhas.map((s) =>
+    sanitizarNome((s.skillDocument as SkillDocument | null)?.name)
+      ?? `skill_${s.id.replace(/-/g, '_')}`
+  );
+
+  const contagem = new Map<string, number>();
+  for (const base of bases) contagem.set(base, (contagem.get(base) ?? 0) + 1);
+
+  const mapa = new Map<string, Skill>();
+  linhas.forEach((s, i) => {
+    const base = bases[i];
+    const nome = (contagem.get(base) ?? 0) > 1 ? `${base.slice(0, 55)}-${s.id.slice(0, 8)}` : base;
+    mapa.set(nome, s);
+  });
+  return mapa;
 }
 
 /** Resposta padrão quando o cliente não tem direito às tools de skill. */
@@ -81,26 +170,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   }
 
   // Só as skills DESTE usuário. O filtro por dono é o que separa as contas.
-  const generatedSkills = await db
-    .select()
-    .from(skills)
-    .where(and(isNotNull(skills.skillPackage), eq(skills.userId, conta.userId)));
+  const generatedSkills = await skillsComPacote(conta.userId);
 
-  const tools = generatedSkills.map((s) => {
-    const pkg = parsePackageMeta(s.skillPackage);
-    const name = pkg?.name ?? `skill_${s.id.replace(/-/g, '_')}`;
-    const description = pkg?.description ?? s.name ?? 'Skiller dynamic tool';
-
-    return {
-      name,
-      description,
-      inputSchema: {
-        type: 'object' as const,
-        properties: {},
-        required: [] as string[]
-      }
-    };
-  });
+  const tools = [...mapaDeTools(generatedSkills)].map(([name, s]) => ({
+    name,
+    description: descricaoDaSkill(s),
+    inputSchema: {
+      type: 'object' as const,
+      properties: {},
+      required: [] as string[]
+    }
+  }));
 
   // Ordem por estabilidade: Base da IA e criação são fixas e poucas; a lista de
   // skills cresce com o banco. `skiller_create_skill` só aparece neste ramo
@@ -129,17 +209,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (criada) return criada;
 
   // Busca restrita ao dono: uma skill de outra conta não deve nem ser
-  // encontrável por nome.
-  const generatedSkills = await db
-    .select()
-    .from(skills)
-    .where(and(isNotNull(skills.skillPackage), eq(skills.userId, conta.userId)));
-
-  const skill = generatedSkills.find((s) => {
-    const pkg = parsePackageMeta(s.skillPackage);
-    const name = pkg?.name ?? `skill_${s.id.replace(/-/g, '_')}`;
-    return name === toolName;
-  });
+  // encontrável por nome. A resolução do nome é a MESMA de ListTools, pela
+  // mesma função — é o que garante que toda tool anunciada seja chamável.
+  const generatedSkills = await skillsComPacote(conta.userId);
+  const skill = mapaDeTools(generatedSkills).get(toolName);
 
   if (!skill) {
     throw new Error(`Tool not found: ${toolName}`);

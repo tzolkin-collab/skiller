@@ -11,7 +11,7 @@ import {
 import { fetcher } from '@/lib/fetcher';
 import type { Dictionary } from '@/types/dictionary';
 import type { SkillSummary, SkillNiche } from '@/types/api';
-import { SKILL_NICHES } from '@/types/api';
+import { SKILL_NICHES, NICHE_LABEL } from '@/types/api';
 import styles from '../page.module.css';
 
 interface LibraryClientProps {
@@ -29,17 +29,6 @@ const NICHE_COLOR: Record<SkillNiche, string> = {
   design:      '#ec4899',
   finance:     '#14b8a6',
   other:       '#6b7280',
-};
-
-const NICHE_LABEL: Record<SkillNiche, string> = {
-  marketing:   'Marketing',
-  sales:       'Sales',
-  traffic:     'Traffic',
-  development: 'Development',
-  productivity:'Productivity',
-  design:      'Design',
-  finance:     'Finance',
-  other:       'Other',
 };
 
 // ─── Skill Card ──────────────────────────────────────────────────────────────
