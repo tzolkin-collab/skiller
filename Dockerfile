@@ -34,6 +34,12 @@ RUN pnpm install --frozen-lockfile --filter backend... --prod
 # Copiar artefatos compilados
 COPY --from=builder /app/backend/dist ./backend/dist
 
+# Entrypoint: roda migrations e só então sobe o servidor.
+# Se a migration falhar o container sai com código não-zero — o EasyPanel
+# mantém o container anterior servindo tráfego em vez de subir um quebrado.
+COPY backend/entrypoint.sh ./backend/entrypoint.sh
+RUN chmod +x ./backend/entrypoint.sh
+
 WORKDIR /app/backend
 
 ENV NODE_ENV=production
@@ -41,5 +47,4 @@ ENV BACKEND_PORT=3001
 
 EXPOSE 3001
 
-# Em produção as variáveis de ambiente vêm do EasyPanel, não de .env
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["./entrypoint.sh"]

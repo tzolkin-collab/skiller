@@ -33,6 +33,8 @@ import {
 } from './mcp-sessions.js';
 import { can, normalizePlan } from './plans.js';
 import { SKILL_FORMATS, type SkillFormat } from '../prompts/synthesis.js';
+import { resolveChannelId, searchChannelVideos } from '../services/youtube.js';
+import { skillQueue } from '../queue/queue.js';
 
 /** Lista dos formatos, derivada do mapa que já os define. */
 const FORMATS = Object.keys(SKILL_FORMATS) as SkillFormat[];
@@ -64,6 +66,77 @@ const ESQUEMA_DOCUMENTO = zodToJsonSchema(SkillDocumentSchema, {
 }) as Record<string, unknown>;
 
 export const SKILL_TOOLS = [
+  {
+    name: 'skiller_search_channel',
+    description:
+      'Busca vídeos de um canal do YouTube por palavra-chave e devolve a lista para você escolher. ' +
+      'Use antes de skiller_create_from_channel quando quiser ver os resultados antes de processar, ' +
+      'ou quando o usuário quiser selecionar manualmente quais vídeos incluir na skill.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        channelUrl: {
+          type: 'string',
+          description: 'URL do canal. Aceita qualquer formato: @handle, /channel/UCxxx, /c/nome.',
+        },
+        query: {
+          type: 'string',
+          description: 'Palavra-chave ou tema a buscar dentro do canal (ex: "tráfego pago", "copywriting").',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'Máximo de vídeos a retornar (1–50). Padrão: 20.',
+        },
+        publishedAfter: {
+          type: 'string',
+          description: 'ISO 8601 — ignora vídeos anteriores a esta data (ex: "2024-01-01T00:00:00Z").',
+        },
+      },
+      required: ['channelUrl', 'query'],
+    },
+  },
+  {
+    name: 'skiller_create_from_channel',
+    description:
+      'Busca vídeos de um canal do YouTube por tema e enfileira a criação de uma skill com os ' +
+      'resultados. O pipeline completo roda em segundo plano: transcrição, extração por Gemini e ' +
+      'síntese. Use quando o usuário quiser criar uma skill automaticamente a partir de um canal. ' +
+      'Devolve o skillId para acompanhar o progresso no painel.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        channelUrl: {
+          type: 'string',
+          description: 'URL do canal YouTube. Aceita @handle, /channel/UCxxx, /c/nome.',
+        },
+        query: {
+          type: 'string',
+          description: 'Tema a buscar no canal (ex: "tráfego pago Google Ads").',
+        },
+        maxResults: {
+          type: 'number',
+          description: 'Máximo de vídeos a incluir (1–50). Padrão: 20.',
+        },
+        publishedAfter: {
+          type: 'string',
+          description: 'ISO 8601 — ignora vídeos anteriores a esta data.',
+        },
+        videoUrls: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Lista de URLs de vídeos específicos a incluir além da busca, ou em vez dela ' +
+            '(se informada sem query, usa apenas estes). Útil quando skiller_search_channel ' +
+            'já foi chamado e você selecionou os vídeos manualmente.',
+        },
+        sessionId: {
+          type: 'string',
+          description: 'Id devolvido por skiller_open_session, para o usuário acompanhar ao vivo.',
+        },
+      },
+      required: ['channelUrl'],
+    },
+  },
   {
     name: 'skiller_request_sources',
     description:
@@ -151,7 +224,10 @@ export async function handleSkillTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<ToolResult | null> {
-  const MINHAS = ['skiller_create_skill', 'skiller_open_session', 'skiller_request_sources', 'skiller_session_state'];
+  const MINHAS = [
+    'skiller_create_skill', 'skiller_open_session', 'skiller_request_sources',
+    'skiller_session_state', 'skiller_search_channel', 'skiller_create_from_channel',
+  ];
   if (!MINHAS.includes(name)) return null;
 
   const conta = await resolveAccount();
@@ -163,6 +239,98 @@ export async function handleSkillTool(
   }
 
   const plano = normalizePlan(conta.plan);
+
+  // Busca de canal: retorna lista de vídeos para o agente escolher.
+  if (name === 'skiller_search_channel') {
+    if (!can(plano, 'connectors.mcp')) {
+      return texto(`O plano atual (${plano}) não permite usar o conector.`, true);
+    }
+    const channelUrl = typeof args.channelUrl === 'string' ? args.channelUrl : '';
+    const query = typeof args.query === 'string' ? args.query.trim() : '';
+    if (!channelUrl) return texto('channelUrl é obrigatório.', true);
+    if (!query) return texto('query é obrigatório.', true);
+
+    const maxResults = typeof args.maxResults === 'number' ? Math.min(Math.max(args.maxResults, 1), 50) : 20;
+    const publishedAfter = typeof args.publishedAfter === 'string' ? args.publishedAfter : undefined;
+
+    const channelId = await resolveChannelId(channelUrl);
+    if (!channelId) return texto(`Não foi possível resolver o channelId de "${channelUrl}". Verifique a URL.`, true);
+
+    const videos = await searchChannelVideos(channelId, query, maxResults, { publishedAfter });
+    if (videos.length === 0) return texto(`Nenhum vídeo encontrado para "${query}" neste canal.`);
+
+    const linhas = [
+      `${videos.length} vídeo(s) encontrado(s) para "${query}":`,
+      '',
+      ...videos.map((v, i) =>
+        `${i + 1}. ${v.title}\n   ${v.url}\n   publicado: ${v.publishedAt.slice(0, 10)}`
+      ),
+      '',
+      'Para criar uma skill com todos, use skiller_create_from_channel com a mesma channelUrl e query.',
+      'Para usar uma seleção, passe as URLs escolhidas em videoUrls para skiller_create_from_channel.',
+    ];
+    return texto(linhas.join('\n'));
+  }
+
+  // Criação automática a partir de canal: busca + enfileira pipeline.
+  if (name === 'skiller_create_from_channel') {
+    if (!can(plano, 'connectors.mcp') || !can(plano, 'skill.generate')) {
+      return texto(`O plano atual (${plano}) não permite criar skills pelo conector.`, true);
+    }
+    const channelUrl = typeof args.channelUrl === 'string' ? args.channelUrl : '';
+    if (!channelUrl) return texto('channelUrl é obrigatório.', true);
+
+    const query = typeof args.query === 'string' ? args.query.trim() : '';
+    const maxResults = typeof args.maxResults === 'number' ? Math.min(Math.max(args.maxResults, 1), 50) : 20;
+    const publishedAfter = typeof args.publishedAfter === 'string' ? args.publishedAfter : undefined;
+    const extraUrls = Array.isArray(args.videoUrls) ? (args.videoUrls as unknown[]).filter((u): u is string => typeof u === 'string') : [];
+    const sessionId = typeof args.sessionId === 'string' ? args.sessionId : null;
+
+    await registrarEvento(sessionId, 'info', `Buscando vídeos sobre "${query || '(seleção manual)'}" no canal…`);
+
+    let urls: string[] = [...extraUrls];
+
+    if (query) {
+      const channelId = await resolveChannelId(channelUrl);
+      if (!channelId) return texto(`Não foi possível resolver o channelId de "${channelUrl}".`, true);
+      const encontrados = await searchChannelVideos(channelId, query, maxResults, { publishedAfter });
+      urls = [...new Set([...encontrados.map((v) => v.url), ...extraUrls])];
+      await registrarEvento(sessionId, 'info', `${encontrados.length} vídeo(s) encontrado(s). Enfileirando pipeline…`);
+    }
+
+    if (urls.length === 0) return texto('Nenhum vídeo para processar. Informe query ou videoUrls.', true);
+
+    const skillId = randomUUID();
+    await db.insert(skills).values({
+      id: skillId,
+      userId: conta.userId,
+      sourceType: 'youtube',
+      sourceQuery: query || channelUrl,
+      playlistUrl: channelUrl,
+      targetFormat: 'claude',
+      language: 'pt',
+      status: 'queued',
+    });
+
+    await skillQueue.add('generate-skill', {
+      skillId,
+      sourceType: 'youtube',
+      sourceQuery: query || channelUrl,
+      urls,
+      targetFormat: 'claude',
+      language: 'pt',
+      userId: conta.userId,
+    }, { jobId: skillId });
+
+    await registrarEvento(sessionId, 'ok', `${urls.length} vídeo(s) enfileirado(s). Skill em processamento.`, { skillId, urls });
+    await fecharSessao(sessionId, 'done');
+
+    return texto([
+      `Skill enfileirada com ${urls.length} vídeo(s).`,
+      `skillId: ${skillId}`,
+      `Acompanhe o progresso no painel: /dashboard/skills/${skillId}`,
+    ].join('\n'));
+  }
 
   // Abertura de sessão: só precisa de conta e do direito ao conector. Criar
   // skill exige mais, e o portão disso fica logo abaixo.

@@ -113,6 +113,102 @@ export function extractVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * Resolve o channelId a partir de qualquer formato de URL de canal do YouTube:
+ * - youtube.com/channel/UCxxx   → id direto
+ * - youtube.com/@handle         → forHandle API
+ * - youtube.com/c/name          → forUsername API (legado)
+ * - youtube.com/user/name       → forUsername API (legado)
+ */
+export async function resolveChannelId(url: string): Promise<string | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) throw new Error('YOUTUBE_API_KEY is missing');
+
+  let p: URL;
+  try { p = new URL(url); } catch { return null; }
+
+  const parts = p.pathname.split('/').filter(Boolean);
+
+  if (parts[0] === 'channel') return parts[1] ?? null;
+
+  const handle = parts[0]?.startsWith('@') ? parts[0].slice(1) : null;
+  if (handle) {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.items?.[0]?.id ?? null;
+    }
+  }
+
+  const username = (parts[0] === 'c' || parts[0] === 'user') ? parts[1] : null;
+  if (username) {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=${encodeURIComponent(username)}&key=${apiKey}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.items?.[0]?.id ?? null;
+    }
+  }
+
+  return null;
+}
+
+export interface ChannelVideoResult {
+  videoId: string;
+  title: string;
+  publishedAt: string;
+  url: string;
+}
+
+export interface SearchChannelFilters {
+  /** ISO 8601 (ex.: "2024-01-01T00:00:00Z") — ignora vídeos mais antigos */
+  publishedAfter?: string;
+}
+
+/**
+ * Busca vídeos dentro de um canal por palavra-chave.
+ *
+ * Usa `search.list` (100 quota units por chamada). O YouTube ordena por
+ * relevância, não por data — `publishedAfter` corta pelo período mas não
+ * garante ordenação cronológica.
+ */
+export async function searchChannelVideos(
+  channelId: string,
+  query: string,
+  maxResults = 20,
+  filters: SearchChannelFilters = {}
+): Promise<ChannelVideoResult[]> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) throw new Error('YOUTUBE_API_KEY is missing');
+
+  const params = new URLSearchParams({
+    part: 'snippet',
+    channelId,
+    q: query,
+    type: 'video',
+    maxResults: String(Math.min(maxResults, 50)),
+    order: 'relevance',
+    key: apiKey,
+  });
+
+  if (filters.publishedAfter) params.set('publishedAfter', filters.publishedAfter);
+
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`YouTube API Error: ${res.status} - ${errorText}`);
+  }
+
+  const data = await res.json();
+  return (data.items ?? [])
+    .filter((item: { id: { kind: string; videoId?: string } }) => item.id.kind === 'youtube#video' && item.id.videoId)
+    .map((item: { id: { videoId: string }; snippet: { title: string; publishedAt: string } }) => ({
+      videoId: item.id.videoId,
+      title: item.snippet.title,
+      publishedAt: item.snippet.publishedAt,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+    }));
+}
+
 export async function getVideoDetails(videoId: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error('YOUTUBE_API_KEY is missing');

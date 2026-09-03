@@ -44,9 +44,25 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Skiller | YouTube Playlist to Skills",
   description: "Transform any YouTube playlist into an actionable, structured SKILL.md document for AI coding assistants.",
-  icons: [
-    { rel: "icon", url: "/icon.svg?v=3", type: "image/svg+xml" }
-  ],
+  // icon.tsx e opengraph-image.tsx na pasta app/ são detectados automaticamente
+  // pelo App Router — não precisam ser declarados aqui. O SVG animado fica como
+  // fallback para browsers que suportam SVG favicon.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
+  openGraph: {
+    title: "Skiller | YouTube Playlist to Skills",
+    description: "Transform any YouTube playlist into an actionable, structured SKILL.md document for AI coding assistants.",
+    siteName: "Skiller",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Skiller | YouTube Playlist to Skills",
+    description: "Transform any YouTube playlist into an actionable, structured SKILL.md document for AI coding assistants.",
+  },
 };
 
 import { CartProvider } from "@/components/providers/CartProvider";

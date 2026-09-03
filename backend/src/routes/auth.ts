@@ -47,12 +47,15 @@ function producao(): boolean {
 }
 
 function gravarCookieSessao(c: Context, token: string): void {
+  // `SameSite=None` porque o frontend (skiller.tzolkin.cloud) e o backend
+  // (easypanel.host) ficam em domínios diferentes. Com `Lax`, o browser não
+  // manda o cookie de sessão nas requisições fetch do frontend — o painel
+  // abre sem sessão e redireciona para o login. `None` exige `Secure=true`.
+  // O CSRF continua protegido pelo `httpOnly` + tokens de sessão opacos.
   setCookie(c, COOKIE_SESSAO, token, {
     httpOnly: true,
-    secure: producao(),
-    // `lax` deixa o cookie viajar no retorno do OAuth (navegação de topo) mas
-    // não em requisição de outro site — que é o que o CSRF explora.
-    sameSite: 'Lax',
+    secure: true,
+    sameSite: 'None',
     path: '/',
     maxAge: Math.floor(DURACAO_SESSAO_MS / 1000),
   });
@@ -176,8 +179,14 @@ authRouter.get('/:provider/start', async (c) => {
 
   // `state` e `verifier` vão num cookie curto, não em memória do servidor:
   // com mais de uma instância, memória não sobrevive ao balanceador.
+  // `SameSite=None` e não `Lax`: o frontend e o backend ficam em domínios
+  // diferentes (ex.: skiller.tzolkin.cloud ↔ other-skiller.rzkso2.easypanel.host).
+  // Chrome classifica o cookie como cross-site e o bloqueia no callback do
+  // Google mesmo numa navegação de topo, onde `Lax` deveria bastir.
+  // É seguro porque (a) o cookie dura 10 min, (b) a proteção CSRF é o `state`
+  // opaco — o cookie em si não prova nada sem o `state` que o Google devolve.
   setCookie(c, COOKIE_OAUTH, JSON.stringify({ state, verifier: pkce?.verifier ?? null, proximo, p: p.id }), {
-    httpOnly: true, secure: producao(), sameSite: 'Lax', path: '/', maxAge: 600,
+    httpOnly: true, secure: true, sameSite: 'None', path: '/', maxAge: 600,
   });
 
   return c.redirect(urlDeAutorizacao(p, redirectUri(p.id), state, pkce));
