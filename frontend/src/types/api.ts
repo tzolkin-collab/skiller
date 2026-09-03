@@ -29,6 +29,25 @@ export const SKILL_NICHES: SkillNiche[] = [
   'other',
 ];
 
+/**
+ * Rótulo humano de cada nicho.
+ *
+ * Vivia dentro do `LibraryClient`, onde nasceu para os chips de filtro. Saiu de
+ * lá quando o editor passou a precisar dos mesmos nomes: duas cópias da lista
+ * divergem no dia em que um nicho for renomeado, e aí o filtro e o editor
+ * chamam a mesma coisa por nomes diferentes.
+ */
+export const NICHE_LABEL: Record<SkillNiche, string> = {
+  marketing:   'Marketing',
+  sales:       'Sales',
+  traffic:     'Traffic',
+  development: 'Development',
+  productivity:'Productivity',
+  design:      'Design',
+  finance:     'Finance',
+  other:       'Other',
+};
+
 export interface SkillSummary {
   id: string;
   playlistUrl: string;
