@@ -164,7 +164,10 @@ oauthRouter.get('/authorize', async (c) => {
   }
 
   if (!can(u.plan, 'connectors.mcp')) {
-    return c.redirect(`${appUrl()}/pt/pricing?motivo=connectors_mcp`);
+    // Usuário está logado mas sem plano: leva para o dashboard onde o PlanGate
+    // aparece com o botão "Assinar". Evita jogar quem já tem conta na página
+    // pública de pricing — que não tem contexto de sessão e confunde.
+    return c.redirect(`${appUrl()}/pt/dashboard?motivo=connectors_mcp`);
   }
 
   // Emite o authorization code com validade de 10 minutos
