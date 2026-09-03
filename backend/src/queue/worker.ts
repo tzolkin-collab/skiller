@@ -391,7 +391,6 @@ export const skillWorker = new Worker<SkillJobData>(
             videoId: skillVideos.videoId,
             title: skillVideos.title,
             thumbnailUrl: skillVideos.thumbnailUrl,
-            duration: skillVideos.duration,
             processingStatus: skillVideos.processingStatus,
           }).from(skillVideos).where(eq(skillVideos.skillId, skillId));
 
