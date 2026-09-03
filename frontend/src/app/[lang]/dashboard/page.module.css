@@ -1094,4 +1094,18 @@
   .gridTitle {
     font-size: 1.125rem;
   }
+
+  /* Minhas Skills — título e botão de filtro dividiam a linha, e o botão
+     (123px) deixava só 200px para "SUA BIBLIOTECA" em caixa alta: a
+     palavra quebrava no meio. Empilhados, o título usa a largura toda e o
+     botão vira uma faixa própria, mais fácil de acertar com o polegar. */
+  .libraryTopRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .filterTrigger {
+    justify-content: center;
+  }
 }
