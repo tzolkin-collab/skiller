@@ -129,6 +129,12 @@ export interface SkillDetail extends SkillSummary {
   humanMdContent: string | null;
   skillPackage: PluginPackage | null;
   skillDocument?: SkillDocument | null;
+  /**
+   * Segredo do link de instalação. Só vem nesta rota, que exige sessão e posse:
+   * o `/plugin` é buscado pela IDE sem cookie, então é este token — e não o id
+   * da skill, visível na URL — que autoriza o download do pacote.
+   */
+  shareToken: string | null;
   videos: SkillVideo[];
 }
 

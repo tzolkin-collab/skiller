@@ -160,8 +160,12 @@ export default function SkillClient({ dict, skillId }: SkillClientProps) {
   };
 
   const handleCopyInstallCommand = () => {
-    const installCmd = `@workspace Install the AI Plugin from ${BASE_URL}/api/skills/${skillId}/plugin`;
-    navigator.clipboard.writeText(installCmd);
+    // O `?t=` é o que autoriza a IDE a baixar o pacote. Ela busca essa URL sem
+    // o cookie do navegador, então sem o token a rota responde 404 — e copiar
+    // um comando que não instala nada é pior que não ter o botão.
+    if (!skillData?.shareToken) return;
+    const url = `${BASE_URL}/api/skills/${skillId}/plugin?t=${skillData.shareToken}`;
+    navigator.clipboard.writeText(`@workspace Install the AI Plugin from ${url}`);
     setCopiedInstall(true);
     setTimeout(() => setCopiedInstall(false), 2000);
   };

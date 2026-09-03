@@ -1,4 +1,5 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
+import crypto from 'crypto';
 import { extractPlaylistId, extractVideoId } from '../services/youtube.js';
 import { db } from '../db/db.js';
 import { skillQueue } from '../queue/queue.js';
@@ -12,8 +13,67 @@ import { buildGitPackage } from '../utils/git-indexer.js';
 import { SkillDocumentSchema } from '../lib/skill-document.js';
 import { renderSkill } from '../lib/renderers.js';
 import type { SkillFormat } from '../prompts/synthesis.js';
-import { usuarioAtual, naoAutenticado } from '../lib/current-user.js';
+import { usuarioAtual, naoAutenticado, pareceUuid } from '../lib/current-user.js';
 import type { SkillDocument } from '../lib/skill-document.js';
+
+/** A skill lida do banco. Derivado do schema para não repetir 24 campos aqui. */
+type Skill = typeof skills.$inferSelect;
+
+/** Ou a rota segue com a skill do dono, ou devolve a recusa já montada. */
+type Acesso = { negar: Response } | { userId: string; skill: Skill };
+
+/**
+ * A skill de `/:id`, conferindo sessão E posse.
+ *
+ * Todas as rotas de `/:id` liam a skill direto do parâmetro da URL, sem
+ * perguntar quem estava chamando. O id ERA a credencial — e ele fica visível na
+ * URL do painel. Com isso, um UUID vazado dava leitura da transcrição, edição
+ * do conteúdo, `retry` e DELETE na skill de qualquer conta.
+ *
+ * Três decisões que não são óbvias:
+ *
+ * - **404 e não 403** quando a skill é de outra pessoa. Responder "existe, mas
+ *   não é sua" confirma o id para quem está enumerando. Quem não é dono não
+ *   precisa saber a diferença entre inexistente e alheia.
+ * - **Confere o formato do id antes de consultar.** `skills.id` é `uuid` no
+ *   Postgres: consultar essa coluna com texto qualquer não devolve vazio, LANÇA.
+ *   Sem isto, `/api/skills/foo` vira 500 em vez de 404 — o mesmo motivo que fez
+ *   `pareceUuid` existir para o `client_reference_id` do Stripe.
+ * - **Devolve a skill junto.** As rotas todas precisavam dela logo em seguida;
+ *   separar em duas consultas só dava chance de uma delas esquecer o filtro.
+ */
+/**
+ * Compara dois segredos em tempo constante.
+ *
+ * `a === b` sai no primeiro byte diferente, e essa diferença de tempo é
+ * mensurável pela rede: dá para descobrir o token byte a byte. O hash iguala os
+ * comprimentos antes de comparar, porque `timingSafeEqual` lança com tamanhos
+ * diferentes — e o erro em si já diria que o palpite tem o tamanho errado.
+ */
+function segredosIguais(a: string, b: string): boolean {
+  const ha = crypto.createHash('sha256').update(a).digest();
+  const hb = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+async function skillDoDono(c: Context): Promise<Acesso> {
+  const userId = await usuarioAtual(c);
+  if (!userId) return { negar: c.json(naoAutenticado(), 401) };
+
+  const skillId = c.req.param('id');
+  if (!pareceUuid(skillId)) return { negar: c.json({ error: 'Skill not found' }, 404) };
+
+  const linhas = await db
+    .select()
+    .from(skills)
+    .where(and(eq(skills.id, skillId), eq(skills.userId, userId)))
+    .limit(1);
+
+  const skill = linhas[0];
+  if (!skill) return { negar: c.json({ error: 'Skill not found' }, 404) };
+
+  return { userId, skill };
+}
 
 /** Formatos que o download aceita. Espelha `SkillFormat`. */
 const FORMATOS: SkillFormat[] = ['generic', 'claude', 'cursor', 'copilot', 'gemini', 'mcp'];
@@ -30,14 +90,9 @@ const createSkillSchema = z.object({
   editSkillId: z.string().uuid().optional()
 });
 
-skillsRouter.get('/migrate-now', async (c) => {
-  try {
-    await db.execute(sql`ALTER TABLE skills ADD COLUMN IF NOT EXISTS skill_document jsonb`);
-    return c.json({ success: true });
-  } catch (err: unknown) {
-    return c.json({ error: getErrorMessage(err) }, 500);
-  }
-});
+// `GET /migrate-now` ficava aqui: executava `ALTER TABLE` sem autenticação
+// nenhuma, exposto na internet. Schema muda por migration (regra 7 do
+// AGENTS.md) — a coluna que ele criava já vive em `drizzle/`.
 
 skillsRouter.post('/', async (c) => {
   try {
@@ -244,16 +299,27 @@ const ROTULO_FORMATO: Record<SkillFormat, string> = {
 
 skillsRouter.get('/:id', async (c) => {
   try {
-    const skillId = c.req.param('id');
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    
-    if (skillResult.length === 0) {
-      return c.json({ error: 'Skill not found' }, 404);
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { skill } = acesso;
+
+    /**
+     * O token de compartilhamento nasce aqui, na primeira abertura da skill.
+     *
+     * Não dá para preenchê-lo na migration: cada linha precisa de um segredo
+     * diferente, e schema não gera valor por linha. Cunhar na leitura do dono
+     * resolve sem passo manual — o painel busca esta rota antes de mostrar o
+     * comando de instalação, então o token existe quando o botão aparece.
+     */
+    let shareToken = skill.shareToken;
+    if (!shareToken) {
+      shareToken = crypto.randomBytes(24).toString('base64url');
+      await db.update(skills).set({ shareToken }).where(eq(skills.id, skill.id));
     }
-    
-    const videosResult = await db.select().from(skillVideos).where(eq(skillVideos.skillId, skillId));
-    
-    return c.json({ ...skillResult[0], videos: videosResult });
+
+    const videosResult = await db.select().from(skillVideos).where(eq(skillVideos.skillId, skill.id));
+
+    return c.json({ ...skill, shareToken, videos: videosResult });
   } catch (error: unknown) {
     return c.json({ error: getErrorMessage(error) }, 500);
   }
@@ -261,11 +327,9 @@ skillsRouter.get('/:id', async (c) => {
 
 skillsRouter.get('/:id/download', async (c) => {
   try {
-    const skillId = c.req.param('id');
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    
-    const skill = skillResult[0];
-    if (!skill) return c.json({ error: 'Skill not found' }, 404);
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { skill } = acesso;
 
     /**
      * O formato é escolhido AQUI, na hora de baixar — não na hora de gerar.
@@ -332,10 +396,9 @@ skillsRouter.get('/:id/download', async (c) => {
  */
 skillsRouter.get('/:id/package', async (c) => {
   try {
-    const skillId = c.req.param('id');
-    const linhas = await db.select().from(skills).where(eq(skills.id, skillId)).limit(1);
-    const skill = linhas[0];
-    if (!skill) return c.json({ error: 'Skill not found' }, 404);
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { skill } = acesso;
 
     const pedido = c.req.query('format');
     const format = (FORMATOS.includes(pedido as SkillFormat) ? pedido : skill.targetFormat || 'generic') as SkillFormat;
@@ -358,17 +421,39 @@ skillsRouter.get('/:id/package', async (c) => {
 });
 
 
+/**
+ * O pacote cru, para a IDE instalar.
+ *
+ * Única rota de `/:id` que não pode exigir sessão: quem busca esta URL é o
+ * agente do Cursor/Claude a partir do comando que a pessoa colou, e ele não tem
+ * o cookie do navegador. Por isso a autorização aqui é `?t=`, o segredo cunhado
+ * em `GET /:id` — e não a sessão.
+ *
+ * A comparação é feita com `timingSafeEqual` pelo mesmo motivo que a de senha:
+ * comparar segredo com `===` vaza o tamanho do prefixo correto no tempo de
+ * resposta. Os buffers são igualados no comprimento antes porque a função lança
+ * quando os tamanhos diferem — e o próprio lançamento seria um sinal.
+ */
 skillsRouter.get('/:id/plugin', async (c) => {
   try {
     const skillId = c.req.param('id');
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    
-    if (skillResult.length === 0 || !skillResult[0].skillPackage) {
-      return c.json({ error: 'Plugin package not found' }, 404);
-    }
-    
+    const oferecido = c.req.query('t');
+
+    // 404 e não 401/403: para quem não tem o token, a skill não existe.
+    const naoAchou = () => c.json({ error: 'Plugin package not found' }, 404);
+
+    // A recusa vem ANTES da consulta, de propósito. Rota sem sessão é rota que
+    // qualquer um chama em laço; se o `?t=` ausente ainda custasse um SELECT,
+    // bastaria um laço de requisições vazias para carregar o banco.
+    if (!oferecido || !pareceUuid(skillId)) return naoAchou();
+
+    const linhas = await db.select().from(skills).where(eq(skills.id, skillId)).limit(1);
+    const skill = linhas[0];
+    if (!skill || !skill.skillPackage || !skill.shareToken) return naoAchou();
+    if (!segredosIguais(oferecido, skill.shareToken)) return naoAchou();
+
     // Return the raw package JSON which AI tools can easily parse
-    return c.json(skillResult[0].skillPackage);
+    return c.json(skill.skillPackage);
   } catch (error: unknown) {
     return c.json({ error: getErrorMessage(error) }, 500);
   }
@@ -376,18 +461,17 @@ skillsRouter.get('/:id/plugin', async (c) => {
 
 skillsRouter.post('/:id/retry', async (c) => {
   try {
-    const skillId = c.req.param('id');
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    if (skillResult.length === 0) return c.json({ error: 'Skill not found' }, 404);
-    
-    const skill = skillResult[0];
-    
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { userId, skill } = acesso;
+    const skillId = skill.id;
+
     await db.delete(skillVideos).where(eq(skillVideos.skillId, skillId));
     await db.delete(pipelineLogs).where(eq(pipelineLogs.skillId, skillId));
     await db.update(skills).set({ status: 'queued', skillMdContent: null, skillPackage: null, skillJsonOutput: null }).where(eq(skills.id, skillId));
-    
+
     const sourceUrls = (skill.sourceUrls as string[]) || [skill.playlistUrl];
-    
+
     try {
       const oldJob = await skillQueue.getJob(skill.id);
       if (oldJob) {
@@ -396,14 +480,19 @@ skillsRouter.post('/:id/retry', async (c) => {
     } catch (err) {
       console.error('Could not remove old job from queue', err);
     }
-    
+
     await skillQueue.add('generate-skill', {
       skillId: skill.id,
-      urls: sourceUrls
+      urls: sourceUrls,
+      // Sem isto o job rodava sem dono, e o débito de créditos no worker é
+      // guardado por `if (userId)`: cada retry gerava a playlist inteira de
+      // graça. Combinado com a rota estar aberta, era quota de Gemini e YouTube
+      // à disposição de qualquer um com um `curl` em laço.
+      userId
     }, {
       jobId: `${skill.id}-retry-${Date.now()}` // Bypass BullMQ lock using a unique retry ID
     });
-    
+
     return c.json({ status: 'queued' });
   } catch (error: unknown) {
     return c.json({ error: getErrorMessage(error) }, 500);
@@ -417,29 +506,32 @@ const appendSkillSchema = z.object({
 
 skillsRouter.post('/:id/append', async (c) => {
   try {
-    const skillId = c.req.param('id');
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { userId, skill } = acesso;
+    const skillId = skill.id;
+
     const body = await c.req.json();
     const result = appendSkillSchema.safeParse(body);
-    
+
     if (!result.success) {
       return c.json({ error: 'Invalid payload' }, 400);
     }
-    
+
     const sourceUrls = result.data.urls || (result.data.playlistUrl ? [result.data.playlistUrl] : []);
-    
+
     if (sourceUrls.length === 0) {
       return c.json({ error: 'No valid URLs provided' }, 400);
     }
-    
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    if (skillResult.length === 0) return c.json({ error: 'Skill not found' }, 404);
 
     await db.update(skills).set({ status: 'queued' }).where(eq(skills.id, skillId));
-    
+
     await skillQueue.add('append-skill', {
       skillId,
       urls: sourceUrls,
-      isAppend: true
+      isAppend: true,
+      // Mesmo motivo do `retry`: sem dono, o worker não debita nada.
+      userId
     }, {
       jobId: `${skillId}-append-${Date.now()}` // Allow multiple distinct appends
     });
@@ -452,8 +544,10 @@ skillsRouter.post('/:id/append', async (c) => {
 
 skillsRouter.delete('/:id', async (c) => {
   try {
-    const skillId = c.req.param('id');
-    await db.delete(skills).where(eq(skills.id, skillId));
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+
+    await db.delete(skills).where(eq(skills.id, acesso.skill.id));
     return new Response(null, { status: 204 });
   } catch (error: unknown) {
     return c.json({ error: getErrorMessage(error) }, 500);
@@ -467,7 +561,11 @@ const updateFileSchema = z.object({
 
 skillsRouter.patch('/:id/file', async (c) => {
   try {
-    const skillId = c.req.param('id');
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { skill } = acesso;
+    const skillId = skill.id;
+
     // Editar é do Starter para cima: o Free gera, testa e exporta, mas o
     // refino fica atrás da assinatura. O dono vem da skill, não da query.
     const dono = await planOfSkill(skillId);
@@ -482,10 +580,6 @@ skillsRouter.patch('/:id/file', async (c) => {
       return c.json({ error: 'Invalid payload: path and content are required' }, 400);
     }
 
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    if (skillResult.length === 0) return c.json({ error: 'Skill not found' }, 404);
-
-    const skill = skillResult[0];
     const pkg = skill.skillPackage as { root: unknown; blobs: Record<string, { content: string }> } | null;
     if (!pkg) return c.json({ error: 'No skill package to edit' }, 404);
 
@@ -543,7 +637,11 @@ skillsRouter.patch('/:id/file', async (c) => {
 
 skillsRouter.patch('/:id/document', async (c) => {
   try {
-    const skillId = c.req.param('id');
+    const acesso = await skillDoDono(c);
+    if ('negar' in acesso) return acesso.negar;
+    const { skill } = acesso;
+    const skillId = skill.id;
+
     // Editar é do Starter para cima: o Free gera, testa e exporta, mas o
     // refino fica atrás da assinatura. O dono vem da skill, não da query.
     const dono = await planOfSkill(skillId);
@@ -552,7 +650,7 @@ skillsRouter.patch('/:id/document', async (c) => {
     if (barrado) return c.json(barrado, 402);
 
     const body = await c.req.json();
-    
+
     // Validate the incoming document
     const result = SkillDocumentSchema.safeParse(body);
     if (!result.success) {
@@ -560,10 +658,6 @@ skillsRouter.patch('/:id/document', async (c) => {
     }
     const document = result.data;
 
-    const skillResult = await db.select().from(skills).where(eq(skills.id, skillId));
-    if (skillResult.length === 0) return c.json({ error: 'Skill not found' }, 404);
-
-    const skill = skillResult[0];
     const targetFormat = (skill.targetFormat || 'generic') as SkillFormat;
 
     // 1. Re-render the markdown files based on the new visual document

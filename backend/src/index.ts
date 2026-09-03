@@ -34,15 +34,31 @@ function origemPermitida(origin: string): string | undefined {
   return undefined
 }
 
-app.use('/*', cors({
-  origin: (origin) => {
-    const permitida = origemPermitida(origin);
-    if (permitida) return permitida;
-    // Permite chamadas MCP e metadados de qualquer origem
-    return origin || '*';
-  },
-  credentials: true,
-}))
+/**
+ * Dois CORS, porque são duas superfícies com credenciais diferentes.
+ *
+ * O painel manda cookie de sessão, então precisa de `credentials: true` — e
+ * `credentials: true` só é seguro com origem fechada. Antes havia um CORS só,
+ * que quando a origem não batia devolvia `return origin || '*'`: qualquer site
+ * do mundo recebia `Allow-Origin` com `Allow-Credentials: true`. O que segurava
+ * o buraco era o `SameSite=Lax` do cookie, em outro arquivo — trocar aquele
+ * `Lax` por `None` (para embutir o painel num iframe, digamos) abriria a conta
+ * de todo mundo, e nada aqui indicaria o porquê.
+ *
+ * MCP e `.well-known` são a exceção real que motivou o curinga: o cliente é uma
+ * IDE, a origem é imprevisível e a credencial é `Authorization: Bearer`, não
+ * cookie. Com `credentials: false` o curinga volta a ser inofensivo — o
+ * navegador não anexa cookie nenhum nessas chamadas.
+ */
+const corsPainel = cors({ origin: (origin) => origemPermitida(origin), credentials: true })
+const corsPublico = cors({ origin: '*', credentials: false })
+
+/** Superfícies que a IDE consome sem sessão de navegador. */
+function ePublica(path: string): boolean {
+  return path.startsWith('/api/mcp') || path.startsWith('/.well-known')
+}
+
+app.use('/*', (c, next) => (ePublica(c.req.path) ? corsPublico : corsPainel)(c, next))
 
 app.get('/', (c) => {
   return c.text('Skiller API is running')

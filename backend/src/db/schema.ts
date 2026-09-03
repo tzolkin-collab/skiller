@@ -317,6 +317,20 @@ export const skills = pgTable('skills', {
   language: text('language').default('en'),
   version: integer('version').default(1),
   status: text('status').default('queued'),
+  /**
+   * Segredo do link de instalação do plugin.
+   *
+   * `GET /:id/plugin` é buscado pela IDE do usuário, que não tem cookie de
+   * sessão — então essa rota não pode exigir uma. Enquanto isso significou
+   * "rota aberta", o id da skill VIRAVA a credencial: ele aparece na URL do
+   * painel, e quem o visse baixava o pacote de qualquer conta.
+   *
+   * O token separa as duas coisas. O id continua público, o acesso passa a
+   * depender de um segredo que só o dono enxerga, e trocar o segredo não troca
+   * a skill. Nulo até a primeira vez que o dono abre a skill — não há como
+   * preencher o passado numa migration de schema sem inventar valor por linha.
+   */
+  shareToken: text('share_token').unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => [
