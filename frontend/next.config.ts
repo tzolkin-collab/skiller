@@ -26,18 +26,18 @@ const nextConfig: NextConfig = {
    * nao de terceiro) e nenhuma requisicao do navegador toca mais o dominio
    * que o Safe Browsing marcou.
    *
-   * `afterFiles` e' o que torna isto seguro: as rotas do proprio front
-   * (/api/auth/session, /api/auth/start/...) sao resolvidas ANTES e continuam
-   * ganhando; so' o que sobra e' repassado. Com `beforeFiles` o proxy
-   * engoliria essas rotas e a ponte de sessao pararia de existir.
+   * `fallback` e' o que torna isto seguro: as rotas do proprio front,
+   * tanto estaticas quanto dinamicas (/api/auth/session, /api/auth/start/...),
+   * sao resolvidas ANTES e continuam ganhando; so' o que sobra e' repassado.
+   * Com `afterFiles` o proxy engoliria as rotas dinamicas do App Router.
    */
   async rewrites() {
     return {
       beforeFiles: [],
-      afterFiles: [
+      afterFiles: [],
+      fallback: [
         { source: '/api/:path*', destination: `${BACKEND}/api/:path*` },
       ],
-      fallback: [],
     };
   },
 };
