@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "env-cmd -f ../.env tsx watch src/index.ts",
     "tunnel": "env-cmd -f ../.env tsx scripts/tunnel.ts",
-    "build": "swc src -d dist",
+    "build": "swc src -d dist --strip-leading-paths",
     "start": "env-cmd -f ../.env node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "env-cmd -f ../.env tsx src/db/migrate.ts",
