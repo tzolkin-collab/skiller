@@ -61,6 +61,8 @@ finalizada com 3 erros de tipo, o lint desligado e metade das URLs ainda hardcod
 10. **Não anunciar o que não existe.** Nada de selo "Available" em feature não construída, nem
     item de plano que o código não entrega. Se está na tela, funciona.
 
+11. **Roteamento da Landing Page:** A raiz (`/` ou `/[lang]`) é restrita para novos visitantes. Se o cliente já tiver logado uma vez (marcado com o cookie persistente `skiller_returning=1`) ou estiver com sessão ativa (`skiller_session`), a raiz DEVE redirecioná-lo para o login ou dashboard, respectivamente. A landing page só pode ser vista por clientes conhecidos se a URL incluir o parâmetro `?force=true`.
+
 ---
 
 ## Trabalhando com o Gustavo

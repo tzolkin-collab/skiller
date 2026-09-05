@@ -205,7 +205,7 @@ export async function handleKbTool(
 }
 
 /** Os 7 passos do `/memory-ingest`, indivisíveis. */
-async function ingest(userId: string, args: Record<string, unknown>): Promise<ToolResult> {
+export async function ingest(userId: string, args: Record<string, unknown>): Promise<ToolResult> {
   const title = String(args.title ?? '').trim();
   const type = String(args.type ?? '') as PageType;
   const body = String(args.body ?? '').trim();

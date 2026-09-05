@@ -14,6 +14,8 @@ import { LiquidLoader } from '@/components/ui/Landing/LiquidLoader';
 import { exigirSessao } from '@/lib/require-session';
 import styles from './layout.module.css';
 
+import { GlobalActiveSession } from './GlobalActiveSession';
+
 export default async function DashboardLayout({ children, params }: { children: React.ReactNode, params: Promise<{ lang: string }> }) {
   const { lang } = await params;
 
@@ -86,6 +88,7 @@ export default async function DashboardLayout({ children, params }: { children: 
               a sessão precisa entrar de novo antes de qualquer oferta fazer
               sentido — e o PlanGate se esconde sozinho quando não há usuário. */}
           <PlanGate lang={lang} />
+          <GlobalActiveSession lang={lang} />
         </div>
       </main>
     </div>

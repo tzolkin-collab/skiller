@@ -1,0 +1,13 @@
+{
+  "name": "Skiller",
+  "version": "1.0.0",
+  "description": "O conector Skiller via MCP (Model Context Protocol) permite buscar, explorar e instalar skills (agentes, memórias, instruções e configurações de conectores) geradas pela plataforma Skiller diretamente no seu ambiente local ou IDE.",
+  "icon": "https://skiller.app/skillertzolkin3d.png",
+  "author": "Tzolkin",
+  "homepage": "https://skiller.app",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tzolkin/skiller"
+  }
+}

@@ -117,7 +117,6 @@ export function CodeEditor({ value, language = 'markdown', onChange, readOnly = 
     };
     // We intentionally only re-create the editor when language/readOnly change,
     // not when `value` changes (that would reset cursor position).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMounted, language, readOnly, getLanguageExtension]);
 
   // Sync external value changes without re-creating the editor

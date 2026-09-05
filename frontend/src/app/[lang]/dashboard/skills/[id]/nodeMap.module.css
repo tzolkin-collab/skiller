@@ -113,6 +113,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@media (max-width: 768px) {
+  .inspector {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    max-width: none;
+    bottom: 1rem;
+  }
+}
+
 .inspectorHeader {
   display: flex;
   align-items: center;

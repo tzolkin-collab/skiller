@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "env-cmd -f ../.env ts-node src/index.ts"
+    "start": "env-cmd -f ../.env node dist/index.js",
+    "dev": "env-cmd -f ../.env tsx watch src/index.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.1",

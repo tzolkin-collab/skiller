@@ -115,7 +115,8 @@
     "getStarted": "Empezar ahora",
     "vocationalIntelligence": "INTELIGENCIA VOCACIONAL",
     "close": "CERRAR",
-    "demoVideo": "VIDEO_DEMO.MP4"
+    "demoVideo": "VIDEO_DEMO.MP4",
+    "login": "Log In"
   },
   "skillClient": {
     "tabs": {

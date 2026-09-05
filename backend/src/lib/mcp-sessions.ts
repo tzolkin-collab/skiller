@@ -33,6 +33,22 @@ export async function abrirSessao(opts: {
   title?: string | null;
   client?: string | null;
 }): Promise<{ id: string; url: string }> {
+  // Singleton: verifica se já há uma sessão open para esse usuário
+  const [ativa] = await db
+    .select({ id: mcpSessions.id })
+    .from(mcpSessions)
+    .where(and(eq(mcpSessions.userId, opts.userId), eq(mcpSessions.status, 'open')))
+    .limit(1);
+
+  if (ativa) {
+    // Atualiza o título e retorna a existente
+    await db
+      .update(mcpSessions)
+      .set({ title: opts.title ?? null, client: opts.client ?? null, updatedAt: new Date() })
+      .where(eq(mcpSessions.id, ativa.id));
+    return { id: ativa.id, url: urlDaSessao(ativa.id) };
+  }
+
   const [s] = await db
     .insert(mcpSessions)
     .values({ userId: opts.userId, title: opts.title ?? null, client: opts.client ?? null })
@@ -73,6 +89,10 @@ export async function registrarEvento(
   }
 }
 
+import { users } from '../db/schema.js';
+import { can } from './plans.js';
+import { ingest } from './kb-tools.js';
+
 /** Fecha a sessão. Também tolerante a falha, pelo mesmo motivo. */
 export async function fecharSessao(
   sessionId: string | null | undefined,
@@ -84,8 +104,43 @@ export async function fecharSessao(
       .update(mcpSessions)
       .set({ status, updatedAt: new Date() })
       .where(eq(mcpSessions.id, sessionId));
-  } catch {
-    /* espelho não derruba o espelhado */
+
+    if (status === 'done') {
+      // Arquivamento na Base da IA
+      const [s] = await db
+        .select({ userId: mcpSessions.userId, title: mcpSessions.title })
+        .from(mcpSessions)
+        .where(eq(mcpSessions.id, sessionId));
+
+      if (s) {
+        const [u] = await db
+          .select({ plan: users.plan })
+          .from(users)
+          .where(eq(users.id, s.userId));
+
+        if (u && can(u.plan, 'kb')) {
+          const eventos = await eventosDaSessao(sessionId);
+          if (eventos.length > 0) {
+            const lines = eventos.map(e => {
+              const tempo = e.createdAt.toLocaleTimeString('pt-BR');
+              const detalhe = e.detail ? `\n\`\`\`json\n${JSON.stringify(e.detail, null, 2)}\n\`\`\`` : '';
+              return `**[${tempo}] ${e.kind.toUpperCase()}**: ${e.message}${detalhe}`;
+            });
+            const body = `# Log da Sessão: ${s.title || sessionId}\n\n${lines.join('\n\n')}`;
+            
+            await ingest(s.userId, {
+              title: `Sessão: ${s.title || sessionId}`,
+              type: 'output',
+              body,
+              tags: ['session-log', 'mcp'],
+              sources: [`session:${sessionId}`]
+            }).catch(err => console.warn('[sessao] falha no ingest:', err));
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[sessao] erro ao fechar sessão:', e);
   }
 }
 

@@ -16,8 +16,47 @@
 import { Hono } from 'hono';
 import { usuarioAtual, naoAutenticado } from '../lib/current-user.js';
 import { sessaoDoDono, eventosDaSessao, receberFontes } from '../lib/mcp-sessions.js';
+import { db } from '../db/db.js';
+import { mcpSessions } from '../db/schema.js';
+import { eq, and, desc } from 'drizzle-orm';
 
 export const sessionsRouter = new Hono();
+
+sessionsRouter.get('/active', async (c) => {
+  const userId = await usuarioAtual(c);
+  if (!userId) return c.json(naoAutenticado(), 401);
+
+  const [s] = await db
+    .select({
+      id: mcpSessions.id,
+      title: mcpSessions.title,
+      status: mcpSessions.status,
+      awaiting: mcpSessions.awaiting,
+      createdAt: mcpSessions.createdAt,
+    })
+    .from(mcpSessions)
+    .where(and(eq(mcpSessions.userId, userId), eq(mcpSessions.status, 'open')))
+    .limit(1);
+
+  if (!s) return c.json({ active: false });
+
+  const eventos = await eventosDaSessao(s.id);
+  const ultimo = eventos.length > 0 ? eventos[eventos.length - 1] : null;
+
+  return c.json({
+    active: true,
+    session: {
+      id: s.id,
+      title: s.title,
+      awaiting: s.awaiting,
+      lastEvent: ultimo ? {
+        kind: ultimo.kind,
+        message: ultimo.message,
+        at: ultimo.createdAt.toISOString()
+      } : null
+    }
+  });
+});
 
 sessionsRouter.get('/:id', async (c) => {
   const userId = await usuarioAtual(c);

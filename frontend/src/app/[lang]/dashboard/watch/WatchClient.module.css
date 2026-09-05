@@ -49,6 +49,16 @@
   }
 }
 
+@media (max-width: 768px) {
+  .mainContent {
+    padding: 12px;
+    gap: 16px;
+  }
+  .header {
+    padding: 12px 16px;
+  }
+}
+
 .playerSection {
   display: flex;
   flex-direction: column;

@@ -15,6 +15,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  .humanContainer {
+    padding: 1rem;
+    gap: 1rem;
+  }
+}
+
 /* =========================================
    LEFT PANE: STUDY GUIDE
    ========================================= */
@@ -98,6 +105,22 @@
 .readingTypography pre { background: #111; padding: 1.25rem; border-radius: 8px; overflow-x: auto; margin: 1.5rem 0; border: 1px solid rgba(255,255,255,0.05); }
 .readingTypography code { font-family: monospace; font-size: 0.9em; background: rgba(255,255,255,0.05); padding: 0.2em 0.4em; border-radius: 4px; }
 .readingTypography pre code { background: transparent; padding: 0; }
+
+@media (max-width: 768px) {
+  .studyGuideHeader {
+    padding: 1.5rem 1rem 1rem 1rem;
+  }
+  .guideTitle {
+    font-size: 1.75rem;
+  }
+  .studyGuideContent {
+    padding: 1.5rem 1rem;
+  }
+  .readingTypography h1 { font-size: 1.75rem; margin-top: 2rem; }
+  .readingTypography h2 { font-size: 1.4rem; margin-top: 1.5rem; }
+  .readingTypography h3 { font-size: 1.15rem; }
+  .readingTypography pre { padding: 1rem; }
+}
 
 .emptyState {
   display: flex;

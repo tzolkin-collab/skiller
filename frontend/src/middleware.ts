@@ -71,17 +71,47 @@ export function middleware(request: NextRequest) {
   );
 
   if (pathnameHasLocale) {
+    const lang = pathname.split('/')[1] ?? defaultLocale;
+    const isHome = locales.some((l) => pathname === `/${l}` || pathname === `/${l}/`);
+    const isForceHome = request.nextUrl.searchParams.has('force');
+    const hasSession = request.cookies.has(COOKIE_SESSAO);
+    const isReturning = request.cookies.has('skiller_returning');
+
+    // Regra da Home: Cliente com conta não passa pela landing page a menos que "?force=true".
+    if (isHome && !isForceHome) {
+      if (hasSession) {
+        const destino = request.nextUrl.clone();
+        destino.pathname = `/${lang}/dashboard`;
+        return NextResponse.redirect(destino);
+      } else if (isReturning) {
+        const destino = request.nextUrl.clone();
+        destino.pathname = `/${lang}/entrar`;
+        return NextResponse.redirect(destino);
+      }
+    }
+
     // Portão: sem cookie de sessão, o app não abre. Antes `/dashboard` era
     // acessível por URL direta — dava para ver o painel inteiro sem conta.
-    if (exigeSessao(pathname) && !request.cookies.get(COOKIE_SESSAO)) {
-      const lang = pathname.split('/')[1] ?? defaultLocale;
+    if (exigeSessao(pathname) && !hasSession) {
       const destino = request.nextUrl.clone();
       destino.pathname = `/${lang}/entrar`;
       destino.search = '';
       destino.searchParams.set('next', pathname + request.nextUrl.search);
       return NextResponse.redirect(destino);
     }
-    return;
+    
+    const response = NextResponse.next();
+
+    // Marca o cliente permanentemente (10 anos) para sabermos que ele já tem conta, 
+    // mesmo que depois a sessão (skiller_session) expire.
+    if (hasSession && !isReturning) {
+      response.cookies.set('skiller_returning', '1', {
+        maxAge: 60 * 60 * 24 * 365 * 10,
+        path: '/',
+      });
+    }
+
+    return response;
   }
 
   // Redirect if there is no locale
