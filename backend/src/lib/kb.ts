@@ -336,3 +336,181 @@ export function findRelated(
 export function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+// ---------------------------------------------------------------------------
+// Busca — quais páginas respondem a uma pergunta
+//
+// O ranqueamento anterior era `alvo.includes(termo)` somando 1 por termo
+// presente. Três defeitos que se somavam: substring crua (`base` casava dentro
+// de `database`), todo termo valendo o mesmo, e nenhum descarte de palavra
+// vazia — `sobre`, `como` e `qual` passavam pelo filtro de tamanho e batiam em
+// toda página. Numa base de skills geradas, onde `skill`, `agente` e
+// `conectores` aparecem em todas elas, isso empatava a base inteira e as cinco
+// primeiras saíam por ordem de escrita, não por relevância.
+//
+// Aqui a seleção é BM25 com IDF: termo presente em toda página vale zero,
+// termo raro decide o ranking, e frequência satura em vez de crescer linear —
+// senão a página mais longa ganha sempre.
+// ---------------------------------------------------------------------------
+
+function semAcento(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/**
+ * Palavras que não discriminam nada. Sem elas o filtro de tamanho deixava
+ * passar `sobre`, `quando`, `qualquer` — presentes em quase toda página.
+ */
+const STOPWORDS = new Set(
+  (
+    'a as ao aos à às com como da das de do dos e em entre era essa esse esta este eu foi ' +
+    'ha isso isto já lhe mais mas me mesmo meu minha muito na nas no nos nós não o os ou ' +
+    'para pela pelas pelo pelos por porque qual quais quando que quem se sem ser seu sua ' +
+    'são so só também tem ter teu tua um uma umas uns vocé você vocês sobre onde qualquer ' +
+    'cada pode posso podem fazer faz usar usa deve devem está estão estar tudo todo toda ' +
+    'todos todas quero preciso sei feito feita feitos feitas sendo sido havia haver ' +
+    'tinha temos quer queria precisam existe existem algum alguma alguns algumas ' +
+    'outro outra outros outras entao assim ainda apenas agora coisa coisas ' +
+    'a an and are as at be but by can did do does for from had has have how in is it its ' +
+    'of on or that the their then there these this to was what when where which who why ' +
+    'will with you your'
+  )
+    .split(' ')
+    .map(semAcento)
+);
+
+/** Quebra em palavras comparáveis: sem acento, sem pontuação, sem stopword. */
+export function tokenize(texto: string): string[] {
+  return semAcento(texto)
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
+}
+
+export type RankablePage = {
+  path: string;
+  title: string | null;
+  content: string;
+  tags?: string[] | null;
+};
+
+/** Saturação da frequência e normalização por tamanho — parâmetros BM25 usuais. */
+const K1 = 1.2;
+const B = 0.6;
+/** Bater no título vale mais que bater no meio do corpo; em tag, quase tanto. */
+const PESO_TITULO = 3;
+const PESO_TAG = 2;
+
+function frequencias(p: RankablePage): { freq: Map<string, number>; tamanho: number } {
+  const freq = new Map<string, number>();
+  const somar = (tokens: string[], peso: number) => {
+    for (const t of tokens) freq.set(t, (freq.get(t) ?? 0) + peso);
+  };
+  somar(tokenize(p.content), 1);
+  somar(tokenize(p.title ?? ''), PESO_TITULO);
+  somar(tokenize((p.tags ?? []).join(' ')), PESO_TAG);
+
+  let tamanho = 0;
+  for (const n of freq.values()) tamanho += n;
+  return { freq, tamanho: tamanho || 1 };
+}
+
+/**
+ * Devolve as páginas que realmente respondem à pergunta, da mais relevante
+ * para a menos, já cortando o rabo fraco do ranking.
+ */
+export function rankPages<P extends RankablePage>(
+  pergunta: string,
+  paginas: P[],
+  limite = 5
+): (P & { score: number })[] {
+  const termos = [...new Set(tokenize(pergunta))].slice(0, 12);
+  if (termos.length === 0 || paginas.length === 0) return [];
+
+  const docs = paginas.map((page) => ({ page, ...frequencias(page) }));
+  const total = docs.length;
+  const tamanhoMedio = docs.reduce((s, d) => s + d.tamanho, 0) / total;
+
+  const df = new Map<string, number>();
+  for (const t of termos) {
+    df.set(t, docs.reduce((n, d) => n + (d.freq.has(t) ? 1 : 0), 0));
+  }
+
+  // log((N+1)/(df+1)) zera o termo que está em TODA página. É o que fazia
+  // `conectores` e `mcp` promoverem skills de vendas e de canal do YouTube.
+  const idf = (t: string) => {
+    const n = df.get(t) ?? 0;
+    return n === 0 ? 0 : Math.log((total + 1) / (n + 1));
+  };
+
+  const bm25 = (d: (typeof docs)[number], comIdf: boolean) =>
+    termos.reduce((s, t) => {
+      const f = d.freq.get(t) ?? 0;
+      const peso = comIdf ? idf(t) : 1;
+      if (f === 0 || peso === 0) return s;
+      const norma = 1 - B + B * (d.tamanho / tamanhoMedio);
+      return s + peso * ((f * (K1 + 1)) / (f + K1 * norma));
+    }, 0);
+
+  const pontuar = (comIdf: boolean) =>
+    docs
+      .map((d) => ({ ...d.page, score: bm25(d, comIdf) }))
+      .filter((p) => p.score > 0);
+
+  // Base pequena e homogênea pode ter todo termo da pergunta em toda página, e
+  // aí o IDF zera o ranking inteiro. Devolver por frequência é melhor que
+  // afirmar que não há nada registrado.
+  const pontuadas = pontuar(true).length > 0 ? pontuar(true) : pontuar(false);
+  if (pontuadas.length === 0) return [];
+
+  pontuadas.sort((a, b) => b.score - a.score);
+  // Corte relativo: o que pontua menos de um quarto do primeiro é ruído que só
+  // gasta contexto de quem chamou.
+  const corte = pontuadas[0].score * 0.25;
+  return pontuadas.filter((p) => p.score >= corte).slice(0, limite);
+}
+
+/** Teto de caracteres por página devolvida pelo `kb_query`. */
+const TRECHO_MAX = 1800;
+
+/**
+ * Recorta a página nas seções que respondem à pergunta.
+ *
+ * `kb_query` devolvia até cinco páginas inteiras. Com dez páginas na base isso
+ * passa; com cem, uma consulta trivial estoura o contexto de quem chamou. O
+ * frontmatter fica sempre — é onde estão título, tags e fontes.
+ */
+export function excerpt(content: string, pergunta: string, orcamento = TRECHO_MAX): string {
+  if (content.length <= orcamento) return content;
+
+  const fm = content.match(/^---\n[\s\S]*?\n---\n/)?.[0] ?? '';
+  const blocos = content
+    .slice(fm.length)
+    .split(/\n(?=#{1,6} )/)
+    .filter((b) => b.trim());
+  if (blocos.length === 0) return content.slice(0, orcamento);
+
+  const termos = new Set(tokenize(pergunta));
+  const pontuados = blocos.map((texto, ordem) => {
+    const presentes = new Set(tokenize(texto));
+    let hits = 0;
+    for (const t of termos) if (presentes.has(t)) hits++;
+    return { texto, ordem, hits };
+  });
+
+  const escolhidos: typeof pontuados = [];
+  let usado = fm.length;
+  for (const b of [...pontuados].sort((x, y) => y.hits - x.hits || x.ordem - y.ordem)) {
+    if (escolhidos.length > 0 && (b.hits === 0 || usado + b.texto.length > orcamento)) continue;
+    // O bloco mais relevante entra mesmo se sozinho estourar — mas truncado.
+    const texto = escolhidos.length === 0 ? b.texto.slice(0, orcamento) : b.texto;
+    escolhidos.push({ ...b, texto });
+    usado += texto.length;
+  }
+
+  escolhidos.sort((x, y) => x.ordem - y.ordem);
+  const omitidas = blocos.length - escolhidos.length;
+  const corpo = escolhidos.map((b) => b.texto.trim()).join('\n\n');
+  return omitidas > 0
+    ? `${fm}${corpo}\n\n_[trecho — ${omitidas} seção(ões) omitida(s); use \`kb_read\` para a página inteira]_`
+    : `${fm}${corpo}`;
+}

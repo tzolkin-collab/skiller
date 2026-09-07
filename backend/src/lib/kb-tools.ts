@@ -14,6 +14,7 @@ import { can, upgradeMessage } from './plans.js';
 import {
   PAGE_TYPES, type PageType, type Frontmatter, type Canvas,
   buildPage, parseFrontmatter, slugify, pathFor, findRelated, today,
+  rankPages, excerpt,
   upsertIndexEntry, appendLog, addCanvasNode, emptyCanvas,
   INDEX_PATH, LOG_PATH, CANVAS_PATH,
 } from './kb.js';
@@ -278,43 +279,37 @@ async function query(userId: string, args: Record<string, unknown>): Promise<Too
   const tipo = args.type ? String(args.type) : null;
   if (!question) return texto('`question` é obrigatório.');
 
-  const termos = question
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((t) => t.length > 3)
-    .slice(0, 6);
-
   const base = tipo
     ? and(eq(kbPages.userId, userId), eq(kbPages.type, tipo))
     : eq(kbPages.userId, userId);
 
   const candidatas = await db
-    .select({ path: kbPages.path, title: kbPages.title, content: kbPages.content, type: kbPages.type })
+    .select({
+      path: kbPages.path, title: kbPages.title, content: kbPages.content,
+      type: kbPages.type, tags: kbPages.tags,
+    })
     .from(kbPages)
     .where(base)
     .orderBy(desc(kbPages.updatedAt))
     .limit(200);
 
-  const pontuadas = candidatas
+  const pontuadas = rankPages(
+    question,
     // index, log e canvas sao a infraestrutura do cofre, nao conhecimento.
     // Sem este filtro o log aparece como "pagina relevante" em toda busca,
     // porque contem o titulo de tudo que ja foi gravado.
-    .filter((p) => !INFRA.has(p.path))
-    .map((p) => {
-      const alvo = `${p.title ?? ''} ${p.content}`.toLowerCase();
-      const score = termos.reduce((s, t) => s + (alvo.includes(t) ? 1 : 0), 0);
-      return { ...p, score };
-    })
-    .filter((p) => p.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    candidatas.filter((p) => !INFRA.has(p.path)),
+    5
+  );
 
   if (pontuadas.length === 0) {
     return texto(`Nada na Base sobre "${question}". Se descobrir a resposta, registre com \`kb_ingest\`.`);
   }
 
+  // Trecho, nao pagina inteira: cinco paginas cruas estouram o contexto de
+  // quem chamou assim que a base cresce.
   const corpo = pontuadas
-    .map((p) => `### ${p.title ?? p.path}\n_${p.path}_\n\n${p.content}`)
+    .map((p) => `### ${p.title ?? p.path}\n_${p.path}_\n\n${excerpt(p.content, question)}`)
     .join('\n\n---\n\n');
 
   await registrar(userId, 'query', question);
