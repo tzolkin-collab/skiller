@@ -20,7 +20,12 @@ interface ActiveSessionData {
   };
 }
 
-const fetcher = (url: string) => fetch(url, { credentials: 'omit' }).then((res) => {
+// `include` como todo o resto do painel: /api/sessions/active resolve o dono
+// pelo cookie de sessao. Com `omit` a chamada saia sem cookie, voltava 401, o
+// SWR marcava erro e o componente devolvia null — o aviso de sessao ativa nunca
+// aparecia para ninguem, e quem perdia a aba no meio de uma sessao ficava sem
+// caminho de volta.
+const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then((res) => {
   if (!res.ok) throw new Error('Falha ao carregar sessão');
   return res.json();
 });
