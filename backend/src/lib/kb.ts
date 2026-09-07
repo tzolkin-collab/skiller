@@ -396,6 +396,12 @@ export type RankablePage = {
 /** Saturação da frequência e normalização por tamanho — parâmetros BM25 usuais. */
 const K1 = 1.2;
 const B = 0.6;
+/**
+ * Fração mínima dos termos da pergunta que a melhor página precisa conter para
+ * a resposta valer alguma coisa. É o piso que permite ao `kb_query` dizer que
+ * não sabe — ver o comentário em `rankPages`.
+ */
+const COBERTURA_MINIMA = 0.34;
 /** Bater no título vale mais que bater no meio do corpo; em tag, quase tanto. */
 const PESO_TITULO = 3;
 const PESO_TAG = 2;
@@ -452,21 +458,34 @@ export function rankPages<P extends RankablePage>(
     }, 0);
 
   const pontuar = (comIdf: boolean) =>
-    docs
-      .map((d) => ({ ...d.page, score: bm25(d, comIdf) }))
-      .filter((p) => p.score > 0);
+    docs.map((doc) => ({ doc, score: bm25(doc, comIdf) })).filter((x) => x.score > 0);
 
   // Base pequena e homogênea pode ter todo termo da pergunta em toda página, e
   // aí o IDF zera o ranking inteiro. Devolver por frequência é melhor que
   // afirmar que não há nada registrado.
-  const pontuadas = pontuar(true).length > 0 ? pontuar(true) : pontuar(false);
+  const comIdf = pontuar(true);
+  const pontuadas = comIdf.length > 0 ? comIdf : pontuar(false);
   if (pontuadas.length === 0) return [];
 
   pontuadas.sort((a, b) => b.score - a.score);
+
+  // Piso absoluto, antes do corte relativo. O corte relativo sozinho sempre
+  // devolve alguma coisa, porque só compara os candidatos entre si: perguntado
+  // sobre OAuth numa base que nunca ouviu falar de OAuth, ele entrega a página
+  // que por acaso cita "conectores" e o agente do outro lado sintetiza em cima
+  // do ruído sem saber que é ruído. Se a melhor página não cobre nem um terço
+  // dos termos da pergunta, a base não trata do assunto — e dizer isso vale
+  // mais que devolver o menos-errado.
+  const cobertos = termos.filter((t) => pontuadas[0].doc.freq.has(t)).length;
+  if (cobertos / termos.length < COBERTURA_MINIMA) return [];
+
   // Corte relativo: o que pontua menos de um quarto do primeiro é ruído que só
   // gasta contexto de quem chamou.
   const corte = pontuadas[0].score * 0.25;
-  return pontuadas.filter((p) => p.score >= corte).slice(0, limite);
+  return pontuadas
+    .filter((x) => x.score >= corte)
+    .slice(0, limite)
+    .map((x) => ({ ...x.doc.page, score: x.score }));
 }
 
 /** Teto de caracteres por página devolvida pelo `kb_query`. */

@@ -118,6 +118,18 @@ conferir('skill de vendas nao entra', !r.some((p) => p.path === vendas.path),
 conferir('skill de canal do YouTube nao entra', !r.some((p) => p.path === youtube.path),
   'ruido ainda passa pelo corte');
 
+console.log('\nAssunto que a base nao cobre — o kb_query precisa saber dizer que nao sabe');
+
+// O caso exato de producao: a base tem so as skills geradas, nada sobre o
+// conector. Antes do piso, a resposta era a pagina de vendas B2B — e quem
+// chamou sintetizava em cima dela sem saber que era ruido.
+const semResposta = rankPages(pergunta, [vendas, youtube]);
+conferir('base sem a pagina do conector devolve vazio', semResposta.length === 0,
+  `devolveu ${semResposta.map((p) => p.path).join(', ')}`);
+conferir('a mesma pergunta com a pagina presente continua respondendo',
+  rankPages(pergunta, base).length > 0,
+  'o piso ficou alto demais e engoliu a resposta certa');
+
 console.log('\nTokenizacao');
 conferir('stopword nao vira termo', tokenize('sobre como isso deve ser feito').length === 0,
   `sobrou ${JSON.stringify(tokenize('sobre como isso deve ser feito'))}`);
