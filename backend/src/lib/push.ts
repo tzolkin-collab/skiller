@@ -210,9 +210,16 @@ export async function avisar(userId: string, aviso: Aviso): Promise<number> {
         // entra na conta. Cobre a inscricao que ja' estava no banco antes de
         // existir a validacao na porta.
         const mensagem = e instanceof Error ? e.message : '';
+        // 403 e' o servico dizendo que a assinatura VAPID nao corresponde a
+        // esta inscricao. Acontece depois de trocar o par de chaves: a
+        // inscricao foi criada amarrada a chave publica anterior e nao volta a
+        // funcionar — o aparelho precisa se inscrever de novo, o que cria
+        // outra linha. Sem tratar como morte, toda rotacao de chave deixa um
+        // fantasma permanente por aparelho, reclamando em todo envio.
         const morta =
           status === 404 ||
           status === 410 ||
+          status === 403 ||
           codigo.startsWith('ERR_CRYPTO') ||
           /should be \d+ bytes long/.test(mensagem);
 
