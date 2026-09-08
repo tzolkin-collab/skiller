@@ -46,7 +46,7 @@ const INSTRUCOES = `Você está conectado ao Skiller, a fábrica de skills e a B
 
 Quem escreve a skill é VOCÊ. O Skiller busca fontes, persiste, versiona e renderiza — ele não gera conteúdo. Nunca diga ao usuário que "o Skiller vai gerar": o documento estruturado sai de você, e o \`skiller_create_skill\` só o recebe.
 
-Antes de criar qualquer skill, abra uma sessão com \`skiller_open_session\` e mostre o link ao usuário — é por ele que a pessoa acompanha ao vivo o que você está fazendo. Passe o \`sessionId\` em todas as chamadas seguintes.
+Antes de criar qualquer skill, abra uma sessão com \`skiller_open_session\` e mostre o link ao usuário — é por ele que a pessoa acompanha ao vivo o que você está fazendo. Passe o \`sessionId\` em todas as chamadas seguintes. Ao terminar, encerre com \`skiller_close_session\`; se desistir no meio, encerre como \`abandoned\`. Sessão deixada aberta continua aparecendo ao usuário como trabalho em andamento.
 
 Para obter as fontes, use \`skiller_request_sources\` e mostre o link: a tela de seleção faz esse trabalho melhor que o chat. Depois leia com \`skiller_session_state\`. Enquanto estiver aguardando, espere de verdade — releia em intervalos de dezenas de segundos, não em laço apertado.
 

@@ -1,0 +1,2 @@
+ALTER TABLE "mcp_sessions" DROP CONSTRAINT "mcp_sessions_status_check";--> statement-breakpoint
+ALTER TABLE "mcp_sessions" ADD CONSTRAINT "mcp_sessions_status_check" CHECK ("mcp_sessions"."status" IN ('open', 'done', 'error', 'abandoned'));

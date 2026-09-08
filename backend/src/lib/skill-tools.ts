@@ -183,6 +183,28 @@ export const SKILL_TOOLS = [
     },
   },
   {
+    name: 'skiller_close_session',
+    description:
+      'Encerra a sessão espelho quando o trabalho acabou ou foi abandonado. Chame ao ' +
+      'terminar, e também quando desistir no meio — sessão que fica aberta continua ' +
+      'aparecendo para o usuário como se você ainda estivesse trabalhando nela. Criar ' +
+      'skill já fecha a sessão sozinho; isto é para todo o resto.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        sessionId: { type: 'string', description: 'Id da sessão.' },
+        outcome: {
+          type: 'string',
+          enum: ['done', 'abandoned'],
+          description:
+            '`done` quando entregou o que prometeu — o log vira página na Base da IA. ' +
+            '`abandoned` quando parou no meio; não arquiva nada.',
+        },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
     name: 'skiller_create_skill',
     description:
       'Cria uma skill no Skiller a partir de um documento estruturado que VOCÊ escreve. ' +
@@ -227,6 +249,7 @@ export async function handleSkillTool(
   const MINHAS = [
     'skiller_create_skill', 'skiller_open_session', 'skiller_request_sources',
     'skiller_session_state', 'skiller_search_channel', 'skiller_create_from_channel',
+    'skiller_close_session',
   ];
   if (!MINHAS.includes(name)) return null;
 
@@ -354,6 +377,43 @@ export async function handleSkillTool(
     );
   }
 
+  if (name === 'skiller_close_session') {
+    if (!can(plano, 'connectors.mcp')) {
+      return texto(`O plano atual (${plano}) não permite usar o conector.`, true);
+    }
+    const sid = typeof args.sessionId === 'string' ? args.sessionId : '';
+    // Mesmo filtro de dono das outras: id é uuid, e sem isto adivinhar um
+    // fecharia a sessão de outra conta.
+    const estado = await estadoDaSessao(sid, conta.userId);
+    if (!estado) return texto('Sessão não encontrada nesta conta.', true);
+    if (estado.status !== 'open') {
+      return texto(`Sessão "${estado.title ?? sid}" já estava fechada (status ${estado.status}).`);
+    }
+
+    const desfecho = args.outcome === 'abandoned' ? 'abandoned' : 'done';
+    await registrarEvento(
+      sid,
+      desfecho === 'done' ? 'ok' : 'warn',
+      desfecho === 'done' ? 'Sessão encerrada pelo agente.' : 'Sessão abandonada pelo agente.'
+    );
+    await fecharSessao(sid, desfecho);
+
+    // Confere em vez de confiar. `fecharSessao` é fire-and-forget por desenho
+    // — falha de espelho não pode derrubar o trabalho que ele espelha — e
+    // engole a exceção num console.warn. Sem esta releitura a tool responderia
+    // "encerrada" para um UPDATE que o banco recusou, e o agente seguiria
+    // achando que fechou.
+    const depois = await estadoDaSessao(sid, conta.userId);
+    if (depois?.status === 'open') {
+      return texto(
+        `Não consegui encerrar a sessão "${estado.title ?? sid}" — ela continua aberta. ` +
+          'O erro está no log do servidor.',
+        true
+      );
+    }
+    return texto(`Sessão "${estado.title ?? sid}" encerrada como ${depois?.status ?? desfecho}.`);
+  }
+
   if (name === 'skiller_request_sources' || name === 'skiller_session_state') {
     if (!can(plano, 'connectors.mcp')) {
       return texto(`O plano atual (${plano}) não permite usar o conector.`, true);
@@ -380,7 +440,15 @@ export async function handleSkillTool(
 
     const fontes = (estado.handoff as { sources?: string[] } | null)?.sources ?? null;
     if (estado.awaiting === 'sources') {
-      return texto('Ainda aguardando o usuário escolher as fontes na tela. Tente de novo em instantes.');
+      // Estado explícito em vez de "tente de novo em instantes": quem lê isto é
+      // um programa. Sem dizer que está pendente e de quanto em quanto tempo
+      // reler, o agente não distingue espera de erro transitório e volta a
+      // bater em laço.
+      return texto(
+        'status: aguardando · awaiting: sources\n' +
+          'O usuário ainda não escolheu as fontes na tela. Releia daqui a ~30s; ' +
+          'se ele não voltar, encerre com skiller_close_session (outcome: abandoned).'
+      );
     }
     if (!fontes) {
       return texto(`Sessão "${estado.title ?? sid}" · status ${estado.status} · nada pendente e nada devolvido.`);

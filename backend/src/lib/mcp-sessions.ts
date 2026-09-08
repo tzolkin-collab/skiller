@@ -13,7 +13,7 @@
  * possivelmente numa tela compartilhada. Token na URL viraria capacidade
  * portátil; id sozinho não vale nada sem login.
  */
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../db/db.js';
 import { mcpSessions, mcpSessionEvents } from '../db/schema.js';
 
@@ -28,19 +28,39 @@ export function urlDaSessao(id: string, lang = 'pt'): string {
   return `${appUrl()}/${lang}/dashboard/sessions/${id}`;
 }
 
+/**
+ * Tempo sem nenhuma atualização depois do qual uma sessão aberta é tratada como
+ * abandonada. Meia hora é folgado para o laço de criação de skill, que leva
+ * minutos, e curto o bastante para a sessão de ontem não voltar do túmulo.
+ */
+const SESSAO_OCIOSA_MS = 30 * 60 * 1000;
+
 export async function abrirSessao(opts: {
   userId: string;
   title?: string | null;
   client?: string | null;
 }): Promise<{ id: string; url: string }> {
-  // Singleton: verifica se já há uma sessão open para esse usuário
+  // Singleton: verifica se já há uma sessão open para esse usuário.
+  // `orderBy` porque `limit(1)` sem ordem devolve linha arbitrária — e o
+  // singleton não é garantido pelo banco: o check-then-insert abaixo não é
+  // atômico, então duas aberturas simultâneas deixam duas sessões abertas.
   const [ativa] = await db
-    .select({ id: mcpSessions.id })
+    .select({ id: mcpSessions.id, updatedAt: mcpSessions.updatedAt })
     .from(mcpSessions)
     .where(and(eq(mcpSessions.userId, opts.userId), eq(mcpSessions.status, 'open')))
+    .orderBy(desc(mcpSessions.updatedAt))
     .limit(1);
 
-  if (ativa) {
+  // Reaproveitar a sessão aberta é o certo enquanto ela está viva: o agente que
+  // reabre no meio do trabalho continua na mesma linha do tempo em vez de
+  // fragmentá-la. Mas sessão abandonada não fechava sozinha — `fecharSessao` só
+  // é chamada na criação de skill — então a sessão de ontem, parada esperando
+  // fontes que nunca vieram, sequestrava a próxima: o agente seguinte recebia o
+  // id dela achando que tinha aberto uma sessão nova, e herdava o `awaiting` e
+  // os eventos da anterior.
+  const viva = ativa && Date.now() - ativa.updatedAt.getTime() < SESSAO_OCIOSA_MS;
+
+  if (ativa && viva) {
     // Atualiza o título e retorna a existente
     await db
       .update(mcpSessions)
@@ -48,6 +68,8 @@ export async function abrirSessao(opts: {
       .where(eq(mcpSessions.id, ativa.id));
     return { id: ativa.id, url: urlDaSessao(ativa.id) };
   }
+
+  if (ativa) await fecharSessao(ativa.id, 'abandoned');
 
   const [s] = await db
     .insert(mcpSessions)
@@ -93,10 +115,16 @@ import { users } from '../db/schema.js';
 import { can } from './plans.js';
 import { ingest } from './kb-tools.js';
 
-/** Fecha a sessão. Também tolerante a falha, pelo mesmo motivo. */
+/**
+ * Fecha a sessão. Também tolerante a falha, pelo mesmo motivo.
+ *
+ * `abandoned` é para sessão que ninguém terminou — o agente sumiu, o usuário
+ * fechou a aba. Não arquiva na Base: só `done` vira página, porque log de
+ * trabalho interrompido é ruído, não conhecimento.
+ */
 export async function fecharSessao(
   sessionId: string | null | undefined,
-  status: 'done' | 'error' = 'done'
+  status: 'done' | 'error' | 'abandoned' = 'done'
 ): Promise<void> {
   if (!sessionId) return;
   try {

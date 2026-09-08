@@ -266,7 +266,10 @@ export const mcpSessions = pgTable('mcp_sessions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
-  check('mcp_sessions_status_check', sql`${table.status} IN ('open', 'done', 'error')`),
+  // `abandoned` e' sessao que ninguem terminou — agente sumiu, aba fechada.
+  // Separado de `error` porque nao houve falha: distinguir os dois e' o que
+  // permite ao painel nao pintar desistencia como quebra.
+  check('mcp_sessions_status_check', sql`${table.status} IN ('open', 'done', 'error', 'abandoned')`),
   check('mcp_sessions_awaiting_check', sql`${table.awaiting} IS NULL OR ${table.awaiting} IN ('sources')`),
 ]);
 

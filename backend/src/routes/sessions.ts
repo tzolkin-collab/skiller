@@ -36,6 +36,11 @@ sessionsRouter.get('/active', async (c) => {
     })
     .from(mcpSessions)
     .where(and(eq(mcpSessions.userId, userId), eq(mcpSessions.status, 'open')))
+    // Sem ordem, `limit(1)` devolve linha arbitrária. O singleton de
+    // `abrirSessao` torna isso raro, mas ele é check-then-insert e não trava
+    // nada: duas aberturas simultâneas deixam duas abertas, e aí o aviso do
+    // painel apontaria para uma delas ao acaso.
+    .orderBy(desc(mcpSessions.updatedAt))
     .limit(1);
 
   if (!s) return c.json({ active: false });
