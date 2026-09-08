@@ -211,7 +211,16 @@ export async function eventosDaSessao(sessionId: string, depoisDe = 0) {
 
 /** Para onde mandar o humano quando a sessão pede fontes. */
 export function urlDeFontes(id: string, lang = 'pt'): string {
-  return `${appUrl()}/${lang}/dashboard/watch?sessao=${id}`;
+  // `/dashboard`, não `/dashboard/watch`.
+  //
+  // Quem recebe a seleção é o FloatingCart: com `?sessao=` na URL, o botão dele
+  // deixa de gerar e passa a mandar as fontes para a sessão. Ele monta em dois
+  // lugares, e só um deles serve. `/dashboard/watch` exige `?v=<videoId>` e,
+  // sem ele, devolve "No video selected." antes de montar componente nenhum —
+  // então o link que o agente entregava abria uma tela onde não havia o que
+  // escolher nem como enviar. `/dashboard` é a tela de busca, onde os vídeos
+  // estão.
+  return `${appUrl()}/${lang}/dashboard?sessao=${id}`;
 }
 
 /**

@@ -40,7 +40,12 @@ export function GlobalActiveSession({ lang }: { lang: string }) {
   }
 
   const sess = data.session;
-  
+
+  // O destino de "Selecionar Fontes" e' `/dashboard`, nao `/dashboard/watch`:
+  // quem recebe a selecao e' o FloatingCart, que monta junto da busca. Em
+  // /watch, sem `?v=`, a pagina para em "No video selected." e nao ha' o que
+  // escolher — era para la' que este botao apontava.
+
   return (
     <div className={styles.container}>
       <div className={styles.content}>
@@ -60,7 +65,7 @@ export function GlobalActiveSession({ lang }: { lang: string }) {
 
         <div className={styles.actionSection}>
           {sess.awaiting === 'sources' ? (
-            <Link href={`/${lang}/dashboard/watch?sessao=${sess.id}`} className={styles.actionButton}>
+            <Link href={`/${lang}/dashboard?sessao=${sess.id}`} className={styles.actionButton}>
               Selecionar Fontes <ArrowRight size={14} />
             </Link>
           ) : (
