@@ -30,6 +30,29 @@ function chaveParaBytes(base64: string): Uint8Array {
 
 type Estado = 'carregando' | 'sem-suporte' | 'precisa-instalar' | 'desligado' | 'ligado' | 'negado';
 
+/**
+ * `navigator.serviceWorker.ready` com prazo.
+ *
+ * Sem o prazo isto trava a tela: quando não há service worker ativo no escopo,
+ * `ready` NÃO rejeita — ele simplesmente nunca resolve. `catch` e `try` não
+ * pegam promessa pendurada, então o componente ficava em "Verificando…" para
+ * sempre, sem erro nenhum no console.
+ *
+ * Devolve `null` no estouro em vez de lançar: quem chama decide o que fazer com
+ * a ausência, e nenhum caminho fica esperando para sempre.
+ */
+async function swPronto(ms = 4000): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 export function PushToggle({ lang }: { lang: string }) {
   const pt = lang === 'pt';
   const [estado, setEstado] = useState<Estado>('carregando');
@@ -38,24 +61,33 @@ export function PushToggle({ lang }: { lang: string }) {
 
   useEffect(() => {
     (async () => {
-      if (typeof window === 'undefined') return;
+      try {
+        if (typeof window === 'undefined') return;
 
-      const temAPI = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+        const temAPI =
+          'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
-      // iOS: `standalone` só é true dentro do PWA instalado. Em aba, o
-      // PushManager pode até existir e a inscrição falha depois.
-      const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const instalado =
-        (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
-        window.matchMedia('(display-mode: standalone)').matches;
+        // iOS: `standalone` só é true dentro do PWA instalado. Em aba, o
+        // PushManager pode até existir e a inscrição falha depois.
+        const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const instalado =
+          (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
+          window.matchMedia('(display-mode: standalone)').matches;
 
-      if (!temAPI) return setEstado('sem-suporte');
-      if (ehIOS && !instalado) return setEstado('precisa-instalar');
-      if (Notification.permission === 'denied') return setEstado('negado');
+        if (!temAPI) return setEstado('sem-suporte');
+        if (ehIOS && !instalado) return setEstado('precisa-instalar');
+        if (Notification.permission === 'denied') return setEstado('negado');
 
-      const reg = await navigator.serviceWorker.ready.catch(() => null);
-      const inscricao = await reg?.pushManager.getSubscription().catch(() => null);
-      setEstado(inscricao ? 'ligado' : 'desligado');
+        const reg = await swPronto();
+        const inscricao = await reg?.pushManager.getSubscription().catch(() => null);
+        setEstado(inscricao ? 'ligado' : 'desligado');
+      } catch {
+        // Qualquer tropeço aqui deixava a tela em "Verificando…" para sempre,
+        // porque a promessa da IIFE rejeitava sem ninguém escutando. Cair para
+        // "desligado" ao menos oferece o botão: o pior que acontece é o
+        // Ativar falhar com uma mensagem, o que já diz mais que um spinner.
+        setEstado('desligado');
+      }
     })();
   }, []);
 
@@ -73,7 +105,18 @@ export function PushToggle({ lang }: { lang: string }) {
       if (!resChave.ok) throw new Error(pt ? 'Push não está configurado no servidor.' : 'Push is not configured.');
       const { key } = (await resChave.json()) as { key: string };
 
-      const reg = await navigator.serviceWorker.ready;
+      // Registrar antes de esperar: se o script do layout não rodou, ou o
+      // registro morreu, `ready` esperaria por um worker que nunca vem.
+      await navigator.serviceWorker.register('/sw.js').catch(() => null);
+      const reg = await swPronto(8000);
+      if (!reg) {
+        throw new Error(
+          pt
+            ? 'O service worker não ficou pronto. Feche e abra o app e tente de novo.'
+            : 'Service worker not ready. Close and reopen the app, then try again.'
+        );
+      }
+
       const inscricao = await reg.pushManager.subscribe({
         // Obrigatório: todo push precisa virar notificação visível. Não dá
         // para usar isto como canal silencioso.
@@ -102,8 +145,8 @@ export function PushToggle({ lang }: { lang: string }) {
     setOcupado(true);
     setRecado(null);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const inscricao = await reg.pushManager.getSubscription();
+      const reg = await swPronto();
+      const inscricao = await reg?.pushManager.getSubscription();
       if (inscricao) {
         await fetch(`${BASE_URL}/api/push/unsubscribe`, {
           method: 'POST',

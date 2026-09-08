@@ -124,6 +124,14 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip all internal paths (_next)
-    '/((?!_next|api|favicon.ico).*)',
+    //
+    // `offline` fora do prefixo de idioma de proposito: a pagina vive em
+    // `app/offline`, sem `[lang]`, e o service worker a busca por `/offline`
+    // no install. Com o middleware pegando essa rota, o pedido virava 307 para
+    // `/pt/offline`, que nao existe — o `addAll` seguia o redirect, batia no
+    // 404 e REJEITAVA. Install que rejeita nunca ativa o worker, entao o PWA
+    // inteiro ficava sem service worker e `serviceWorker.ready` nunca
+    // resolvia. Foi o que travou a tela de notificacoes em "Verificando...".
+    '/((?!_next|api|offline|favicon.ico).*)',
   ],
 };

@@ -3,7 +3,21 @@ const OFFLINE = ['/offline'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(OFFLINE)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE)
+      // `addAll` REJEITA se qualquer recurso nao responder ok — e install que
+      // rejeita nunca ativa o worker. Era o caso: `/offline` batia no
+      // middleware de idioma, virava 307 para `/pt/offline`, que nao existe, e
+      // o 404 derrubava a instalacao inteira. Resultado: nenhum service worker
+      // ativo em lugar nenhum, PWA sem offline e `serviceWorker.ready`
+      // pendurado para sempre.
+      //
+      // Cache e' otimizacao; presenca do worker e' requisito (push depende
+      // dele). Falha de cache nao pode custar o worker.
+      .then((c) => c.addAll(OFFLINE).catch((err) => {
+        console.warn('[sw] cache offline falhou, seguindo sem ele:', err);
+      }))
+      .then(() => self.skipWaiting())
   );
 });
 
