@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-client';
 import { AccountTab } from './AccountTab';
 import { User, CreditCard, Sliders, MonitorSmartphone, Check, Sparkles, CheckCircle2, Loader2, AlertCircle, Wifi, WifiOff, Clock, Trash2 } from 'lucide-react';
 import styles from './Settings.module.css';
+import { PushToggle } from './PushToggle';
 import {
   buscarCatalogo, criarCheckout, abrirPortal, formatarValor, confirmarCheckout,
   rotuloCapacidade,
@@ -614,6 +615,8 @@ export function SettingsContent({ dict }: SettingsContentProps) {
                 </div>
               </div>
             </div>
+
+            <PushToggle lang={lang} />
           </div>
         )}
 

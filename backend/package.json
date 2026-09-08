@@ -27,7 +27,8 @@
     "connector:selftest": "env-cmd -f ../.env tsx scripts/connector-selftest.ts",
     "verify:kb-query": "tsx scripts/verify-kb-query.ts",
     "verify:sanitize": "tsx scripts/verify-sanitize.ts",
-    "verify:web-fetch": "tsx scripts/verify-web-fetch.ts"
+    "verify:web-fetch": "tsx scripts/verify-web-fetch.ts",
+    "verify:push": "env-cmd -f ../.env tsx scripts/verify-push.ts"
   },
   "dependencies": {
     "@google/genai": "latest",
@@ -45,6 +46,7 @@
     "postgres": "^3.4.5",
     "resend": "^6.22.0",
     "stripe": "^22.5.0",
+    "web-push": "^3.6.7",
     "youtube-transcript": "^1.2.1",
     "youtubei.js": "^18.0.0",
     "zod": "^3.24.1",
@@ -57,6 +59,7 @@
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "@types/web-push": "^3.6.4",
     "cloudflared": "^0.7.3",
     "drizzle-kit": "^0.30.1",
     "env-cmd": "^11.0.0",

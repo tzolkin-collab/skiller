@@ -16,6 +16,7 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { db } from '../db/db.js';
 import { mcpSessions, mcpSessionEvents } from '../db/schema.js';
+import { avisar } from './push.js';
 
 export type TipoEvento = 'info' | 'ok' | 'warn' | 'error';
 
@@ -231,10 +232,32 @@ export function urlDeFontes(id: string, lang = 'pt'): string {
  * na IDE — que é justamente o trabalho que a tela de seleção já faz melhor.
  */
 export async function pedirFontes(sessionId: string): Promise<void> {
-  await db
+  const [s] = await db
     .update(mcpSessions)
     .set({ awaiting: 'sources', handoff: null, updatedAt: new Date() })
-    .where(eq(mcpSessions.id, sessionId));
+    .where(eq(mcpSessions.id, sessionId))
+    .returning({ userId: mcpSessions.userId, title: mcpSessions.title });
+
+  // O único momento do laço em que o agente PARA e não há mais nada a fazer sem
+  // um humano. Se a pessoa não estiver olhando a tela, ninguém avisa — e a
+  // sessão fica em `awaiting` até alguém lembrar. Foi assim que uma sessão
+  // nossa passou um dia inteiro parada.
+  //
+  // `tag` com o id: reenviar o pedido substitui o aviso anterior em vez de
+  // empilhar três "escolha as fontes" da mesma sessão.
+  if (s) {
+    // Caminho relativo, não a URL inteira: quem abre é o service worker, já
+    // dentro do próprio domínio.
+    const { pathname, search } = new URL(urlDeFontes(sessionId));
+    await avisar(s.userId, {
+      title: 'O agente está esperando você',
+      body: s.title
+        ? `${s.title} — escolha as fontes para ele continuar.`
+        : 'Escolha as fontes para ele continuar.',
+      url: pathname + search,
+      tag: `fontes:${sessionId}`,
+    }).catch(() => {});
+  }
 }
 
 /** O humano devolveu a seleção. Fecha o pedido e guarda o resultado. */

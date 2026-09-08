@@ -497,3 +497,35 @@ export const stripeEvents = pgTable('stripe_events', {
   type: text('type').notNull(),
   processedAt: timestamp('processed_at').defaultNow().notNull(),
 });
+
+// ============================================================================
+// Web Push
+//
+// A linha e' por DISPOSITIVO, nao por usuario: a mesma pessoa no iPhone e no
+// notebook sao duas inscricoes distintas, com chaves distintas. O `endpoint` e'
+// unico porque e' ele que identifica o aparelho para o servico de push.
+//
+// Isto expira sozinho. Quando alguem desinstala o PWA ou revoga a permissao, o
+// endpoint passa a responder 404/410 e a linha precisa sair — senao a base
+// enche de destinatario fantasma e toda metrica de entrega mente.
+// ============================================================================
+
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+
+  /** URL do servico de push do fabricante. Identifica o aparelho. */
+  endpoint: text('endpoint').notNull(),
+  /** Chaves da subscription: o payload e' cifrado com elas, ponta a ponta. */
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+
+  /** Só para o usuário reconhecer o aparelho na tela de configurações. */
+  userAgent: text('user_agent'),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('push_subscriptions_endpoint_unq').on(table.endpoint),
+  index('push_subscriptions_user_idx').on(table.userId),
+]);

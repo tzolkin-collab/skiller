@@ -65,6 +65,7 @@ app.get('/', (c) => {
 })
 
 import { mcpRouter } from './routes/mcp.js'
+import { pushRouter } from './routes/push.js'
 import { sessionsRouter } from './routes/sessions.js'
 import { wellKnownRouter } from './routes/well-known.js'
 
@@ -79,6 +80,7 @@ app.route('/api/billing', billingRouter)
 app.route('/api/youtube', youtubeRouter)
 app.route('/api/mcp', mcpRouter)
 app.route('/api/sessions', sessionsRouter)
+app.route('/api/push', pushRouter)
 
 const port = parseInt(process.env.BACKEND_PORT || '3001')
 console.log(`Server is running on port ${port}`)
