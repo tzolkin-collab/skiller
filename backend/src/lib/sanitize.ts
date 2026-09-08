@@ -72,7 +72,26 @@ const DESTRUCTIVE_PATTERNS: Array<[RegExp, string]> = [
   [/\b(mkfs|dd\s+if=)/i, 'disk-write'],
   [/:\(\)\s*\{\s*:\|:&\s*\}\s*;:/, 'fork-bomb'],
   [/\bchmod\s+777\s+[~/]/, 'permission-widening'],
-  [/\bhistory\s+-c\b|\bunset\s+HISTFILE\b/, 'trace-removal']
+  [/\bhistory\s+-c\b|\bunset\s+HISTFILE\b/, 'trace-removal'],
+
+  // Shell reverso. Entra aqui — e não na lista de avisos — porque não existe
+  // motivo para uma skill *executar* isto: em prosa vira aviso, como todo
+  // destrutivo, mas dentro de snippet reprova.
+  [/>\s*&?\s*\/dev\/tcp\/|\/dev\/tcp\/[\d.]+\/\d+/i, 'reverse-shell'],
+  [/\bn(c|cat)\b[^\n]{0,40}\s-[a-z]*e[a-z]*\s+(\/bin\/)?(ba)?sh\b/i, 'reverse-shell'],
+];
+
+/**
+ * Suspeito sempre, reprovado nunca.
+ *
+ * `curl … | sh` é o instalador oficial de meia dúzia de ferramentas honestas, e
+ * também o vetor de execução remota mais comum que existe. Não dá para separar
+ * os dois por sintaxe — só pela reputação da URL, que não é coisa que regex
+ * saiba. Então avisa em qualquer campo, inclusive dentro de snippet, e deixa a
+ * decisão para quem lê o aviso.
+ */
+const SUSPICIOUS_PATTERNS: Array<[RegExp, string]> = [
+  [/\b(curl|wget)\b[^\n|]{0,120}\|\s*(sudo\s+)?(ba|z|k)?sh\b/i, 'pipe-to-shell'],
 ];
 
 function scan(
@@ -145,6 +164,7 @@ export function inspectDocument(doc: SkillDocument): SanitizeFinding[] {
     // legítimo do tipo "nunca rode rm -rf /".
     const isCode = field.includes('.code');
     findings.push(...scan(value, field, DESTRUCTIVE_PATTERNS, isCode ? 'block' : 'warn'));
+    findings.push(...scan(value, field, SUSPICIOUS_PATTERNS, 'warn'));
   });
 
   return findings;

