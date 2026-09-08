@@ -25,7 +25,8 @@
     "verify:gate": "env-cmd -f ../.env tsx scripts/verify-gate.ts",
     "verify:assinatura": "env-cmd -f ../.env tsx scripts/verify-uma-assinatura.ts",
     "connector:selftest": "env-cmd -f ../.env tsx scripts/connector-selftest.ts",
-    "verify:kb-query": "tsx scripts/verify-kb-query.ts"
+    "verify:kb-query": "tsx scripts/verify-kb-query.ts",
+    "verify:sanitize": "tsx scripts/verify-sanitize.ts"
   },
   "dependencies": {
     "@google/genai": "latest",

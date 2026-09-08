@@ -26,12 +26,31 @@ const HIJACK_PATTERNS: Array<[RegExp, string]> = [
   [/disregard\s+(your|the|all)\s+(system\s+)?(prompt|instructions?|rules)/i, 'disregard-system'],
   [/you\s+are\s+now\s+(a|an|the)\s+\w+/i, 'role-reassignment'],
   [/forget\s+(everything|all|your)\s+(you|previous|prior)/i, 'forget-context'],
-  [/<\|?\s*(im_start|im_end|system|endoftext)\s*\|?>/i, 'chat-template-token']
+  [/<\|?\s*(im_start|im_end|system|endoftext)\s*\|?>/i, 'chat-template-token'],
+
+  // Português. A lista nasceu só em inglês, num produto cujas fontes são vídeos
+  // em português e cujo documento é escrito por um modelo respondendo em
+  // português: "ignore todas as instruções anteriores" atravessava o portão
+  // inteiro enquanto a tradução literal dela era bloqueada.
+  //
+  // As variantes pedem a referência ao que veio antes (anteriores, acima, o que
+  // foi dito) ou ao sistema. Sem isso, "ignore as instruções do fabricante" —
+  // frase legítima numa skill — viraria bloqueio.
+  [/\b(ignore|ignorar|desconsidere|desconsiderar)\s+(tod[ao]s?\s+)?(as?\s+)?(sua?s?\s+)?(instru[çc][õo]es|orienta[çc][õo]es|regras|diretrizes|ordens)\s+(anteriores|acima|pr[ée]vias|passadas)/i, 'ignore-previous-pt'],
+  [/\b(ignore|ignorar|desconsidere|desconsiderar)\s+(o\s+|as\s+)?(seu\s+)?(prompt\s+de\s+sistema|regras\s+do\s+sistema|instru[çc][õo]es\s+do\s+sistema)/i, 'disregard-system-pt'],
+  [/\b(a\s+partir\s+de\s+agora|de\s+agora\s+em\s+diante|agora)\s+voc[êe]\s+[ée]\s+(um|uma|o|a)\s+\w+/i, 'role-reassignment-pt'],
+  [/\bassuma\s+(o\s+)?papel\s+d[eo]\b/i, 'role-reassignment-pt'],
+  // "tudo o que" ou "todas as instruções", nunca o "esqueça o que" solto:
+  // "esqueça o que você sabia sobre CSS" é abertura didática, não ataque.
+  [/\besque[çc]a\s+(tudo\s+(o\s+)?que|tod[ao]s?\s+as\s+(instru[çc][õo]es|regras|orienta[çc][õo]es))/i, 'forget-context-pt'],
 ];
 
 /** Padrões que geram apenas aviso, pois são muito comuns em conteúdo didático sobre IAs. */
 const HIJACK_WARNING_PATTERNS: Array<[RegExp, string]> = [
   [/\bsystem\s*prompt\b.*\b(reveal|print|output|show|repeat)\b/i, 'prompt-exfiltration'],
+  // Aviso e não bloqueio, igual à versão em inglês: conteúdo didático sobre IA
+  // fala de prompt de sistema o tempo todo.
+  [/\bprompt\s+de\s+sistema\b.*\b(revele|revelar|mostre|mostrar|imprima|exiba|repita)\b/i, 'prompt-exfiltration-pt'],
 ];
 
 /** Referência a credencial ou exfiltração de dado. */
@@ -40,7 +59,11 @@ const SECRET_PATTERNS: Array<[RegExp, string]> = [
   [/\bprocess\.env\.[A-Z_]*(KEY|TOKEN|SECRET|PASSWORD)/i, 'env-secret-access'],
   [/\b(curl|wget|fetch|axios)\b[^\n]{0,80}\b(token|secret|api[_-]?key|password)\b/i, 'credential-exfiltration'],
   [/\b(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36})\b/, 'literal-credential'],
-  [/~\/\.(ssh|aws|config)\b/i, 'home-credential-path']
+  [/~\/\.(ssh|aws|config)\b/i, 'home-credential-path'],
+
+  // Português, pelo mesmo motivo: os verbos de leitura e envio mudam, o alvo não.
+  [/\b(leia|ler|abra|abrir|mostre|mostrar|imprima|exiba|envie|enviar|mande|mandar)\b[^\n]{0,30}\.env\b/i, 'read-env-file-pt'],
+  [/\b(envie|enviar|mande|mandar|poste|publique|exponha)\b[^\n]{0,80}\b(token|senha|chave\s+de\s+api|credencial|segredo|api[_-]?key|secret)\b/i, 'credential-exfiltration-pt'],
 ];
 
 /** Shell destrutivo dentro de snippet de código. */
