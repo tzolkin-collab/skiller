@@ -167,11 +167,29 @@ export function PushToggle({ lang }: { lang: string }) {
     setRecado(null);
     try {
       const res = await fetch(`${BASE_URL}/api/push/test`, { method: 'POST', credentials: 'include' });
-      const { entregues } = (await res.json()) as { entregues: number };
+      const dados = (await res.json().catch(() => ({}))) as {
+        entregues?: number;
+        dispositivos?: number;
+        message?: string;
+      };
+
+      // O servidor sabe distinguir três fracassos diferentes, e antes todos
+      // apareciam aqui como "reative a permissão" — que mandava mexer no
+      // aparelho quando o problema estava na configuração do servidor.
+      if (!res.ok) {
+        setRecado(dados.message ?? (pt ? 'O servidor recusou o envio.' : 'Server refused to send.'));
+        return;
+      }
+      if (dados.dispositivos === 0) {
+        setRecado(pt ? 'Nenhum aparelho inscrito nesta conta.' : 'No device subscribed.');
+        return;
+      }
       setRecado(
-        entregues > 0
-          ? pt ? `Enviado para ${entregues} aparelho(s).` : `Sent to ${entregues} device(s).`
-          : pt ? 'Nenhum aparelho recebeu — reative a permissão.' : 'No device received it.'
+        (dados.entregues ?? 0) > 0
+          ? pt ? `Enviado para ${dados.entregues} aparelho(s).` : `Sent to ${dados.entregues} device(s).`
+          : pt
+            ? 'O servidor tentou e nenhum aparelho aceitou. A inscrição pode ter expirado — desative e ative de novo.'
+            : 'Server tried and no device accepted. Subscription may have expired.'
       );
     } finally {
       setOcupado(false);
@@ -208,7 +226,7 @@ export function PushToggle({ lang }: { lang: string }) {
           )}
           <div>
             <h3 className={styles.cardTitle}>
-              {pt ? 'Notificacoes neste aparelho' : 'Notifications on this device'}
+              {pt ? 'Notificações neste aparelho' : 'Notifications on this device'}
             </h3>
             <p className={styles.cardDesc}>{textos[estado]}</p>
           </div>

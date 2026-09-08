@@ -33,6 +33,13 @@ export interface Aviso {
 }
 
 let configurado: boolean | null = null;
+let motivo: string | null = null;
+
+/** Por que o push está desligado, quando estiver. Nunca inclui a chave. */
+export function motivoDesligado(): string | null {
+  pronto();
+  return configurado ? null : motivo;
+}
 
 /**
  * Configura o web-push na primeira chamada.
@@ -49,14 +56,32 @@ function pronto(): boolean {
   const subject = process.env.VAPID_SUBJECT ?? 'mailto:contato@skiller.app';
 
   if (!pub || !priv) {
-    console.warn('[push] VAPID ausente — notificações desligadas.');
+    motivo = 'VAPID_PUBLIC_KEY ou VAPID_PRIVATE_KEY ausente no ambiente.';
+    console.warn('[push] ' + motivo);
     configurado = false;
     return false;
   }
 
-  webpush.setVapidDetails(subject, pub, priv);
-  configurado = true;
-  return true;
+  // `setVapidDetails` valida e LANÇA se a chave não tiver o tamanho certo
+  // depois de decodificada. Sem este try, uma variável de ambiente colada
+  // errada — truncada, com espaço, com quebra de linha — derrubava a rota
+  // inteira com 500, sem dizer o que estava errado. Foi exatamente o que
+  // aconteceu: a inscrição do aparelho gravou normalmente e só o envio
+  // explodia, o que aponta para o lado errado do problema.
+  //
+  // `.trim()` porque colar em painel de deploy costuma trazer espaço ou
+  // newline invisível junto, e isso sozinho já invalida a chave.
+  try {
+    webpush.setVapidDetails(subject.trim(), pub.trim(), priv.trim());
+    configurado = true;
+    motivo = null;
+    return true;
+  } catch (e) {
+    motivo = `VAPID inválida: ${e instanceof Error ? e.message : String(e)}`;
+    console.warn('[push] ' + motivo);
+    configurado = false;
+    return false;
+  }
 }
 
 /** A pública pode circular: é ela que o navegador usa para se inscrever. */

@@ -9,6 +9,7 @@ import { Hono } from 'hono';
 import { usuarioAtual, naoAutenticado } from '../lib/current-user.js';
 import {
   chavePublica, inscrever, desinscrever, contarInscricoes, avisar, chavesValidas,
+  motivoDesligado,
 } from '../lib/push.js';
 
 export const pushRouter = new Hono();
@@ -79,12 +80,23 @@ pushRouter.post('/test', async (c) => {
   const userId = await usuarioAtual(c);
   if (!userId) return c.json(naoAutenticado(), 401);
 
+  // Diagnostico antes do envio: sem isto, chave mal colada no painel de deploy
+  // devolvia 500 generico e mandava procurar o problema no aparelho, que era o
+  // unico lugar onde ele nao estava.
+  const desligado = motivoDesligado();
+  if (desligado) return c.json({ error: 'push_desligado', message: desligado }, 503);
+
+  const dispositivos = await contarInscricoes(userId);
+  if (dispositivos === 0) {
+    return c.json({ ok: true, entregues: 0, dispositivos: 0 });
+  }
+
   const entregues = await avisar(userId, {
     title: 'Skiller',
-    body: 'Notificações ligadas. É assim que o agente vai te chamar quando parar para esperar.',
+    body: 'Notificacoes ligadas. E assim que o agente vai te chamar quando parar para esperar.',
     url: '/pt/dashboard/settings',
     tag: 'teste',
   });
 
-  return c.json({ ok: true, entregues });
+  return c.json({ ok: true, entregues, dispositivos });
 });
