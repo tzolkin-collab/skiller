@@ -1147,3 +1147,22 @@
     padding: 0.5rem 0.625rem;
   }
 }
+
+/* Library: quiet hierarchy, with search always available. */
+.libraryPage { padding: 8px 0 32px; gap: 24px; }
+.libraryPage .title { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; text-transform: none; margin: 0 0 6px; }
+.libraryPage .subtitle { font-size: 14px; line-height: 1.55; }
+.libraryPage .header { gap: 20px; }
+.librarySearch { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 44px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); color: var(--text-muted); background: var(--bg-secondary); }
+.librarySearch input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 14px; padding: 12px 0; }
+.librarySearch:focus-within { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.libraryPage .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.libraryPage .skillCard { color: inherit; text-decoration: none; border-radius: var(--radius-md); transition: border-color 0.15s ease; }
+.libraryPage .skillCard:hover { transform: none; box-shadow: none; border-color: var(--text-muted); }
+.libraryPage .skillCard:focus-visible, .libraryPage button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 3px; }
+.libraryPage .skillTitle { font-size: 17px; font-weight: 600; }
+.libraryPage .nicheBadge { font-family: inherit; font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-secondary); }
+.libraryPage .channelName { font-family: inherit; font-size: 12px; }
+.libraryPage .skillDesc { font-size: 14px; line-height: 1.6; }
+.libraryPage .skillFooter { border-top: 0; padding-top: 12px; }
+.libraryPage .emptyState h3 { font-size: 20px; font-weight: 600; text-transform: none; }

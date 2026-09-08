@@ -3,8 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import useSWR from 'swr';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from '@/lib/session';
+import Link from 'next/link';
 import {
   PlaySquare, Clock, Search, X, Layers, RadioTower,
   SlidersHorizontal, ChevronDown,
@@ -35,7 +34,6 @@ const NICHE_COLOR: Record<SkillNiche, string> = {
 
 // ─── Skill Card ──────────────────────────────────────────────────────────────
 function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
-  const router = useRouter();
   const niche = skill.niche as SkillNiche | null | undefined;
   const nicheColor = niche ? NICHE_COLOR[niche] : 'var(--accent-primary)';
   const nicheLabel = niche ? NICHE_LABEL[niche] : null;
@@ -46,24 +44,23 @@ function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
     .toUpperCase();
 
   return (
-    <article
+    <Link
       className={styles.skillCard}
       style={{ '--niche-color': nicheColor } as React.CSSProperties}
-      onClick={() => router.push(`/${lang}/dashboard/skills/${skill.id}`)}
+      href={`/${lang}/dashboard/skills/${skill.id}`}
     >
-      <div className={styles.skillCardStripe} />
       <div className={styles.skillCardBody}>
         <div className={styles.skillCardHeader}>
           {skill.channelImageUrl ? (
             <Image src={skill.channelImageUrl} alt={skill.channelName || ''} width={40} height={40} className={styles.skillAvatarImage} unoptimized />
           ) : (
-            <div className={styles.skillAvatar} style={{ background: nicheColor }}>
+            <div className={styles.skillAvatar} style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
               {initials}
             </div>
           )}
           <div className={styles.skillCardMeta}>
             {nicheLabel && (
-              <span className={styles.nicheBadge} style={{ color: nicheColor }}>
+              <span className={styles.nicheBadge}>
                 {nicheLabel}
               </span>
             )}
@@ -75,12 +72,12 @@ function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
             )}
           </div>
           <span className={`${styles.statusBadge} ${styles[skill.status]}`}>
-            {skill.status}
+            {lang === 'pt' ? ({ ready: 'Pronta', queued: 'Na fila', processing: 'Processando', pending: 'Na fila', failed: 'Falhou', error: 'Erro', completed: 'Concluída' }[skill.status] ?? skill.status) : skill.status}
           </span>
         </div>
 
         <h3 className={styles.skillTitle}>
-          {skill.name ?? <span className={styles.skillTitlePlaceholder}>Processing…</span>}
+          {skill.name ?? <span className={styles.skillTitlePlaceholder}>{lang === 'pt' ? 'Processando…' : 'Processing…'}</span>}
         </h3>
 
         {skill.description && (
@@ -90,12 +87,12 @@ function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
         <div className={styles.skillFooter}>
           <span className={styles.date}>
             <Clock size={12} />
-            {new Date(skill.createdAt).toLocaleDateString()}
+            {new Date(skill.createdAt).toLocaleDateString(lang === 'pt' ? 'pt-BR' : lang)}
           </span>
           <PlaySquare size={14} className={styles.skillOpenIcon} />
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -141,7 +138,10 @@ function FilterModal({
 
   // Foca o input quando abre
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 80);
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    inputRef.current?.focus();
+    return () => previous?.focus();
   }, [open]);
 
   // Fecha com Escape
@@ -172,7 +172,15 @@ function FilterModal({
         className={`${styles.filterPanel} ${open ? styles.filterPanelOpen : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Filtrar skills"
+        aria-label={tx.filters}
+        onKeyDown={(event) => {
+          if (event.key !== 'Tab') return;
+          const elements = event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input, select');
+          const first = elements[0];
+          const last = elements[elements.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }}
       >
         {/* Handle decorativo */}
         <div className={styles.filterPanelHandle} />
@@ -190,7 +198,7 @@ function FilterModal({
                 {tx.clear}
               </button>
             )}
-            <button className={styles.filterPanelClose} onClick={onClose} aria-label={tx.clear}>
+            <button className={styles.filterPanelClose} onClick={onClose} aria-label={tx.filters === 'Filtros' ? 'Fechar filtros' : 'Close filters'}>
               <X size={18} />
             </button>
           </div>
@@ -305,9 +313,6 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
   const [nicheFilter, setNicheFilter] = useState<SkillNiche | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const searchParams = useSearchParams();
-  // Conta vinda da sessao do painel, nao so da query string.
-  const { userId } = useSession();
 
   const isPt = lang === 'pt';
   const tx = useMemo(() => ({
@@ -368,7 +373,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
   const activeFilterCount = [debouncedSearch, sourceFilter, nicheFilter].filter(Boolean).length;
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${styles.libraryPage}`}>
       <header className={styles.header}>
         <div className={styles.libraryTopRow}>
           <div>
@@ -394,6 +399,13 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
           </button>
         </div>
 
+        <div className={styles.librarySearch}>
+          <Search size={18} aria-hidden="true" />
+          <input type="search" aria-label={dict.dashboard.searchSkills}
+            placeholder={dict.dashboard.searchSkills} value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)} />
+        </div>
+
         {/* Pills de filtros ativos — linha abaixo do header */}
         {hasActiveFilters && (
           <div className={styles.activePills}>
@@ -401,7 +413,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
               <span className={styles.activePill}>
                 <Search size={11} />
                 &ldquo;{debouncedSearch}&rdquo;
-                <button onClick={() => { setSearchInput(''); setDebouncedSearch(''); }}>
+                <button aria-label={tx.clear} onClick={() => { setSearchInput(''); setDebouncedSearch(''); }}>
                   <X size={10} />
                 </button>
               </span>
@@ -416,7 +428,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
                   style={{ background: NICHE_COLOR[nicheFilter] }}
                 />
                 {NICHE_LABEL[nicheFilter]}
-                <button onClick={() => setNicheFilter(null)}>
+                <button aria-label={tx.clear} onClick={() => setNicheFilter(null)}>
                   <X size={10} />
                 </button>
               </span>
@@ -425,7 +437,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
               <span className={styles.activePill}>
                 <RadioTower size={11} />
                 {sourceFilter}
-                <button onClick={() => setSourceFilter(null)}>
+                <button aria-label={tx.clear} onClick={() => setSourceFilter(null)}>
                   <X size={10} />
                 </button>
               </span>
@@ -438,7 +450,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
       </header>
 
       {/* Modal de filtro */}
-      <FilterModal
+      {filterOpen && <FilterModal
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
         searchInput={searchInput}
@@ -452,7 +464,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
         hasActiveFilters={hasActiveFilters}
         searchPlaceholder={dict.dashboard.searchSkills}
         tx={tx}
-      />
+      />}
 
       {/* GRID DE SKILLS */}
       <div className={styles.librarySection}>

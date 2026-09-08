@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import ReactMarkdown from 'react-markdown';
 import {
-  LayoutGrid, FolderTree, FileText, Check, X, Clock, Sparkles,
+  LayoutGrid, FolderTree, FileText, Clock, Sparkles,
   Folder, FolderOpen, ChevronRight, ChevronDown
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -226,23 +226,25 @@ export default function BaseClient() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Base da IA</h1>
+          <h1 className={styles.title}>{pt ? 'Base da IA' : 'AI Knowledge Base'}</h1>
           <p className={styles.subtitle}>
-            Cofre de conhecimento do agente (Obsidian / Karpathy LLM-Wiki). Eles escrevem pelo MCP; aqui você navega e audita.
+            {pt ? 'Explore o conhecimento salvo pelos seus agentes.' : 'Explore the knowledge saved by your agents.'}
           </p>
         </div>
         <div className={styles.viewToggle}>
           <button
             className={`${styles.viewBtn} ${view === 'pastas' ? styles.viewBtnActive : ''}`}
+            aria-pressed={view === 'pastas'}
             onClick={() => setView('pastas')}
           >
-            <FolderTree size={15} /> Pastas & Arquivos
+            <FolderTree size={15} /> {pt ? 'Documentos' : 'Documents'}
           </button>
           <button
             className={`${styles.viewBtn} ${view === 'canvas' ? styles.viewBtnActive : ''}`}
+            aria-pressed={view === 'canvas'}
             onClick={() => setView('canvas')}
           >
-            <LayoutGrid size={15} /> Cronologia (Canvas)
+            <LayoutGrid size={15} /> {pt ? 'Cronologia' : 'Timeline'}
           </button>
         </div>
       </header>
@@ -300,6 +302,7 @@ export default function BaseClient() {
                     <div key={pasta.nome} className={styles.folderSection}>
                       <button
                         className={styles.folderHeader}
+                        aria-expanded={estaAberta}
                         onClick={() => togglePasta(pasta.nome)}
                       >
                         <div className={styles.folderLeft}>
@@ -319,6 +322,7 @@ export default function BaseClient() {
                                 key={f.path}
                                 className={`${styles.fileItem} ${isAtivo ? styles.fileItemActive : ''}`}
                                 onClick={() => setAberta(f.path)}
+                                aria-current={isAtivo ? true : undefined}
                                 title={f.title ?? f.path}
                               >
                                 <FileText size={13} className={styles.fileItemIcon} />
@@ -336,7 +340,7 @@ export default function BaseClient() {
               {/* Painel leitor de Markdown */}
               <main className={styles.previewPanel}>
                 <header className={styles.previewHeader}>
-                  <span className={styles.previewPath}>{arquivoAtual ?? 'Selecione um documento'}</span>
+                  <span className={styles.previewPath} title={arquivoAtual ?? undefined}>{pages?.find((p) => p.path === arquivoAtual)?.title ?? arquivoAtual?.split('/').pop() ?? (pt ? 'Selecione um documento' : 'Select a document')}</span>
                 </header>
                 <div className={styles.previewCorpo}>
                   {pagina ? (
@@ -365,9 +369,9 @@ export default function BaseClient() {
           ) : (
             <>
               <div className={styles.canvasControls}>
-                <button onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}>−</button>
+                <button aria-label={pt ? 'Diminuir zoom' : 'Zoom out'} onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}>−</button>
                 <span>{Math.round(zoom * 100)}%</span>
-                <button onClick={() => setZoom((z) => Math.min(1.2, z + 0.1))}>+</button>
+                <button aria-label={pt ? 'Aumentar zoom' : 'Zoom in'} onClick={() => setZoom((z) => Math.min(1.2, z + 0.1))}>+</button>
               </div>
               <div className={styles.canvasScroll}>
                 <div className={styles.canvasStage} style={{ width: layout.largura * zoom, height: layout.altura * zoom }}>

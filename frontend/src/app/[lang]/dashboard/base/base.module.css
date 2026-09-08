@@ -18,8 +18,8 @@
 
 .title {
   font-family: var(--font-heading);
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 600;
   letter-spacing: -0.02em;
   margin: 0 0 0.35rem;
   color: var(--text-primary);
@@ -426,7 +426,7 @@
 
 .explorerLayout {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: 1rem;
   flex: 1;
   min-height: 0;
@@ -639,4 +639,26 @@
   .explorerSidebar {
     max-height: 45vh;
   }
+}
+
+/* Reader controls share the same hierarchy as settings. */
+.container { padding-top: 8px; }
+.subtitle { line-height: 1.55; }
+.viewBtn, .folderHeader { font-family: inherit; font-size: 13px; text-transform: none; letter-spacing: 0; min-height: 40px; }
+.folderIcon { color: var(--text-muted); }
+.folderBadge { background: transparent; border: 0; }
+.fileItem { min-height: 36px; }
+.explorerSidebar { border: 0; background: transparent; padding: 8px 0; }
+.previewPanel { min-width: 0; }
+.previewHeader { background: transparent; }
+.previewPath { font-family: inherit; font-size: 14px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.previewCorpo { padding: 24px 32px; overflow-wrap: anywhere; }
+.previewCorpo img { max-width: 100%; height: auto; }
+.canvasWrap { min-height: 360px; }
+.container button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+@media (max-width: 768px) {
+  .explorerLayout { grid-template-columns: minmax(0, 1fr); }
+  .viewToggle { width: 100%; }
+  .viewBtn { flex: 1; justify-content: center; }
+  .previewCorpo { padding: 20px; }
 }

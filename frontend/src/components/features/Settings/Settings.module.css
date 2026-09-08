@@ -38,23 +38,14 @@
   color: var(--text-primary);
 }
 
-.activeTab::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 15%;
-  bottom: 15%;
-  width: 3px;
-  background-color: var(--text-primary);
-  border-radius: 0 4px 4px 0;
-}
+
 
 .container {
   display: grid;
   /* Grid em vez de flex: a coluna da esquerda tem largura fixa e a direita
      recebe o resto. Com flex, conteúdo largo no miolo empurrava a barra. */
-  grid-template-columns: 232px minmax(0, 1fr);
-  gap: 48px;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 32px;
   align-items: start;
   max-width: 1120px;
 }
@@ -82,6 +73,7 @@
   font-family: inherit;
   cursor: pointer;
   text-align: left;
+  min-height: 44px;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
@@ -1351,3 +1343,5 @@
     padding-right: 16px;
   }
 }
+
+.tabBtn:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
