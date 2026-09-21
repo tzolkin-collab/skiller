@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import styles from './SearchAutocomplete.module.css';
 import { BASE_URL } from '@/lib/api-base';
+import { comContexto } from '@/lib/nav-context';
 
 export function SearchAutocomplete({ language = 'en' }: { language?: string }) {
   const [query, setQuery] = useState('');
@@ -58,8 +59,7 @@ export function SearchAutocomplete({ language = 'en' }: { language?: string }) {
     }
     
     setShowDropdown(false);
-    const editSkillId = searchParams.get('editSkillId');
-    router.push(`/${language}/dashboard?q=${encodeURIComponent(finalQuery)}${editSkillId ? `&editSkillId=${editSkillId}` : ''}`);
+    router.push(`/${language}/dashboard?${comContexto(searchParams, { q: finalQuery })}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

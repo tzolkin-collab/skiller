@@ -15,7 +15,9 @@
  */
 import { Hono } from 'hono';
 import { usuarioAtual, naoAutenticado } from '../lib/current-user.js';
-import { sessaoDoDono, eventosDaSessao, receberFontes } from '../lib/mcp-sessions.js';
+import {
+  sessaoDoDono, eventosDaSessao, receberFontes, sessaoOciosa, expirarSessoesOciosas,
+} from '../lib/mcp-sessions.js';
 import { db } from '../db/db.js';
 import { mcpSessions } from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
@@ -33,6 +35,7 @@ sessionsRouter.get('/active', async (c) => {
       status: mcpSessions.status,
       awaiting: mcpSessions.awaiting,
       createdAt: mcpSessions.createdAt,
+      updatedAt: mcpSessions.updatedAt,
     })
     .from(mcpSessions)
     .where(and(eq(mcpSessions.userId, userId), eq(mcpSessions.status, 'open')))
@@ -44,6 +47,14 @@ sessionsRouter.get('/active', async (c) => {
     .limit(1);
 
   if (!s) return c.json({ active: false });
+
+  // A mais recente é a que decide: se até ela está ociosa, todas as outras
+  // também estão. Sem isto o aviso do painel ficava para sempre para quem o
+  // agente abandonou sem fechar — o prazo só valia ao abrir uma sessão nova.
+  if (sessaoOciosa(s.updatedAt)) {
+    await expirarSessoesOciosas(userId);
+    return c.json({ active: false });
+  }
 
   const eventos = await eventosDaSessao(s.id);
   const ultimo = eventos.length > 0 ? eventos[eventos.length - 1] : null;

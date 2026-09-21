@@ -13,7 +13,7 @@
  * possivelmente numa tela compartilhada. Token na URL viraria capacidade
  * portátil; id sozinho não vale nada sem login.
  */
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, lt, sql } from 'drizzle-orm';
 import { db } from '../db/db.js';
 import { mcpSessions, mcpSessionEvents } from '../db/schema.js';
 import { avisar } from './push.js';
@@ -35,6 +35,38 @@ export function urlDaSessao(id: string, lang = 'pt'): string {
  * minutos, e curto o bastante para a sessão de ontem não voltar do túmulo.
  */
 const SESSAO_OCIOSA_MS = 30 * 60 * 1000;
+
+/** Uma sessão aberta cuja última atualização passou do prazo de ociosidade. */
+export function sessaoOciosa(updatedAt: Date): boolean {
+  return Date.now() - updatedAt.getTime() >= SESSAO_OCIOSA_MS;
+}
+
+/**
+ * Fecha como `abandoned` as sessões abertas desta conta que ficaram ociosas.
+ *
+ * O prazo só era aplicado em `abrirSessao`, ou seja, só quando o agente abria
+ * uma sessão NOVA. Quem não abrisse outra — o agente sumiu, o usuário fechou a
+ * IDE — ficava com a sessão `open` e o aviso "Sessão MCP Ativa" no painel para
+ * sempre. Quem lê o painel também precisa aplicar o prazo.
+ *
+ * Nunca lança: o painel não pode quebrar por causa da limpeza.
+ */
+export async function expirarSessoesOciosas(userId: string): Promise<void> {
+  try {
+    await db
+      .update(mcpSessions)
+      .set({ status: 'abandoned' })
+      .where(
+        and(
+          eq(mcpSessions.userId, userId),
+          eq(mcpSessions.status, 'open'),
+          lt(mcpSessions.updatedAt, new Date(Date.now() - SESSAO_OCIOSA_MS))
+        )
+      );
+  } catch (e) {
+    console.warn('[sessao] falha ao expirar sessões ociosas:', e instanceof Error ? e.message : e);
+  }
+}
 
 export async function abrirSessao(opts: {
   userId: string;
@@ -59,7 +91,7 @@ export async function abrirSessao(opts: {
   // fontes que nunca vieram, sequestrava a próxima: o agente seguinte recebia o
   // id dela achando que tinha aberto uma sessão nova, e herdava o `awaiting` e
   // os eventos da anterior.
-  const viva = ativa && Date.now() - ativa.updatedAt.getTime() < SESSAO_OCIOSA_MS;
+  const viva = ativa && !sessaoOciosa(ativa.updatedAt);
 
   if (ativa && viva) {
     // Atualiza o título e retorna a existente

@@ -2,6 +2,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Play, Plus, Check, ThumbsUp, MessageCircle, TrendingUp } from 'lucide-react';
 import styles from './VideoCard.module.css';
+import { comContexto } from '@/lib/nav-context';
 
 interface VideoCardProps {
   videoId: string;
@@ -26,14 +27,11 @@ export function VideoCard({ videoId, title, channel, channelAvatar, subscribers,
   const searchParams = useSearchParams();
   const lang = params.lang || 'en';
   
-  const editSkillId = searchParams.get('editSkillId');
-
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (isSubmitting) return;
-    const url = `/${lang}/dashboard/watch?v=${videoId}${editSkillId ? `&editSkillId=${editSkillId}` : ''}`;
-    router.push(url);
+    router.push(`/${lang}/dashboard/watch?${comContexto(searchParams, { v: videoId })}`);
   };
 
   const handleSelectClick = (e: React.MouseEvent) => {
