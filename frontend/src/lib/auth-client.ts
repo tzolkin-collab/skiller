@@ -164,7 +164,19 @@ export function entrarComProvedor(provider: string, next?: string): void {
  * vez só — recarregar a página de retorno não gera novo acesso.
  */
 export async function entrarPeloCheckout(sessionId: string): Promise<{ email: string; needsPassword: boolean }> {
-  const d = await exigirOk(await api('/from-checkout', { method: 'POST', body: JSON.stringify({ sessionId }) }));
+  const res = await api('/from-checkout', { method: 'POST', body: JSON.stringify({ sessionId }) });
+  const d = await exigirOk(res);
+  // 202 é 2xx, então `exigirOk` deixa passar — mas o corpo é o aviso "conta
+  // ainda em preparação", sem token nenhum. Tratar como sucesso mandava a
+  // pessoa ao painel sem sessão, e o retry de `BemVindoClient` (que espera um
+  // erro com status 202) nunca disparava.
+  if (res.status === 202) {
+    throw new ErroAuth(
+      (d.message as string) ?? 'Estamos preparando sua conta.',
+      (d.error as string) ?? 'account_pending',
+      202
+    );
+  }
   await sincronizarSessao(d.token);
   return { email: d.email as string, needsPassword: Boolean(d.needsPassword) };
 }

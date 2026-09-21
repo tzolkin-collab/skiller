@@ -184,7 +184,11 @@ export interface ConfirmacaoCheckout {
 export async function confirmarCheckout(sessionId: string, userId?: string | null): Promise<ConfirmacaoCheckout> {
   const q = new URLSearchParams({ session_id: sessionId });
   // A conta sai do cookie; o id na query so o expunha em URL e log.
-  const res = await fetch(BASE_URL + '/api/billing/session?' + q.toString());
+  // Com prazo: sem ele um backend que não responde deixava a tela de retorno do
+  // pagamento girando para sempre.
+  const res = await fetch(BASE_URL + '/api/billing/session?' + q.toString(), {
+    signal: AbortSignal.timeout(8000),
+  });
   if (!res.ok) {
     const d = await res.json().catch(() => ({}));
     throw new Error(d.message ?? d.error ?? 'Não foi possível confirmar o pagamento.');

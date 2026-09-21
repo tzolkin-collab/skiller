@@ -18,6 +18,25 @@ import { entrarPeloCheckout, ErroAuth } from '@/lib/auth-client';
 import { confirmarCheckout } from '@/lib/billing';
 import styles from '../entrar/entrar.module.css';
 
+/**
+ * Pergunta ao servidor até o plano ativar, por no máximo ~6 s.
+ *
+ * Limitada de propósito e nunca lança: não achar o plano ativo não pode prender
+ * quem já pagou nesta tela. O painel tem o pop-up de plano, que re-verifica.
+ */
+async function aguardarAtivacao(sessionId: string): Promise<void> {
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    try {
+      const c = await confirmarCheckout(sessionId);
+      // Não pago = não há o que esperar; ativado = pronto.
+      if (c.activated || !c.paid) return;
+    } catch {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+}
+
 export default function BemVindoClient({ lang }: { lang: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,10 +59,15 @@ export default function BemVindoClient({ lang }: { lang: string }) {
     const executar = async (tentativa = 0) => {
       try {
         const r = await entrarPeloCheckout(sessionId);
-        
-        // Dispara a checagem no background só para garantir os logs/metadados no servidor
-        void confirmarCheckout(sessionId).catch(() => {});
-        
+
+        // Espera o plano ficar ativo ANTES de sair da página. Antes a checagem
+        // ia em segundo plano e a navegação logo abaixo a abortava; quem
+        // chegava ao painel com o webhook atrasado via o pop-up "Escolha um
+        // plano" mesmo tendo pago. A rota confirma com o Stripe e, se o webhook
+        // ainda não veio, ela mesma ativa.
+        setMensagem('Ativando seu plano…');
+        await aguardarAtivacao(sessionId);
+
         // Redireciona para o painel. Se precisar de senha, vai para configurações.
         // Usa window.location.href em vez de router.replace para forçar um hard reload,
         // garantindo que o middleware do Next.js enxergue o novo cookie de sessão.

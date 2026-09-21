@@ -445,15 +445,33 @@ billingRouter.get('/session', async (c) => {
   const pago = sessao.payment_status === 'paid' || sessao.payment_status === 'no_payment_required';
   const plano = normalizePlan(sessao.metadata?.plan);
 
-  // `activated` = o webhook já rodou e o portão já libera. É isto, e não o
+  // `activated` = o plano da conta já libera o portão. É isto, e não o
   // pagamento, que decide se a pessoa pode usar o recurso agora.
-  let ativado = false;
-  if (dono) {
+  const lerAtivado = async (): Promise<boolean> => {
+    if (!dono) return false;
     const linhas = await db.select({ plan: users.plan }).from(users).where(eq(users.id, dono)).limit(1);
-    ativado = normalizePlan(linhas[0]?.plan) === plano;
-  }
+    return normalizePlan(linhas[0]?.plan) === plano;
+  };
+  let ativado = await lerAtivado();
 
   const assinatura = typeof sessao.subscription === 'object' ? sessao.subscription : null;
+
+  // Pago e ainda não ativo: o webhook não chegou. Esperar por ele deixava a
+  // pessoa que acabou de pagar diante do pop-up "Escolha um plano" por tempo
+  // indeterminado — o pagamento existe, e o Stripe, que é a fonte de verdade,
+  // está na mão desta rota. Sincroniza a partir dele em vez de só relatar.
+  //
+  // Só CONCEDE (`active`/`trialing`): rebaixar continua sendo do webhook.
+  // `sincronizarAssinatura` é idempotente, então rodar junto com o webhook é
+  // seguro.
+  if (pago && !ativado && assinatura && (assinatura.status === 'active' || assinatura.status === 'trialing')) {
+    try {
+      await sincronizarAssinatura(assinatura);
+      ativado = await lerAtivado();
+    } catch (erro) {
+      console.warn('[billing] sincronização pela sessão falhou:', erro instanceof Error ? erro.message : erro);
+    }
+  }
 
   return c.json({
     paid: pago,
