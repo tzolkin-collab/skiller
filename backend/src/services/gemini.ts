@@ -1,7 +1,8 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, MediaResolution, Type, type ContentListUnion } from '@google/genai';
 import { z } from 'zod';
-import { buildExtractCardPrompt } from '../prompts/extraction.js';
-import { buildSynthesisPrompt } from '../prompts/synthesis.js';
+import { buildExtractCardPrompt, buildExtractCardFromVideoPrompt } from '../prompts/extraction.js';
+import { isTransientError, backoffMs, dormir } from '../lib/llm-errors.js';
+import { buildSynthesisPrompt, buildRepairPrompt } from '../prompts/synthesis.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { getErrorMessage } from '../lib/errors.js';
@@ -9,6 +10,17 @@ import { CONNECTOR_IDS, SKILL_NICHES, SkillDocumentSchema, type SkillDocument } 
 
 // Inicializa o GenAI. Se a chave não existir, lançaremos erro legível nas funções.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'MISSING_KEY' });
+
+/**
+ * Modelo principal e o de reserva.
+ *
+ * O de reserva só entra quando o principal segue indisponível depois de todos os
+ * retries (503 de "alta demanda" chegou a derrubar vídeos). Fica de fora da
+ * síntese de propósito: é a etapa onde a qualidade do modelo mais pesa, e um
+ * documento pior seria mais difícil de notar do que um erro.
+ */
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash-lite';
 
 const CardSchema = z.object({
   title: z.string().describe('The main topic or title of this video segment'),
@@ -356,83 +368,159 @@ function checkApiKey() {
 
 const MAX_TRANSCRIPT_LENGTH = 150000; // Aprox 30k tokens para extração rápida e barata
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
-  for (let i = 0; i < retries; i++) {
+/**
+ * Repete só o que tem chance de passar: sobrecarga, limite de taxa e rede.
+ * Erro permanente (400, schema, política) sobe na primeira ocorrência — repetir
+ * gastaria tokens para chegar ao mesmo lugar.
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  { attempts = 4, baseMs = 2000 }: { attempts?: number; baseMs?: number } = {}
+): Promise<T> {
+  for (let i = 0; ; i++) {
     try {
       return await fn();
     } catch (error: unknown) {
-      const msg = getErrorMessage(error);
-      const isRateLimit = msg.includes('429') || (error && typeof error === 'object' && 'status' in error && (error as Record<string, unknown>).status === 429);
-      if (isRateLimit && i < retries - 1) {
-        console.warn(`Gemini Rate Limit atingido. Tentativa ${i + 1}/${retries}. Aguardando ${delayMs}ms...`);
-        await new Promise(res => setTimeout(res, delayMs));
-        continue;
-      }
+      if (!isTransientError(error) || i >= attempts - 1) throw error;
+      const espera = backoffMs(i, baseMs);
+      console.warn(
+        `[gemini] falha transitória (${getErrorMessage(error).slice(0, 120)}). ` +
+          `Tentativa ${i + 1}/${attempts}; nova em ${espera}ms.`
+      );
+      await dormir(espera);
+    }
+  }
+}
+
+/**
+ * Tenta o modelo principal com retries; se ele seguir indisponível, o de
+ * reserva. Se o reserva também falhar, sobe o erro ORIGINAL: ele é o que
+ * explica o problema, e um 404 do reserva só o esconderia.
+ */
+async function withModelFallback<T>(run: (model: string) => Promise<T>): Promise<T> {
+  try {
+    return await withRetry(() => run(PRIMARY_MODEL));
+  } catch (error: unknown) {
+    if (!FALLBACK_MODEL || FALLBACK_MODEL === PRIMARY_MODEL || !isTransientError(error)) throw error;
+    console.warn(`[gemini] ${PRIMARY_MODEL} segue indisponível; tentando ${FALLBACK_MODEL}.`);
+    try {
+      return await withRetry(() => run(FALLBACK_MODEL), { attempts: 2 });
+    } catch (fallbackError: unknown) {
+      console.warn(`[gemini] o modelo de reserva também falhou: ${getErrorMessage(fallbackError).slice(0, 120)}`);
       throw error;
     }
   }
-  throw new Error("Max retries exceeded");
+}
+
+/**
+ * Forma do card no provider. Um só lugar: com structured output o Gemini só
+ * preenche campos declarados aqui — `goal` e `setupRequirements`, opcionais no
+ * Zod, chegariam sempre nulos sem esta declaração, e a síntese perderia a
+ * âncora de intenção.
+ */
+const CARD_RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    title: { type: Type.STRING },
+    goal: { type: Type.STRING },
+    setupRequirements: { type: Type.ARRAY, items: { type: Type.STRING } },
+    keyConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
+    summary: { type: Type.STRING },
+    codeSnippets: { type: Type.ARRAY, items: { type: Type.STRING } },
+    transcriptParagraphs: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          startTime: { type: Type.NUMBER },
+          endTime: { type: Type.NUMBER },
+          text: { type: Type.STRING },
+          isImportant: { type: Type.BOOLEAN }
+        },
+        required: ['startTime', 'endTime', 'text', 'isImportant']
+      }
+    }
+  },
+  required: ['title', 'goal', 'keyConcepts', 'summary', 'codeSnippets', 'transcriptParagraphs']
+};
+
+/** Uma chamada de extração, contra o modelo indicado. */
+async function generateCard(
+  model: string,
+  contents: ContentListUnion,
+  label: string,
+  extraConfig: { mediaResolution?: MediaResolution } = {}
+): Promise<LlmResult<ExtractedCard>> {
+  const response = await ai.models.generateContent({
+    model,
+    contents,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: CARD_RESPONSE_SCHEMA,
+      temperature: 0.4,
+      ...extraConfig
+    }
+  });
+
+  if (!response.text) {
+    throw new Error('No output generated from Gemini');
+  }
+
+  await recordRawResponse('extraction', label, response.text);
+
+  const parsed = JSON.parse(response.text);
+  return { data: CardSchema.parse(parsed), usage: readUsage(response.usageMetadata) };
 }
 
 export async function extractVideoCard(transcript: string, title: string, description: string): Promise<LlmResult<ExtractedCard>> {
   checkApiKey();
-  
+
   let safeTranscript = transcript;
   if (safeTranscript.length > MAX_TRANSCRIPT_LENGTH) {
     console.warn(`[extractVideoCard] Transcrição muito longa (${safeTranscript.length} chars). Truncando para ${MAX_TRANSCRIPT_LENGTH}...`);
     safeTranscript = safeTranscript.substring(0, MAX_TRANSCRIPT_LENGTH) + '\n\n[TRUNCATED DUE TO LENGTH]';
   }
-  
+
   const prompt = buildExtractCardPrompt(safeTranscript, title, description);
-  
-  return withRetry(async () => {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            // goal e setupRequirements precisam estar aqui — com structured output
-            // o Gemini só preenche campos declarados no responseSchema do provider.
-            // O CardSchema Zod os define como opcionais, mas sem esta declaração
-            // eles chegam sempre nulos e a síntese perde a âncora de intenção.
-            goal: { type: Type.STRING },
-            setupRequirements: { type: Type.ARRAY, items: { type: Type.STRING } },
-            keyConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
-            summary: { type: Type.STRING },
-            codeSnippets: { type: Type.ARRAY, items: { type: Type.STRING } },
-            transcriptParagraphs: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  startTime: { type: Type.NUMBER },
-                  endTime: { type: Type.NUMBER },
-                  text: { type: Type.STRING },
-                  isImportant: { type: Type.BOOLEAN }
-                },
-                required: ['startTime', 'endTime', 'text', 'isImportant']
-              }
-            }
-          },
-          required: ['title', 'goal', 'keyConcepts', 'summary', 'codeSnippets', 'transcriptParagraphs']
-        },
-        temperature: 0.4
-      }
-    });
 
-    if (!response.text) {
-        throw new Error("No output generated from Gemini");
+  return withModelFallback((model) => generateCard(model, prompt, title));
+}
+
+/**
+ * Extrai o card lendo o VÍDEO, sem transcrição em texto.
+ *
+ * Plano B para quando `getVideoTranscript` falha — legenda desativada ou IP do
+ * servidor bloqueado pelo YouTube, as duas causas medidas nas falhas de
+ * produção. O Gemini aceita a URL de um vídeo público e processa áudio e
+ * quadros, então também lê o que aparece na tela.
+ *
+ * Bem mais caro em tokens que a transcrição (~100 tokens/s de vídeo contra ~3–4
+ * tokens/s de fala transcrita), por isso é só reserva: o chamador limita a
+ * duração antes de vir para cá.
+ */
+export async function extractVideoCardFromUrl(
+  videoId: string,
+  title: string,
+  description: string,
+  durationSeconds?: number | null
+): Promise<LlmResult<ExtractedCard>> {
+  checkApiKey();
+
+  const contents: ContentListUnion = [
+    {
+      role: 'user',
+      parts: [
+        { fileData: { fileUri: `https://www.youtube.com/watch?v=${videoId}` } },
+        { text: buildExtractCardFromVideoPrompt(title, description, durationSeconds) }
+      ]
     }
+  ];
 
-    await recordRawResponse('extraction', title, response.text);
-
-    const parsed = JSON.parse(response.text);
-    return { data: CardSchema.parse(parsed), usage: readUsage(response.usageMetadata) };
-  });
+  // Resolução baixa: ~100 tokens/s em vez de ~300, sem perda relevante para
+  // fala e slides — e é o que mantém uma hora de vídeo dentro do contexto.
+  return withModelFallback((model) =>
+    generateCard(model, contents, title, { mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW })
+  );
 }
 
 /**
@@ -458,16 +546,14 @@ export async function synthesizeSkill(
 
   console.log(`[synthesizeSkill] Synthesizing skill document for "${sourceTitle}" (humanGuide in "${language}")`);
 
+  const config = {
+    temperature: 0.3,
+    responseMimeType: 'application/json',
+    responseSchema: SKILL_DOCUMENT_RESPONSE_SCHEMA
+  };
+
   return withRetry(async () => {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.3,
-        responseMimeType: 'application/json',
-        responseSchema: SKILL_DOCUMENT_RESPONSE_SCHEMA
-      }
-    });
+    const response = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: prompt, config });
 
     if (!response.text) {
       throw new Error('No output generated from Gemini');
@@ -475,15 +561,71 @@ export async function synthesizeSkill(
 
     await recordRawResponse('synthesis', sourceTitle, response.text);
 
-    // O structured output do provedor garante a forma; o Zod garante o conteúdo
-    // — tamanho mínimo, slug válido, conector dentro da allowlist.
-    const document = parseSkillDocument(response.text);
+    let usage = readUsage(response.usageMetadata);
 
-    console.log(
-      `[synthesizeSkill] Document "${document.name}": ${document.principles.length} principles, ` +
-        `${document.modules.length} modules, ${document.commands.length} commands`
-    );
+    try {
+      // O structured output do provedor garante a forma; o Zod garante o
+      // conteúdo — tamanho mínimo, slug válido, conector dentro da allowlist.
+      const document = requireModules(parseSkillDocument(response.text), true);
+      return { data: document, usage: logSynthesis(document, usage) };
+    } catch (error: unknown) {
+      // JSON quebrado não tem o que consertar; só reprovação de conteúdo.
+      if (!(error instanceof SynthesisParseError) || error.issues.length === 0) throw error;
 
-    return { data: document, usage: readUsage(response.usageMetadata) };
+      console.warn(`[synthesizeSkill] documento reprovado (${error.message}); pedindo correção ao modelo…`);
+
+      // Devolve ao modelo a resposta dele e a lista exata do que falhou, em vez
+      // de descartar a execução: uma reprovação por `reason` com 201 caracteres
+      // custou US$ 0,11 e 7 minutos e terminava sem skill.
+      const repair = await ai.models.generateContent({
+        model: PRIMARY_MODEL,
+        contents: [
+          { role: 'user', parts: [{ text: prompt }] },
+          { role: 'model', parts: [{ text: response.text }] },
+          { role: 'user', parts: [{ text: buildRepairPrompt(error.issues) }] }
+        ],
+        config
+      });
+
+      if (!repair.text) throw error;
+
+      await recordRawResponse('synthesis-repair', sourceTitle, repair.text);
+      usage = addUsage(usage, readUsage(repair.usageMetadata));
+
+      // Na segunda passada `modules` vazio vira aviso, não erro: perder a
+      // execução inteira por isso seria pior que entregar uma skill sem módulos.
+      const document = requireModules(parseSkillDocument(repair.text), false);
+      return { data: document, usage: logSynthesis(document, usage) };
+    }
   });
 }
+
+/**
+ * `modules` é onde o agente CONSULTA conhecimento. O schema aceita lista vazia
+ * (skills criadas à mão pelo MCP podem não ter módulo), então a exigência vive
+ * só na síntese: as duas skills mais recentes do banco saíram com zero módulos
+ * — 15 princípios e 4 comandos, nenhum conhecimento de referência.
+ */
+function requireModules(document: SkillDocument, strict: boolean): SkillDocument {
+  if (document.modules.length > 0) return document;
+
+  if (!strict) {
+    console.warn('[synthesizeSkill] documento sem módulos mesmo após a correção; seguindo assim.');
+    return document;
+  }
+
+  throw new SynthesisParseError(
+    'Documento de skill inválido — modules: precisa de ao menos 1 módulo',
+    [{ path: 'modules', code: 'too_small', message: 'must contain at least 1 module' }],
+    JSON.stringify(document).slice(0, RAW_EXCERPT_LIMIT)
+  );
+}
+
+function logSynthesis(document: SkillDocument, usage: LlmUsage): LlmUsage {
+  console.log(
+    `[synthesizeSkill] Document "${document.name}": ${document.principles.length} principles, ` +
+      `${document.modules.length} modules, ${document.commands.length} commands`
+  );
+  return usage;
+}
+

@@ -22,6 +22,16 @@ const PROBE_LANGUAGE = '__probe__';
 const MAX_RETRIES = 3;
 
 /**
+ * Falhas em que repetir não adianta.
+ *
+ * "Transcript is disabled" não muda entre uma tentativa e outra, e o bloqueio
+ * "too many requests from this IP" não passa em 1–2 s de backoff — as duas
+ * causas medidas nas falhas de produção. Repetir só atrasava em ~3 s a chegada
+ * ao plano B (leitura do vídeo pelo Gemini).
+ */
+const SEM_RETRY = /disabled|not available|unavailable|no transcript|private video|video unavailable|too many requests|captcha|unusual traffic/i;
+
+/**
  * A lib não expõe a lista de idiomas, mas a mensagem de erro de idioma
  * inválido traz "Available languages: pt, en, ar". É a única via de descoberta
  * sem uma segunda dependência.
@@ -106,6 +116,9 @@ export async function getVideoTranscript(videoId: string): Promise<TranscriptRes
       lastError = error;
       console.warn(`[Transcript] tentativa ${attempt}/${MAX_RETRIES} falhou para ${videoId}:`, error);
 
+      const definitiva = SEM_RETRY.test(error instanceof Error ? error.message : String(error));
+      if (definitiva) break;
+
       if (attempt < MAX_RETRIES) {
         await new Promise((resolve) => setTimeout(resolve, 2 ** (attempt - 1) * 1000));
       }
@@ -113,5 +126,5 @@ export async function getVideoTranscript(videoId: string): Promise<TranscriptRes
   }
 
   const reason = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error(`Transcript fetch failed after ${MAX_RETRIES} attempts: ${reason}`);
+  throw new Error(`Transcript fetch failed: ${reason}`);
 }

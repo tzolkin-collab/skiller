@@ -18,9 +18,12 @@ export const skillQueue = new Queue(SKILL_QUEUE_NAME, {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
+    // 5 s, e não 1 s: o que ainda chega aqui para repetir é sobrecarga do
+    // provedor ou rede — coisas que não passam em 1 s. Erros permanentes não
+    // voltam para a fila (`UnrecoverableError` no worker).
     backoff: {
       type: 'exponential',
-      delay: 1000,
+      delay: 5000,
     },
   },
 });

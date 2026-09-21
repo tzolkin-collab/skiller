@@ -209,6 +209,32 @@ export async function searchChannelVideos(
     }));
 }
 
+/** Duração ISO 8601 (`PT1H2M3S`) em segundos; `null` se o formato não for reconhecido. */
+export function isoDurationToSeconds(iso: string | undefined | null): number | null {
+  const m = iso ? /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso) : null;
+  if (!m) return null;
+  return (Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + (Number(m[3]) || 0);
+}
+
+/**
+ * Duração do vídeo, em segundos (1 unidade de cota). Existe para limitar o
+ * plano B: ler o vídeo pelo Gemini custa por segundo de vídeo, então o worker
+ * precisa saber o tamanho antes de aceitar o gasto.
+ */
+export async function getVideoDurationSeconds(videoId: string): Promise<number | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) throw new Error('YOUTUBE_API_KEY is missing');
+
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${apiKey}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`YouTube API Error: ${res.status} - ${errorText}`);
+  }
+
+  const data = await res.json();
+  return isoDurationToSeconds(data.items?.[0]?.contentDetails?.duration);
+}
+
 export async function getVideoDetails(videoId: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) throw new Error('YOUTUBE_API_KEY is missing');

@@ -10,6 +10,21 @@ export const SKILL_FORMATS: Record<SkillFormat, { label: string; extension: stri
 };
 
 /**
+ * Pedido de correção quando o documento devolvido reprova na validação.
+ * Recebe só a lista do que falhou — o modelo já tem a própria resposta na
+ * conversa —, então o custo é o de reescrever o documento, não o de reler tudo.
+ */
+export function buildRepairPrompt(issues: { path: string; message: string }[]): string {
+  const lista = issues.map((i) => `- ${i.path}: ${i.message}`).join('\n');
+  return (
+    'Your previous JSON was rejected by validation. Fix ONLY the problems below and return the ' +
+    'COMPLETE corrected document as JSON, with the same schema, keeping everything else unchanged. ' +
+    'Shorten text where a length limit was exceeded; do not drop required content.\n\n' +
+    lista
+  );
+}
+
+/**
  * Prompt de síntese — ADR-004.
  *
  * O formato de saída não aparece mais aqui. O modelo devolve conhecimento
@@ -94,6 +109,15 @@ FIELD GUIDE
   step-by-step guide. Include \`mermaid\` ONLY when the subject genuinely involves
   an architecture, state machine or flow — never force a diagram. 
   If the extracted knowledge contains markdown images (e.g. \`![Screenshot](./assets/...)\`), you MUST embed them naturally into the \`body\` of relevant sections.
+
+HARD LIMITS — the validator rejects the WHOLE document if any of these is exceeded, so stay well inside them (they mirror \`lib/skill-document.ts\`):
+- \`principles\` 1–15: \`title\` 3–120 chars, \`rule\` 10–1000 chars.
+- \`modules\` 1–12: \`title\` 3–120, \`summary\` 20–600, 1–20 \`sections\` each with \`heading\` 3–120 and \`body\` 10–8000; up to 10 \`snippets\` per section, \`code\` at most 4000 chars, \`caption\` at most 200.
+- \`connectors\` at most 10: \`reason\` 5–200 chars AND at least 5 words — one short sentence saying what the skill does with it.
+- \`commands\` 1–10: \`description\` 10–300 chars; 1–12 \`steps\`, each 3–500 chars.
+- \`humanGuide\`: \`summary\` 50–3000 chars; at most 15 \`sections\` with \`body\` 10–6000; \`mermaid\` at most 3000.
+- \`name\` 3–50, \`description\` 20–300, \`goal\` 10–500.
+Citations count toward these lengths: keep each one short.
 
 IMPORTANT: The ENTIRE document (including principles, modules, commands, and humanGuide) MUST be written in ${language}, regardless of the source language.
 

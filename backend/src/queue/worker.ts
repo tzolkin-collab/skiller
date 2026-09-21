@@ -1,12 +1,14 @@
-import { Worker, Job } from 'bullmq';
+import { Worker, Job, UnrecoverableError } from 'bullmq';
 import Redis from 'ioredis';
 import { SKILL_QUEUE_NAME } from './queue.js';
-import { getPlaylistVideos, getPlaylistDetails, getVideoDetails, extractPlaylistId, extractVideoId } from '../services/youtube.js';
+import { getPlaylistVideos, getPlaylistDetails, getVideoDetails, getVideoDurationSeconds, extractPlaylistId, extractVideoId } from '../services/youtube.js';
 import { getVideoTranscript } from '../services/transcript.js';
-import { extractVideoCard, synthesizeSkill, ExtractedCard } from '../services/gemini.js';
+import { extractVideoCard, extractVideoCardFromUrl, synthesizeSkill, ExtractedCard } from '../services/gemini.js';
 import { SkillFormat } from '../prompts/synthesis.js';
 import { skills, skillVideos, pipelineLogs, users } from '../db/schema.js';
-import { eq, sql as drizzleSql } from 'drizzle-orm';
+import { eq, and, sql as drizzleSql } from 'drizzle-orm';
+import { cardDoVideo, type DependenciasDoCard } from '../lib/video-card.js';
+import { PermanentJobError, isTransientError } from '../lib/llm-errors.js';
 import { db } from '../db/db.js';
 import crypto from 'crypto';
 import { getErrorMessage } from '../lib/errors.js';
@@ -59,8 +61,53 @@ type DetalhesDaFonte = Awaited<ReturnType<typeof getPlaylistDetails>>;
 
 /** Uma linha do relatório por vídeo, guardada no log do pipeline. */
 type RegistroDeVideo =
-  | { videoId: string; status: 'success'; inputTokens: number; outputTokens: number }
+  | {
+      videoId: string;
+      status: 'success';
+      inputTokens: number;
+      outputTokens: number;
+      /** `video-url` = a transcrição falhou e o vídeo foi lido direto pelo Gemini. */
+      via?: 'transcript' | 'video-url';
+      /** Por que a transcrição falhou, quando `via` é `video-url`. */
+      motivoDoPlanoB?: string;
+      /** Itens do plano B descartados por estarem além do fim do vídeo. */
+      descartadosAlemDoFim?: number;
+      /** Aproveitado de uma tentativa anterior: não custou nada nesta. */
+      reused?: true;
+    }
   | { videoId: string; status: 'failed'; error: string };
+
+/**
+ * Duração máxima de vídeo que aceitamos ler direto quando não há transcrição.
+ * Ler vídeo custa ~100 tokens/s (a transcrição, ~3–4), então o teto evita que
+ * um vídeo longo sem legenda consuma sozinho o saldo de uma conta.
+ */
+const LIMITE_PLANO_B_MINUTOS = Number(process.env.VIDEO_URL_FALLBACK_MAX_MIN) || 60;
+
+const DEPENDENCIAS_DO_CARD: DependenciasDoCard = {
+  buscarTranscricao: getVideoTranscript,
+  extrairDoTexto: extractVideoCard,
+  extrairDoVideo: extractVideoCardFromUrl,
+  duracaoEmSegundos: getVideoDurationSeconds,
+  limiteDoPlanoBEmSegundos: LIMITE_PLANO_B_MINUTOS * 60,
+};
+
+/**
+ * Falha que a fila NÃO deve repetir. Antes todo erro voltava para a fila 3×; um
+ * mesmo skill rodou 22 vezes em um dia contra erros que nunca passariam.
+ *
+ * JSON quebrado na síntese (`issues` vazio) fica de fora de propósito: pode ser
+ * saída truncada, que uma nova tentativa às vezes resolve — e agora a retomada
+ * reaproveita os cards, então repetir custa só a síntese.
+ */
+function ehPermanente(error: unknown): boolean {
+  return (
+    error instanceof PermanentJobError ||
+    error instanceof SanitizeError ||
+    error instanceof DocumentoInvalidoError ||
+    (error instanceof SynthesisParseError && error.issues.length > 0)
+  );
+}
 export const skillWorker = new Worker<SkillJobData>(
   SKILL_QUEUE_NAME,
   async (job: Job<SkillJobData>) => {
@@ -89,6 +136,12 @@ export const skillWorker = new Worker<SkillJobData>(
     let sanitizeWarnings: SanitizeFinding[];
     let cardsExtracted = 0;
     let videoLogs: RegistroDeVideo[] = [];
+    /**
+     * Algum vídeo falhou por causa passageira (sobrecarga, rede). Decide se
+     * "nenhum conhecimento extraído" merece nova tentativa: com falha passageira
+     * merece; com todos os vídeos reprovados por motivo definitivo, não.
+     */
+    let falhaTransitoria = false;
 
     try {
       await job.updateProgress(10);
@@ -184,7 +237,12 @@ export const skillWorker = new Worker<SkillJobData>(
         });
 
         if (!isAppend) {
-          await db.delete(skillVideos).where(eq(skillVideos.skillId, skillId));
+          // Só na PRIMEIRA tentativa. Nas seguintes as linhas são justamente o
+          // que a retomada aproveita: apagá-las obrigava a pagar de novo cada
+          // vídeo que já tinha dado certo.
+          if (job.attemptsMade === 0) {
+            await db.delete(skillVideos).where(eq(skillVideos.skillId, skillId));
+          }
           await db.update(skills).set({
             playlistTitle: primaryDetails?.playlistTitle || 'Custom Selection',
             channelName: primaryDetails?.channelName || 'Multiple Channels',
@@ -197,6 +255,23 @@ export const skillWorker = new Worker<SkillJobData>(
 
       for (let i = 0; i < videos.length; i++) {
         const video = videos[i];
+        const avancar = () => job.updateProgress(20 + Math.floor(((i + 1) / videos.length) * 60));
+
+        // Retomada: o que uma tentativa anterior já extraiu não se paga de novo.
+        // Vem ANTES da checagem de saldo porque reaproveitar é de graça — não faz
+        // sentido cortar um card pronto por falta de crédito.
+        const [jaFeito] = await db
+          .select()
+          .from(skillVideos)
+          .where(and(eq(skillVideos.skillId, skillId), eq(skillVideos.videoId, video.videoId)))
+          .limit(1);
+
+        if (jaFeito?.processingStatus === 'completed' && jaFeito.extractedCard) {
+          cards.push(jaFeito.extractedCard as ExtractedCard);
+          videoLogs.push({ videoId: video.videoId, status: 'success', inputTokens: 0, outputTokens: 0, reused: true });
+          await avancar();
+          continue;
+        }
 
         // Para antes de gastar o que a conta não tem. O primeiro vídeo sempre
         // roda — sem isso não haveria skill nenhuma —, então o estouro máximo é
@@ -214,62 +289,85 @@ export const skillWorker = new Worker<SkillJobData>(
           break;
         }
 
-        const dbVideo = await db.insert(skillVideos).values({
-          skillId,
-          videoId: video.videoId,
-          url: `https://www.youtube.com/watch?v=${video.videoId}`,
-          title: video.title,
-          description: video.description,
-          thumbnailUrl: video.thumbnailUrl,
-          publishedAt: new Date(video.publishedAt),
-          processingStatus: 'processing'
-        }).returning();
+        // Upsert, não insert. O insert esbarrava em `skill_video_unique` sempre que
+        // a linha já existia — retry da fila, ou dois jobs do mesmo skill — e
+        // derrubava a execução inteira: 12 das 22 falhas de um único dia.
+        const [dbVideo] = await db
+          .insert(skillVideos)
+          .values({
+            skillId,
+            videoId: video.videoId,
+            url: `https://www.youtube.com/watch?v=${video.videoId}`,
+            title: video.title,
+            description: video.description,
+            thumbnailUrl: video.thumbnailUrl,
+            publishedAt: new Date(video.publishedAt),
+            processingStatus: 'processing'
+          })
+          .onConflictDoUpdate({
+            target: [skillVideos.skillId, skillVideos.videoId],
+            set: {
+              processingStatus: 'processing',
+              error: null,
+              retryCount: drizzleSql`${skillVideos.retryCount} + 1`
+            }
+          })
+          .returning();
 
         try {
-          const transcript = await getVideoTranscript(video.videoId);
+          const resultado = await cardDoVideo(video, {
+            ...DEPENDENCIAS_DO_CARD,
+            // `language` fica gravado para que uma transcricao vinda no idioma
+            // errado seja rastreavel no banco em vez de virar skill silenciosamente.
+            // Gravar ANTES do LLM mantém o texto no banco se a extração falhar.
+            aoTerTranscricao: async (transcript) => {
+              await db.update(skillVideos).set({
+                transcriptSource: transcript.source,
+                transcriptLanguage: transcript.language,
+                transcriptContent: transcript.text,
+              }).where(eq(skillVideos.id, dbVideo.id));
+            },
+          });
 
-          // `language` fica gravado para que uma transcricao vinda no idioma
-          // errado seja rastreavel no banco em vez de virar skill silenciosamente.
-          await db.update(skillVideos).set({
-            transcriptSource: transcript.source,
-            transcriptLanguage: transcript.language,
-            transcriptContent: transcript.text,
-          }).where(eq(skillVideos.id, dbVideo[0].id));
-
-
-
-          const extraction = await extractVideoCard(transcript.text, video.title, video.description);
-          const card = extraction.data;
+          const card = resultado.card;
           card.sourceUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
-          totalUsage = addUsage(totalUsage, extraction.usage);
+          totalUsage = addUsage(totalUsage, resultado.usage);
           cards.push(card);
 
           await db.update(skillVideos).set({
+            // Sem transcrição em texto, a origem fica registrada como leitura do
+            // vídeo — é o que distingue, no banco, um card do plano B.
+            ...(resultado.via === 'video-url' ? { transcriptSource: 'gemini-video' } : {}),
             extractedCard: card,
             processingStatus: 'completed',
+            error: null,
             processedAt: new Date()
-          }).where(eq(skillVideos.id, dbVideo[0].id));
+          }).where(eq(skillVideos.id, dbVideo.id));
 
           videoLogs.push({
             videoId: video.videoId,
             status: 'success',
-            inputTokens: extraction.usage.inputTokens,
-            outputTokens: extraction.usage.outputTokens
+            inputTokens: resultado.usage.inputTokens,
+            outputTokens: resultado.usage.outputTokens,
+            via: resultado.via,
+            ...(resultado.motivoDoPlanoB ? { motivoDoPlanoB: resultado.motivoDoPlanoB } : {}),
+            ...(resultado.descartadosAlemDoFim ? { descartadosAlemDoFim: resultado.descartadosAlemDoFim } : {})
           });
 
         } catch (error: unknown) {
           const message = getErrorMessage(error, `Failed processing video ${video.videoId}`);
           console.error(`Failed processing video ${video.videoId}`, error);
+          if (isTransientError(error)) falhaTransitoria = true;
           await db.update(skillVideos).set({
             processingStatus: 'failed',
             error: message,
             processedAt: new Date()
-          }).where(eq(skillVideos.id, dbVideo[0].id));
+          }).where(eq(skillVideos.id, dbVideo.id));
 
           videoLogs.push({ videoId: video.videoId, status: 'failed', error: message });
         }
 
-        await job.updateProgress(20 + Math.floor(((i + 1) / videos.length) * 60));
+        await avancar();
       }
       } // CLOSE ELSE BLOCK FOR YOUTUBE
 
@@ -301,7 +399,16 @@ export const skillWorker = new Worker<SkillJobData>(
 
       // Gate 1 — nothing to synthesize from. Without this a playlist whose videos
       // all failed transcription produces a fabricated skill marked `completed`.
-      assertCardsUsable(allCards, skillId);
+      try {
+        assertCardsUsable(allCards, skillId);
+      } catch (semConhecimento: unknown) {
+        // Todos os vídeos falharam. Se houve falha passageira, repetir a tentativa
+        // faz sentido — e agora é barato, os que deram certo são reaproveitados.
+        // Se foi tudo definitivo (sem legenda e longo demais, vídeo privado...),
+        // repetir só refaz o mesmo trabalho: foram 22 execuções de um skill só.
+        if (falhaTransitoria) throw semConhecimento;
+        throw new PermanentJobError(getErrorMessage(semConhecimento), { cause: semConhecimento });
+      }
 
       // ADR-004: o modelo devolve conhecimento estruturado, não arquivos.
       // O Zod dentro de `synthesizeSkill` já reprovou campo curto, slug inválido
@@ -511,6 +618,11 @@ export const skillWorker = new Worker<SkillJobData>(
       // Sinalizar falha na sessão se houver uma associada
       await registrarEvento(sessionId, 'error', `❌ Falha ao gerar skill: ${message}`).catch(() => {});
       await fecharSessao(sessionId, 'error').catch(() => {});
+
+      // `UnrecoverableError` manda o BullMQ encerrar o job sem gastar as demais
+      // tentativas. Sem isto, schema reprovado, sanitização e "sem conhecimento"
+      // voltavam para a fila 3× e refaziam (e cobravam) o mesmo trabalho.
+      if (ehPermanente(error)) throw new UnrecoverableError(message);
 
       throw error;
     }

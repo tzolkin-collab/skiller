@@ -11,8 +11,19 @@ export async function extractFromGithub(url: string) {
       headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
     }
 
-    const res = await fetch(apiURL, { headers });
-    
+    let res = await fetch(apiURL, { headers });
+
+    // Token recusado derruba TAMBÉM as leituras públicas: a API responde 401 a
+    // qualquer chamada autenticada com credencial inválida, mesmo num
+    // repositório aberto. Repetir sem o cabeçalho mantém o README público
+    // funcionando enquanto o token é trocado — e o aviso deixa claro que ele
+    // precisa ser trocado.
+    if (res.status === 401 && headers['Authorization']) {
+      console.warn('[github] GITHUB_TOKEN recusado (401). Repetindo sem token; gere um novo para elevar o limite de requisições.');
+      delete headers['Authorization'];
+      res = await fetch(apiURL, { headers });
+    }
+
     if (!res.ok) {
       throw new Error(`Failed to fetch github readme for ${repoPath}: ${res.status}`);
     }
