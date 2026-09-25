@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import type { Dictionary } from '@/types/dictionary';
@@ -105,10 +105,10 @@ export default function DashboardClient({ dict, lang, initialQuery, editSkillId 
     }
   }, [inView, isValidating, setSize, size, data]);
 
-  const handleVideoClick = (videoId: string) => {
+  const handleVideoClick = useCallback((videoId: string) => {
     const fullUrl = `https://www.youtube.com/watch?v=${videoId}`;
     toggleUrl(fullUrl);
-  };
+  }, [toggleUrl]);
 
   const handleChipSelect = (chip: string) => {
     let nextQuery = chip;

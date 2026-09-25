@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/ui/SearchAutocomplete/SearchAutocomplete';
@@ -99,9 +99,9 @@ export default function WatchClient({ dict, lang, videoId, editSkillId }: WatchC
     toggleUrl(videoUrl);
   };
 
-  const handleToggleSuggested = (id: string) => {
+  const handleToggleSuggested = useCallback((id: string) => {
     toggleUrl(`https://www.youtube.com/watch?v=${id}`);
-  };
+  }, [toggleUrl]);
 
   return (
     <div className={styles.container}>

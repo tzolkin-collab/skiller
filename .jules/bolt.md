@@ -1,0 +1,3 @@
+## 2024-05-25 - React.memo usage requires useCallback in parent
+**Learning:** Simply wrapping list items like `VideoCard` and `ShortCard` with `React.memo()` is not enough to prevent re-renders if the parent component passes down an inline function or an un-memoized function as a prop (like `onClick`). This is because the function reference changes on every parent re-render, causing the shallow prop comparison in `React.memo` to fail.
+**Action:** When adding `React.memo` to a component that accepts callback functions, always verify and update the parent component to wrap the passed callbacks in `useCallback`.
