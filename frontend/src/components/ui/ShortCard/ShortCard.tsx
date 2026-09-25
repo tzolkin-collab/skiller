@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Play, Plus, Check } from 'lucide-react';
@@ -13,7 +14,7 @@ interface ShortCardProps {
   isSelected?: boolean;
 }
 
-export function ShortCard({ videoId, title, channel, views, onClick, isSubmitting, isSelected }: ShortCardProps) {
+export const ShortCard = memo(function ShortCard({ videoId, title, channel, views, onClick, isSubmitting, isSelected }: ShortCardProps) {
   const router = useRouter();
   const params = useParams();
   const lang = params.lang || 'en';
@@ -62,4 +63,4 @@ export function ShortCard({ videoId, title, channel, views, onClick, isSubmittin
       </div>
     </div>
   );
-}
+});
