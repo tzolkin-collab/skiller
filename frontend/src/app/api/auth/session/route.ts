@@ -16,7 +16,10 @@ const MAX_AGE = 30 * 24 * 60 * 60; // 30 dias em segundos
 const TOKEN_RE = /^[A-Za-z0-9_-]{32,}$/;
 
 function cookieOpts() {
-  return { httpOnly: true, secure: true, sameSite: 'lax' as const, path: '/', maxAge: MAX_AGE };
+  // `secure` só em produção: em `http://localhost` ele impede o navegador de
+  // aceitar o cookie, e o login nunca fica gravado em dev sem HTTPS/túnel.
+  const secure = process.env.NODE_ENV === 'production';
+  return { httpOnly: true, secure, sameSite: 'lax' as const, path: '/', maxAge: MAX_AGE };
 }
 
 /** OAuth redirect: GET /api/auth/session?token=XXX&next=/pt/dashboard */
