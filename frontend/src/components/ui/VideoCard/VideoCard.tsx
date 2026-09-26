@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Play, Plus, Check, ThumbsUp, MessageCircle, TrendingUp } from 'lucide-react';
@@ -21,7 +22,9 @@ interface VideoCardProps {
   isSelected?: boolean;
 }
 
-export function VideoCard({ videoId, title, channel, channelAvatar, subscribers, views, timeAgo, duration, likes, comments, engagement, onClick, isSubmitting, isSelected }: VideoCardProps) {
+// ⚡ Bolt Optimization: Use React.memo to prevent VideoCard re-renders when parent lists update
+// Impact: Drastically reduces unneeded component lifecycles in large Dashboard lists
+export const VideoCard = React.memo(function VideoCard({ videoId, title, channel, channelAvatar, subscribers, views, timeAgo, duration, likes, comments, engagement, onClick, isSubmitting, isSelected }: VideoCardProps) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -107,5 +110,5 @@ export function VideoCard({ videoId, title, channel, channelAvatar, subscribers,
       </div>
     </div>
   );
-}
+});
 
