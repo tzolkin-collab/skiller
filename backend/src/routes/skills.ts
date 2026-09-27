@@ -252,21 +252,27 @@ skillsRouter.get('/', async (c) => {
     const filtro = and(...conditions);
 
     const rows = await db
-      .select()
+      .select({
+        id: skills.id,
+        playlistUrl: skills.playlistUrl,
+        playlistTitle: skills.playlistTitle,
+        channelName: skills.channelName,
+        channelId: skills.channelId,
+        channelImageUrl: skills.channelImageUrl,
+        name: skills.name,
+        description: skills.description,
+        targetFormat: skills.targetFormat,
+        version: skills.version,
+        status: skills.status,
+        createdAt: skills.createdAt,
+        updatedAt: skills.updatedAt,
+        niche: sql<string>`${skills.skillDocument}->>'niche'`,
+      })
       .from(skills)
       .where(filtro ?? undefined)
       .orderBy(desc(skills.createdAt));
 
-    // Injeta o `niche` do skillDocument no shape retornado, sem alterar o schema.
-    const withNiche = rows.map((row) => {
-      const doc = row.skillDocument as Record<string, unknown> | null;
-      return {
-        ...row,
-        niche: (doc?.niche as string | undefined) ?? null,
-      };
-    });
-
-    return c.json(withNiche);
+    return c.json(rows);
   } catch (error: unknown) {
     console.error('GET /api/skills failed:', error);
     return c.json({ error: getErrorMessage(error) }, 500);
