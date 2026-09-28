@@ -337,6 +337,7 @@ export const skills = pgTable('skills', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => [
+  index('skills_user_id_idx').on(table.userId),
   check('skills_status_check', sql`${table.status} IN ('queued', 'processing', 'extracting', 'synthesizing', 'completed', 'failed')`),
 ]);
 
