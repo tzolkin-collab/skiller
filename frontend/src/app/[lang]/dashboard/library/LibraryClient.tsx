@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
 import useSWR from 'swr';
 import Link from 'next/link';
@@ -33,7 +33,10 @@ const NICHE_COLOR: Record<SkillNiche, string> = {
 };
 
 // ─── Skill Card ──────────────────────────────────────────────────────────────
-function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
+// ⚡ Bolt Optimization: Added React.memo to prevent unnecessary re-renders of the skill list
+// when typing in the search bar or toggling the filter modal. Impact: significantly fewer
+// React updates, saving CPU cycles and reducing latency on large lists.
+const SkillCard = memo(function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
   const niche = skill.niche as SkillNiche | null | undefined;
   const nicheColor = niche ? NICHE_COLOR[niche] : 'var(--accent-primary)';
   const nicheLabel = niche ? NICHE_LABEL[niche] : null;
@@ -94,7 +97,7 @@ function SkillCard({ skill, lang }: { skill: SkillSummary; lang: string }) {
       </div>
     </Link>
   );
-}
+});
 
 // ─── Filter Modal ─────────────────────────────────────────────────────────────
 interface FilterModalProps {
@@ -125,7 +128,9 @@ interface FilterModalProps {
   };
 }
 
-function FilterModal({
+// ⚡ Bolt Optimization: Wrapped in React.memo to avoid re-evaluating the modal subtree
+// on every keystroke in the LibraryClient search input.
+const FilterModal = memo(function FilterModal({
   open, onClose,
   searchInput, onSearchChange,
   nicheFilter, onNicheChange,
@@ -303,7 +308,7 @@ function FilterModal({
       </div>
     </>
   );
-}
+});
 
 // ─── Library Client ───────────────────────────────────────────────────────────
 export default function LibraryClient({ dict, lang }: LibraryClientProps) {
@@ -362,12 +367,16 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
 
   const hasActiveFilters = !!debouncedSearch || !!sourceFilter || !!nicheFilter;
 
-  const clearFilters = () => {
+  // ⚡ Bolt Optimization: Memoized with useCallback so we don't recreate these functions
+  // on every render, keeping the props to React.memo components stable.
+  const clearFilters = useCallback(() => {
     setSearchInput('');
     setDebouncedSearch('');
     setSourceFilter(null);
     setNicheFilter(null);
-  };
+  }, []);
+
+  const handleCloseFilter = useCallback(() => setFilterOpen(false), []);
 
   // Conta filtros ativos (para o badge)
   const activeFilterCount = [debouncedSearch, sourceFilter, nicheFilter].filter(Boolean).length;
@@ -452,7 +461,7 @@ export default function LibraryClient({ dict, lang }: LibraryClientProps) {
       {/* Modal de filtro */}
       {filterOpen && <FilterModal
         open={filterOpen}
-        onClose={() => setFilterOpen(false)}
+        onClose={handleCloseFilter}
         searchInput={searchInput}
         onSearchChange={setSearchInput}
         nicheFilter={nicheFilter}
