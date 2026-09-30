@@ -1,0 +1,1 @@
+CREATE INDEX "skills_user_idx" ON "skills" USING btree ("user_id");
