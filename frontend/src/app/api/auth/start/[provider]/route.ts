@@ -38,7 +38,7 @@ export async function GET(
   const destino = new URL(`${backend()}/api/auth/${provider}/start`);
   // So' caminho interno: `next` volta como redirect depois do login, e aceitar
   // URL absoluta aqui teria o mesmo problema de redirecionador aberto.
-  if (proximo?.startsWith('/')) destino.searchParams.set('next', proximo);
+  if (proximo?.startsWith('/') && !proximo.startsWith('//')) destino.searchParams.set('next', proximo);
 
   return NextResponse.redirect(destino);
 }
