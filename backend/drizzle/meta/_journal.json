@@ -169,6 +169,13 @@
       "when": 1788881765368,
       "tag": "0023_left_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791269015003,
+      "tag": "0024_lazy_blue_blade",
+      "breakpoints": true
     }
   ]
 }
