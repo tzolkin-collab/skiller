@@ -1,0 +1,3 @@
+## 2026-10-16 - Drizzle ORM Foreign Key Indexes
+**Learning:** Drizzle ORM does not automatically create database indexes for foreign key constraints in Postgres, which can lead to sequential scans and severe performance degradation when querying by foreign key or when cascading deletes occur.
+**Action:** Always explicitly define indexes using `index('idx_name').on(table.column)` in schema definitions when adding new foreign key columns in Drizzle schemas to prevent sequential scans.
