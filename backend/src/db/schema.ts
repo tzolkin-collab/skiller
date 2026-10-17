@@ -180,6 +180,7 @@ export const mcpDevices = pgTable('mcp_devices', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
+  index('mcp_devices_user_idx').on(table.userId),
   check('mcp_devices_status_check', sql`${table.status} IN ('pending', 'authorized', 'expired')`),
 ]);
 
@@ -269,6 +270,7 @@ export const mcpSessions = pgTable('mcp_sessions', {
   // `abandoned` e' sessao que ninguem terminou — agente sumiu, aba fechada.
   // Separado de `error` porque nao houve falha: distinguir os dois e' o que
   // permite ao painel nao pintar desistencia como quebra.
+  index('mcp_sessions_user_idx').on(table.userId),
   check('mcp_sessions_status_check', sql`${table.status} IN ('open', 'done', 'error', 'abandoned')`),
   check('mcp_sessions_awaiting_check', sql`${table.awaiting} IS NULL OR ${table.awaiting} IN ('sources')`),
 ]);
@@ -284,6 +286,7 @@ export const mcpSessionEvents = pgTable('mcp_session_events', {
   detail: jsonb('detail'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
+  index('mcp_session_events_session_idx').on(table.sessionId),
   check('mcp_session_events_kind_check', sql`${table.kind} IN ('info', 'ok', 'warn', 'error')`),
 ]);
 
@@ -296,7 +299,9 @@ export const oauthConnections = pgTable('oauth_connections', {
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('oauth_connections_user_idx').on(table.userId),
+]);
 
 export const skills = pgTable('skills', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -337,6 +342,7 @@ export const skills = pgTable('skills', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => [
+  index('skills_user_idx').on(table.userId),
   check('skills_status_check', sql`${table.status} IN ('queued', 'processing', 'extracting', 'synthesizing', 'completed', 'failed')`),
 ]);
 
@@ -382,7 +388,9 @@ export const pipelineLogs = pgTable('pipeline_logs', {
   estimatedCostMicroUsd: integer('estimated_cost_micro_usd'),
   totalDurationMs: integer('total_duration_ms'),
   createdAt: timestamp('created_at').defaultNow().notNull()
-});
+}, (table) => [
+  index('pipeline_logs_skill_idx').on(table.skillId),
+]);
 
 
 // ============================================================================
