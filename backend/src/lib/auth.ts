@@ -41,14 +41,23 @@ export async function hashSenha(senha: string): Promise<string> {
 }
 
 /**
+ * Hash falso usado para mitigar ataques de tempo (timing attacks).
+ * Se o usuário não existe, computamos contra este hash para que a
+ * resposta leve sempre o mesmo tempo.
+ */
+const DUMMY_HASH = 'scrypt$32768$8$1$tOGbDLmjVfxbaATuctutWA==$ysOiR5lzgtko0uO51rVHp1aSGCXz8DbenwDr8Yx9goQ=';
+
+/**
  * Confere a senha.
  *
  * Os parâmetros saem do próprio hash, e não da constante: assim aumentar o
  * custo no futuro não invalida quem já tem senha cadastrada.
  */
 export async function conferirSenha(senha: string, guardado: string | null): Promise<boolean> {
-  if (!guardado) return false;
-  const partes = guardado.split('$');
+  const realHash = Boolean(guardado);
+  const hashParaVerificar = guardado || DUMMY_HASH;
+
+  const partes = hashParaVerificar.split('$');
   if (partes.length !== 6 || partes[0] !== 'scrypt') return false;
 
   const [, n, r, p, salB64, hashB64] = partes;
@@ -58,7 +67,8 @@ export async function conferirSenha(senha: string, guardado: string | null): Pro
       N: Number(n), r: Number(r), p: Number(p), maxmem: SCRYPT.maxmem,
     });
     // Comparação em tempo constante: `===` vazaria o tamanho do prefixo correto.
-    return crypto.timingSafeEqual(derivado, esperado);
+    const valid = crypto.timingSafeEqual(derivado, esperado);
+    return realHash && valid;
   } catch {
     return false;
   }
