@@ -309,7 +309,7 @@ authRouter.get('/:provider/callback', async (c) => {
   // Redireciona para a bridge do Next.js, que seta o mesmo token no domínio do
   // frontend. O middleware do Next.js e o exigirSessao (Server Components) só
   // enxergam cookies do domínio deles — sem a bridge eles redirecionam pro /entrar.
-  const destino = guardado.proximo.startsWith('/') ? guardado.proximo : '/pt/dashboard';
+  const destino = guardado.proximo.startsWith('/') && !guardado.proximo.startsWith('//') && !guardado.proximo.startsWith('/\\') ? guardado.proximo : '/pt/dashboard';
   return c.redirect(`${appUrl()}/api/auth/session?token=${encodeURIComponent(token)}&next=${encodeURIComponent(destino)}`);
 });
 
@@ -433,7 +433,7 @@ authRouter.post('/magic-link', async (c) => {
   if (!existente) await vincularIdentidade(conta.id, 'email', email, email);
 
   const token = await emitirTokenEmail(conta.id, 'magic_link');
-  const destino = b.next?.startsWith('/') ? b.next : '/pt/dashboard';
+  const destino = typeof b.next === 'string' && b.next.startsWith('/') && !b.next.startsWith('//') && !b.next.startsWith('/\\') ? b.next : '/pt/dashboard';
   const t = tpl.linkMagico(`${appUrl()}/pt/entrar/link?token=${token}&next=${encodeURIComponent(destino)}`);
   await enviarEmail({ para: email, template: 'link_magico', userId: conta.id, assunto: t.assunto, html: t.html, texto: t.texto });
 
