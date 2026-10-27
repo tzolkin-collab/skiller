@@ -181,6 +181,7 @@ export const mcpDevices = pgTable('mcp_devices', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   check('mcp_devices_status_check', sql`${table.status} IN ('pending', 'authorized', 'expired')`),
+  index('mcp_devices_user_idx').on(table.userId),
 ]);
 
 /**
@@ -232,6 +233,7 @@ export const oauthTokens = pgTable('oauth_tokens', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('oauth_tokens_user_idx').on(table.userId),
+  index('oauth_tokens_client_idx').on(table.clientId),
   index('oauth_tokens_access_idx').on(table.accessToken),
   index('oauth_tokens_refresh_idx').on(table.refreshToken),
 ]);
@@ -271,6 +273,7 @@ export const mcpSessions = pgTable('mcp_sessions', {
   // permite ao painel nao pintar desistencia como quebra.
   check('mcp_sessions_status_check', sql`${table.status} IN ('open', 'done', 'error', 'abandoned')`),
   check('mcp_sessions_awaiting_check', sql`${table.awaiting} IS NULL OR ${table.awaiting} IN ('sources')`),
+  index('mcp_sessions_user_idx').on(table.userId),
 ]);
 
 /** Uma linha do tempo por sessão. Append-only: evento não se edita. */
@@ -285,6 +288,7 @@ export const mcpSessionEvents = pgTable('mcp_session_events', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   check('mcp_session_events_kind_check', sql`${table.kind} IN ('info', 'ok', 'warn', 'error')`),
+  index('mcp_session_events_session_idx').on(table.sessionId),
 ]);
 
 export const oauthConnections = pgTable('oauth_connections', {
@@ -296,7 +300,9 @@ export const oauthConnections = pgTable('oauth_connections', {
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index('oauth_connections_user_idx').on(table.userId),
+]);
 
 export const skills = pgTable('skills', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -338,6 +344,7 @@ export const skills = pgTable('skills', {
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 }, (table) => [
   check('skills_status_check', sql`${table.status} IN ('queued', 'processing', 'extracting', 'synthesizing', 'completed', 'failed')`),
+  index('skills_user_idx').on(table.userId),
 ]);
 
 export const skillVideos = pgTable('skill_videos', {
@@ -382,7 +389,9 @@ export const pipelineLogs = pgTable('pipeline_logs', {
   estimatedCostMicroUsd: integer('estimated_cost_micro_usd'),
   totalDurationMs: integer('total_duration_ms'),
   createdAt: timestamp('created_at').defaultNow().notNull()
-});
+}, (table) => [
+  index('pipeline_logs_skill_idx').on(table.skillId),
+]);
 
 
 // ============================================================================
