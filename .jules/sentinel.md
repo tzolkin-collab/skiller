@@ -1,0 +1,4 @@
+## 2024-11-20 - Protocol-Relative URL Open Redirect
+**Vulnerability:** Open Redirect via Protocol-Relative URLs (`//` or `/\`). The application checked if the redirect parameter `next` started with `/`, but failed to consider protocol-relative URLs which also start with `/`. This allowed attackers to bypass the local path check and redirect users to external domains.
+**Learning:** Using `startsWith('/')` is insufficient to guarantee that a URL is a local, relative path because `//example.com` or `/\example.com` will evaluate to `true` while still instructing the browser to navigate to `example.com`.
+**Prevention:** When validating relative paths for redirection, ensure to explicitly block `//` and `/\` in addition to checking `startsWith('/')`. Example check: `next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')`.
