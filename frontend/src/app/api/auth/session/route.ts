@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/pt/entrar?erro=token_invalido', req.url));
   }
 
-  const destino = next.startsWith('/') ? next : '/pt/dashboard';
+  const isSafeNext = next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\');
+  const destino = isSafeNext ? next : '/pt/dashboard';
   const res = NextResponse.redirect(new URL(destino, req.url));
   res.cookies.set(COOKIE, token, cookieOpts());
   return res;
